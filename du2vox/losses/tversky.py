@@ -105,6 +105,10 @@ def weighted_mse_loss(pred: torch.Tensor, target: torch.Tensor, fg_thresh: float
     return (weight * (pred - target) ** 2).mean()
 
 
+# Module-level instances to avoid repeated allocation
+_tversky_loss = TverskyLoss(alpha=0.1, beta=0.9)
+
+
 def criterion(
     pred: torch.Tensor,
     label: torch.Tensor,
@@ -120,6 +124,5 @@ def criterion(
     pred, label: (B, N, 1), values in [0, 1] after model output clamp
     nodes: (N, 3) — not used but kept for compatibility
     """
-    tversky = TverskyLoss(alpha=0.1, beta=0.9)
     mse = weighted_mse_loss(pred, label)
-    return weight_tversky * tversky(pred, label) + weight_mse * mse
+    return weight_tversky * _tversky_loss(pred, label) + weight_mse * mse

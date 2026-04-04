@@ -74,6 +74,9 @@ class FMTSimGenDataset(Dataset):
             # Load with actual shape from file (not hardcoded)
             # b: [n_surface, 1], gt: [n_nodes, 1]
             b = torch.tensor(np.load(b_path), dtype=torch.float32).unsqueeze(-1)
+            b_max = b.max()
+            if b_max > 1e-8:
+                b = b / b_max
             gt = np.load(gt_path)
             gt_max = gt.max()
             if gt_max > 1e-8:

@@ -127,6 +127,7 @@ def train():
     start_epoch = 1
     best_val_loss = float("inf")
     best_dice = 0.0
+    epochs_without_improvement = 0
     if args.resume and os.path.exists(args.resume):
         print(f"Resuming from {args.resume}")
         ckpt = torch.load(args.resume, map_location="cuda")
@@ -140,6 +141,7 @@ def train():
             start_epoch = ckpt.get("epoch", 0) + 1
             best_val_loss = ckpt.get("best_val_loss", float("inf"))
             best_dice = ckpt.get("best_dice", 0.0)
+            epochs_without_improvement = ckpt.get("epochs_without_improvement", 0)
         else:
             # Plain state_dict (old format)
             model.load_state_dict(ckpt)
@@ -192,6 +194,20 @@ def train():
 
         scheduler.step(val_loss_mean)
 
+        # Early stopping
+        early_stop = train_cfg.get("early_stopping", {})
+        patience = early_stop.get("patience", 0)
+        if patience > 0:
+            monitor = early_stop.get("monitor", "val_dice_03")
+            current_val = current_dice if "dice" in monitor else val_loss_mean
+            if current_val < best_dice if "dice" in monitor else current_val > best_val_loss:
+                epochs_without_improvement += 1
+                if epochs_without_improvement >= patience:
+                    print(f"\nEarly stopping triggered after {epoch} epochs (no improvement for {patience} epochs)")
+                    break
+            else:
+                epochs_without_improvement = 0
+
         # Every 10 epochs or last epoch: full metrics
         if epoch % 10 == 0 or epoch == train_cfg["max_epochs"]:
             print(
@@ -226,6 +242,7 @@ def train():
             "scheduler_state_dict": scheduler.state_dict(),
             "best_val_loss": best_val_loss,
             "best_dice": best_dice,
+            "epochs_without_improvement": epochs_without_improvement,
         }, latest_path)
 
         # Save best checkpoint when Dice improves
@@ -240,6 +257,7 @@ def train():
                 "scheduler_state_dict": scheduler.state_dict(),
                 "best_val_loss": best_val_loss,
                 "best_dice": best_dice,
+                "epochs_without_improvement": epochs_without_improvement,
             }, ckpt_path)
             print(f"  -> Saved best model (Dice={current_dice:.4f}) to {ckpt_path}")
 

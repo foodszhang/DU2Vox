@@ -7,7 +7,8 @@ data:
   # Point to FMT-SimGen output directory
   data_root: /home/foods/pro/FMT-SimGen/output
   shared_dir: ${data.data_root}/shared
-  samples_dir: ${data.data_root}/samples
+  # Samples are in data/samples (1000-sample run uses data/samples)
+  samples_dir: /home/foods/pro/FMT-SimGen/data/samples
   # Splits remain in FMT-SimGen train/splits directory
   splits_dir: /home/foods/pro/FMT-SimGen/train/splits
 
