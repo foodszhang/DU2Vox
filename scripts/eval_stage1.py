@@ -2,10 +2,11 @@
 """
 Evaluate trained MS-GDUN model on FMT-SimGen dataset.
 
-Supports per-foci-type metric aggregation when dataset_manifest.json is available.
+Supports per-foci-type and per-depth-tier metric aggregation when dataset_manifest.json is available.
 
 Usage:
-    python scripts/eval_stage1.py --config configs/stage1/gcain_full.yaml --checkpoint checkpoints/best.pth
+    python scripts/eval_stage1.py --config configs/stage1/gcain_full_1000.yaml --checkpoint checkpoints/best.pth
+    python scripts/eval_stage1.py --config configs/stage1/gcain_full_1000.yaml --checkpoint checkpoints/best.pth --output results/baseline.json
 """
 
 import argparse
@@ -20,14 +21,18 @@ from du2vox.models.stage1.gcain import GCAIN_full
 from du2vox.data.dataset import FMTSimGenDataset
 from du2vox.evaluation.metrics import evaluate_batch, summarize_metrics
 from du2vox.evaluation.per_foci import (
-    load_manifest, get_sample_names, group_metrics_by_foci,
-    format_metrics_table,
+    load_manifest, get_sample_names, grouped_evaluation,
 )
 
 
-def evaluate(checkpoint_path: str | Path, split: str = "val", config_path: str | Path | None = None):
+def evaluate(
+    checkpoint_path: str | Path,
+    split: str = "val",
+    config_path: str | Path | None = None,
+    output_path: Path | None = None,
+):
     if config_path is None:
-        config_path = Path("configs/stage1/gcain_full.yaml")
+        config_path = Path("configs/stage1/gcain_full_1000.yaml")
 
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
@@ -68,10 +73,13 @@ def evaluate(checkpoint_path: str | Path, split: str = "val", config_path: str |
     ).cuda()
 
     checkpoint = torch.load(checkpoint_path, map_location="cuda")
-    model.load_state_dict(checkpoint["model_state_dict"])
+    if "model_state_dict" in checkpoint:
+        model.load_state_dict(checkpoint["model_state_dict"])
+    else:
+        model.load_state_dict(checkpoint)
     model.eval()
 
-    # Load manifest for per-foci grouping
+    # Load manifest for per-foci/depth grouping
     manifest = load_manifest(samples_dir)
     sample_names = get_sample_names(split_file) if manifest else None
 
@@ -94,34 +102,36 @@ def evaluate(checkpoint_path: str | Path, split: str = "val", config_path: str |
                 all_sample_names.extend(sample_names[:batch_size])
                 sample_names = sample_names[batch_size:]
 
-    summary = summarize_metrics(all_metrics)
-    print(f"\n=== {split.upper()} Results ===")
-    print(f"Dice:            {summary['dice']:.4f}")
-    print(f"Location Error:  {summary['location_error']:.4f} mm")
-    print(f"MSE:             {summary['mse']:.6f}")
+    # Run grouped evaluation
+    if manifest:
+        grouped_evaluation(all_metrics, all_sample_names, manifest, output_path)
+    else:
+        # Just print overall metrics
+        summary = summarize_metrics(all_metrics)
+        print(f"\n=== {split.upper()} Results ===")
+        print(f"Dice:            {summary['dice']:.4f}")
+        print(f"Dice_bin@0.3:    {summary['dice_bin_0.3']:.4f}")
+        print(f"Dice_bin@0.1:    {summary['dice_bin_0.1']:.4f}")
+        print(f"Recall@0.1:      {summary['recall_0.1']:.4f}")
+        print(f"Recall@0.3:      {summary['recall_0.3']:.4f}")
+        print(f"Precision@0.3:   {summary['precision_0.3']:.4f}")
+        print(f"Location Error:  {summary['location_error']:.4f} mm")
+        print(f"MSE:             {summary['mse']:.6f}")
 
-    # Per-foci breakdown
-    if manifest and all_sample_names:
-        # Group by foci
-        metrics_by_foci = group_metrics_by_foci(all_metrics, all_sample_names, manifest)
-
-        # Compute summaries
-        overall = summarize_metrics(all_metrics)
-        foci_summaries = {}
-        for n in [1, 2, 3]:
-            if metrics_by_foci[n]:
-                foci_summaries[n] = summarize_metrics(metrics_by_foci[n])
-            else:
-                foci_summaries[n] = None
-
-        print(f"\n=== Per-Foci Breakdown ===")
-        print(format_metrics_table(overall, foci_summaries))
+        if output_path:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(output_path, "w") as f:
+                json.dump({"overall": summary, "n_samples": len(all_metrics)}, f, indent=2)
+            print(f"\nResults saved to {output_path}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, default="configs/stage1/gcain_full.yaml")
+    parser.add_argument("--config", type=str, default="configs/stage1/gcain_full_1000.yaml")
     parser.add_argument("--checkpoint", type=str, required=True, help="Path to checkpoint")
     parser.add_argument("--split", type=str, default="val", choices=["train", "val"])
+    parser.add_argument("--output", type=str, default=None, help="Output JSON path")
     args = parser.parse_args()
-    evaluate(args.checkpoint, args.split, args.config)
+
+    output_path = Path(args.output) if args.output else None
+    evaluate(args.checkpoint, args.split, args.config, output_path)
