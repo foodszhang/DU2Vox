@@ -56,7 +56,14 @@ class InputBlock(nn.Module):
 
 
 class AdaptiveThreshold(nn.Module):
-    """Node-wise adaptive sparse threshold λ_i."""
+    """Node-wise adaptive sparse threshold — gradient-friendly version.
+
+    Replaces sign(u) * softplus(|u| - λ) with soft shrinkage:
+    out = u * sigmoid(k * (|u| - λ))
+    - When |u| >> λ: sigmoid → 1, out ≈ u (preserve signal)
+    - When |u| << λ: sigmoid → 0, out ≈ 0 (sparse suppression)
+    - Gradients flow through both u and gate paths, never zeroed by sign()
+    """
 
     def __init__(self, feat_dim: int):
         super().__init__()
@@ -66,11 +73,14 @@ class AdaptiveThreshold(nn.Module):
             nn.Linear(feat_dim // 2, 1),
             nn.Softplus(),
         )
+        self.k = 10.0  # sigmoid sharpness — higher = closer to hard threshold
+        nn.init.constant_(self.net[2].bias, -3.0)  # init λ ≈ 0.05 at start
 
     def forward(self, u: torch.Tensor, feat: torch.Tensor) -> torch.Tensor:
         """u: [B, N, 1], feat: [B, N, C]"""
-        lam = self.net(feat)  # [B, N, 1]
-        return torch.sign(u) * F.softplus(torch.abs(u) - lam)
+        lam = self.net(feat)  # [B, N, 1], always positive
+        gate = torch.sigmoid(self.k * (torch.abs(u) - lam))
+        return u * gate  # gradients flow through both u and gate
 
 
 class UpdateBlock(nn.Module):
