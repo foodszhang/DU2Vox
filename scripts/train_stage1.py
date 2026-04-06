@@ -1,23 +1,24 @@
 #!/usr/bin/env python3
 """
 MS-GDUN training script for FMT-SimGen.
+ALL parameters are read from the config file — no hardcoding.
 
 Usage:
-    python scripts/train_stage1.py --config configs/stage1/gcain_full.yaml
-    python scripts/train_stage1.py --config configs/stage1/gcain_full.yaml --resume checkpoints/best.pth
+    python scripts/train_stage1.py --config configs/stage1/gaussian_1000.yaml
+    python scripts/train_stage1.py --config configs/stage1/gaussian_1000.yaml --resume runs/gcain_gaussian_1000/checkpoints/best.pth
 """
 
 import argparse
 import os
+import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
 
 import yaml
 import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ReduceLROnPlateau
 
 from du2vox.models.stage1.gcain import GCAIN_full
 from du2vox.data.dataset import FMTSimGenDataset
@@ -30,85 +31,139 @@ class DualLogger:
 
     def __init__(self, filepath):
         self.terminal = sys.stdout
-        self.file = open(filepath, "a", encoding="utf-8", buffering=1)  # line-buffered
+        self.file = open(filepath, "a", encoding="utf-8", buffering=1)
 
     def write(self, msg):
         self.terminal.write(msg)
         self.terminal.flush()
         self.file.write(msg)
-        self.file.flush()  # force flush to avoid buffer loss
+        self.file.flush()
 
     def flush(self):
         self.terminal.flush()
         self.file.flush()
 
 
+def load_config(path: str | Path) -> dict:
+    with open(path) as f:
+        return yaml.safe_load(f)
+
+
+def build_activation_fn(activation: str, leaky_slope: float):
+    """Return a callable that applies the configured output activation."""
+    if activation == "sigmoid":
+        return lambda x: torch.sigmoid(x)
+    elif activation == "leaky_relu":
+        def fn(x):
+            return torch.nn.functional.leaky_relu(x, negative_slope=leaky_slope).clamp(max=1.0)
+        return fn
+    else:
+        return lambda x: x.clamp(min=0.0, max=1.0)
+
+
+def build_scheduler(sched_cfg: dict, optimizer):
+    sched_type = sched_cfg.get("type", "CosineAnnealingWarmRestarts")
+    if sched_type == "CosineAnnealingWarmRestarts":
+        return CosineAnnealingWarmRestarts(
+            optimizer,
+            T_0=sched_cfg.get("T_0", 50),
+            T_mult=sched_cfg.get("T_mult", 2),
+            eta_min=sched_cfg.get("eta_min", 1e-6),
+        )
+    elif sched_type == "ReduceLROnPlateau":
+        return ReduceLROnPlateau(
+            optimizer,
+            mode="min",
+            patience=sched_cfg.get("patience", 10),
+            factor=sched_cfg.get("factor", 0.5),
+        )
+    else:
+        raise ValueError(f"Unknown scheduler type: {sched_type}")
+
+
 def train():
     parser = argparse.ArgumentParser(description="MS-GDUN training for FMT-SimGen")
     parser.add_argument(
-        "--config", type=str, default="configs/stage1/gcain_full.yaml",
+        "--config", type=str, required=True,
     )
     parser.add_argument(
-        "--resume",
-        type=str,
-        default=None,
-        help="Path to checkpoint to resume from",
+        "--resume", type=str, default=None,
     )
     args = parser.parse_args()
 
-    # Load config
-    with open(args.config) as f:
-        cfg = yaml.safe_load(f)
+    # ── Load config ──
+    cfg = load_config(args.config)
 
+    exp_cfg = cfg["experiment"]
+    data_cfg = cfg["data"]
     model_cfg = cfg["model"]
     train_cfg = cfg["training"]
-    paths_cfg = cfg["paths"]
+    loss_cfg = cfg["loss"]
+    log_cfg = cfg.get("logging", {})
 
-    shared_dir = Path(paths_cfg["shared_dir"])
-    samples_dir = Path(paths_cfg["samples_dir"])
-    splits_dir = Path(paths_cfg["splits_dir"])
-    checkpoint_dir = Path(paths_cfg.get("checkpoint_dir", "checkpoints"))
+    # ── Experiment output directory ──
+    run_dir = Path("runs") / exp_cfg["name"]
+    checkpoint_dir = run_dir / "checkpoints"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+    # Copy config into experiment dir for reproducibility
+    shutil.copy2(args.config, run_dir / "config.yaml")
 
     # ── Log file setup ──
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_path = checkpoint_dir / f"train_{timestamp}.log"
+    log_path = run_dir / f"train_{timestamp}.log"
     sys.stdout = DualLogger(log_path)
+
     print(f"[LOG] Logging to {log_path}")
     print(f"[LOG] Started at {datetime.now().isoformat()}")
     print(f"[LOG] Config: {args.config}")
+    print(f"[LOG] Experiment: {exp_cfg['name']}")
+    print(f"[LOG] Output dir: {run_dir}")
 
-    # Dataset
+    # ── Data paths ──
+    shared_dir = Path(data_cfg["shared_dir"])
+    samples_dir = Path(data_cfg["samples_dir"])
+    splits_dir = Path(data_cfg["splits_dir"])
+
+    # ── Dataset ──
     train_set = FMTSimGenDataset(
         shared_dir=shared_dir,
         samples_dir=samples_dir,
         split_file=splits_dir / "train.txt",
+        normalize_b=data_cfg.get("normalize_b", True),
+        normalize_gt=data_cfg.get("normalize_gt", True),
+        binarize_gt=data_cfg.get("binarize_gt", False),
+        binarize_threshold=data_cfg.get("binarize_threshold", 0.05),
     )
     val_set = FMTSimGenDataset(
         shared_dir=shared_dir,
         samples_dir=samples_dir,
         split_file=splits_dir / "val.txt",
+        normalize_b=data_cfg.get("normalize_b", True),
+        normalize_gt=data_cfg.get("normalize_gt", True),
+        binarize_gt=data_cfg.get("binarize_gt", False),
+        binarize_threshold=data_cfg.get("binarize_threshold", 0.05),
     )
 
-    train_loader = DataLoader(train_set, batch_size=train_cfg["batch_size"], shuffle=True)
-    val_loader = DataLoader(val_set, batch_size=train_cfg["batch_size"], shuffle=False)
+    train_loader = DataLoader(
+        train_set,
+        batch_size=train_cfg["batch_size"],
+        shuffle=True,
+    )
+    val_loader = DataLoader(
+        val_set,
+        batch_size=train_cfg["batch_size"],
+        shuffle=False,
+    )
 
     n_nodes = train_set.nodes.shape[0]
     n_surface = train_set.A.shape[0]
     print(f"Train: {len(train_set)} samples, Val: {len(val_set)} samples")
     print(f"Shared assets: {n_nodes} nodes, {n_surface} surface nodes")
 
-    # Verify config matches
-    cfg_n_nodes = model_cfg.get("n_nodes", n_nodes)
-    if cfg_n_nodes != n_nodes:
-        print(f"WARNING: config n_nodes={cfg_n_nodes} != actual {n_nodes}, using actual")
-    cfg_n_surface = model_cfg.get("n_surface", n_surface)
-    if cfg_n_surface != n_surface:
-        print(f"WARNING: config n_surface={cfg_n_surface} != actual {n_surface}, using actual")
-
-    # Move shared assets to GPU
-    A = train_set.A.cuda()           # [S, N]
-    L = train_set.L.cuda()           # [N, N]
+    # ── Move shared assets to GPU ──
+    A = train_set.A.cuda()
+    L = train_set.L.cuda()
     L0 = train_set.L0.cuda()
     L1 = train_set.L1.cuda()
     L2 = train_set.L2.cuda()
@@ -120,14 +175,10 @@ def train():
     print(f"A GPU memory: {A.element_size() * A.nelement() / 1e6:.1f} MB")
     print(f"L (dense) GPU memory: {L.element_size() * L.nelement() / 1e6:.1f} MB")
 
-    # Model
+    # ── Model ──
     model = GCAIN_full(
-        L=L,
-        A=A,
-        L0=L0,
-        L1=L1,
-        L2=L2,
-        L3=L3,
+        L=L, A=A,
+        L0=L0, L1=L1, L2=L2, L3=L3,
         knn_idx=knn_idx,
         sens_w=sens_w,
         num_layer=model_cfg["num_layer"],
@@ -137,25 +188,26 @@ def train():
     n_params = sum(p.numel() for p in model.parameters())
     print(f"Model parameters: {n_params:,}")
 
+    # ── Optimizer ──
     optimizer = torch.optim.AdamW(
         model.parameters(),
-        lr=1e-3,
+        lr=train_cfg["lr"],
         weight_decay=train_cfg["weight_decay"],
     )
 
-    # CosineAnnealingWarmRestarts: T_0=50 → cycles of 50, 100, 200
-    scheduler = CosineAnnealingWarmRestarts(
-        optimizer,
-        T_0=50,
-        T_mult=2,
-        eta_min=1e-6,
+    # ── Scheduler ──
+    scheduler = build_scheduler(train_cfg["scheduler"], optimizer)
+
+    # ── Activation function ──
+    apply_activation = build_activation_fn(
+        train_cfg.get("activation", "leaky_relu"),
+        train_cfg.get("leaky_relu_slope", 0.01),
     )
 
-    # Resume from checkpoint
+    # ── Resume from checkpoint ──
     start_epoch = 1
     best_val_loss = float("inf")
     best_dice = 0.0
-    epochs_without_improvement = 0
     if args.resume and os.path.exists(args.resume):
         print(f"Resuming from {args.resume}")
         ckpt = torch.load(args.resume, map_location="cuda")
@@ -163,63 +215,76 @@ def train():
             model.load_state_dict(ckpt["model_state_dict"])
             if "optimizer_state_dict" in ckpt:
                 optimizer.load_state_dict(ckpt["optimizer_state_dict"])
-            # Scheduler type changed: skip loading, start fresh with new CAWR
+            # Scheduler is always rebuilt (type may differ across configs)
             start_epoch = ckpt.get("epoch", 0) + 1
             best_val_loss = ckpt.get("best_val_loss", float("inf"))
             best_dice = ckpt.get("best_dice", 0.0)
-            epochs_without_improvement = ckpt.get("epochs_without_improvement", 0)
         else:
             model.load_state_dict(ckpt)
             start_epoch = 1
             print("  (old checkpoint format: starting from epoch 1)")
         print(f"Resumed at epoch {start_epoch}, best_dice={best_dice:.4f}")
-        print(f"NOTE: Using new CosineAnnealingWarmRestarts scheduler from epoch {start_epoch}")
+        print(f"NOTE: Scheduler rebuilt from config at epoch {start_epoch}")
     else:
         print("Starting training from scratch")
 
+    # ── Training loop config ──
+    max_epochs = train_cfg["max_epochs"]
+    grad_clip_norm = train_cfg.get("grad_clip_norm", 1.0)
+    diag_epochs = log_cfg.get("diag_epochs", 3)
+    print_every = log_cfg.get("print_every", 1)
+    detail_every = log_cfg.get("detail_every", 10)
+    milestone_every = log_cfg.get("milestone_every", 50)
+
     # CSV header
-    print("[CSV] epoch,train_loss,val_loss,dice,dice_03,dice_01,recall_01,prec_03,loc_err,mse,pred_max,pred_mean,pred_std,lr")
+    print(
+        "[CSV] epoch,train_loss,val_loss,dice,dice_03,dice_01,"
+        "recall_01,prec_03,loc_err,mse,pred_max,pred_mean,pred_std,lr"
+    )
 
     try:
-        for epoch in range(start_epoch, train_cfg["max_epochs"] + 1):
-            # Training
+        for epoch in range(start_epoch, max_epochs + 1):
+            # ── Training ──
             model.train()
             train_losses = []
             for batch in train_loader:
-                b = batch["b"].cuda()    # [B, S, 1]
-                gt = batch["gt"].cuda() # [B, N, 1]
+                b = batch["b"].cuda()
+                gt = batch["gt"].cuda()
 
                 X0 = torch.zeros(b.size(0), n_nodes, 1, device="cuda")
-                pred = model(X0, b)  # [B, N, 1]
-                pred = torch.nn.functional.leaky_relu(pred, negative_slope=0.01)
-                pred = pred.clamp(max=1.0)
+                pred = model(X0, b)
+                pred = apply_activation(pred)
 
-                loss = criterion(pred, gt, nodes)
+                loss = criterion(
+                    pred, gt, nodes,
+                    weight_tversky=loss_cfg.get("tversky_weight", 0.7),
+                    weight_mse=loss_cfg.get("mse_weight", 0.3),
+                )
 
                 optimizer.zero_grad()
                 loss.backward()
 
-                # Diagnostic output (first 3 epochs)
-                if epoch <= 3:
-                    grad_norms = []
-                    for name, p in model.named_parameters():
-                        if p.grad is not None:
-                            grad_norms.append((name, p.grad.norm().item()))
+                if epoch <= diag_epochs:
+                    grad_norms = [
+                        (n, p.grad.norm().item())
+                        for n, p in model.named_parameters()
+                        if p.grad is not None
+                    ]
                     total_grad = sum(g for _, g in grad_norms)
                     print(f"  [DIAG] total_grad_norm={total_grad:.6f}, "
                           f"pred: min={pred.min():.4f} max={pred.max():.4f} "
                           f"mean={pred.mean():.4f} std={pred.std():.4f}")
                     if total_grad == 0:
-                        print("  [FATAL] gradient all-zero! Fix not effective.")
+                        print("  [FATAL] gradient all-zero!")
                         break
 
-                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip_norm)
                 optimizer.step()
                 train_losses.append(loss.item())
 
             train_loss_mean = sum(train_losses) / len(train_losses)
 
-            # Validation
+            # ── Validation ──
             model.eval()
             val_metrics = []
             val_losses = []
@@ -229,9 +294,12 @@ def train():
                     gt = batch["gt"].cuda()
                     X0 = torch.zeros(b.size(0), n_nodes, 1, device="cuda")
                     pred = model(X0, b)
-                    pred = torch.nn.functional.leaky_relu(pred, negative_slope=0.01)
-                    pred = pred.clamp(max=1.0)
-                    loss = criterion(pred, gt, nodes)
+                    pred = apply_activation(pred)
+                    loss = criterion(
+                        pred, gt, nodes,
+                        weight_tversky=loss_cfg.get("tversky_weight", 0.7),
+                        weight_mse=loss_cfg.get("mse_weight", 0.3),
+                    )
                     val_losses.append(loss.item())
                     val_metrics.append(evaluate_batch(pred, gt, nodes))
 
@@ -239,13 +307,18 @@ def train():
             val_summary = summarize_metrics(val_metrics)
             current_dice = val_summary.get("dice_bin_0.3", 0.0)
 
-            scheduler.step(epoch)
+            # ── Scheduler step ──
+            sched_type = train_cfg["scheduler"].get("type", "CosineAnnealingWarmRestarts")
+            if sched_type == "CosineAnnealingWarmRestarts":
+                scheduler.step(epoch)
+            else:
+                scheduler.step(val_loss_mean)
 
             lr_current = optimizer.param_groups[0]["lr"]
 
-            # ── Structured epoch log (every epoch) ──
+            # ── Epoch log (every epoch) ──
             print(
-                f"Epoch {epoch:03d}/{train_cfg['max_epochs']} | "
+                f"Epoch {epoch:03d}/{max_epochs} | "
                 f"lr={lr_current:.1e} | "
                 f"Train: {train_loss_mean:.4f} | "
                 f"Val: {val_loss_mean:.4f} | "
@@ -259,8 +332,8 @@ def train():
                 f"f>0.1={val_summary.get('pred_frac_0.1', 0):.3f}"
             )
 
-            # ── Detailed val output every 10 epochs ──
-            if epoch % 10 == 0 or epoch == train_cfg["max_epochs"]:
+            # ── Detailed val output ──
+            if epoch % detail_every == 0 or epoch == max_epochs:
                 print(f"  ── Val Detail ──")
                 print(f"  Dice_bin@0.5: {val_summary.get('dice_bin_0.5', 0):.4f}")
                 print(f"  Dice_bin@0.3: {val_summary.get('dice_bin_0.3', 0):.4f}")
@@ -275,7 +348,7 @@ def train():
                 print(f"  pred_frac>0.1:{val_summary.get('pred_frac_0.1', 0):.4f}")
                 print(f"  ───────────────")
 
-            # Save latest checkpoint
+            # ── Save latest ──
             latest_path = checkpoint_dir / "latest.pth"
             torch.save({
                 "epoch": epoch,
@@ -284,10 +357,9 @@ def train():
                 "scheduler_state_dict": scheduler.state_dict(),
                 "best_val_loss": best_val_loss,
                 "best_dice": best_dice,
-                "epochs_without_improvement": epochs_without_improvement,
             }, latest_path)
 
-            # Save best checkpoint
+            # ── Save best ──
             if current_dice > best_dice:
                 best_dice = current_dice
                 best_val_loss = val_loss_mean
@@ -299,12 +371,11 @@ def train():
                     "scheduler_state_dict": scheduler.state_dict(),
                     "best_val_loss": best_val_loss,
                     "best_dice": best_dice,
-                    "epochs_without_improvement": epochs_without_improvement,
                 }, ckpt_path)
                 print(f"  -> Best! Dice@0.3={current_dice:.4f} @ Epoch {epoch} (val_loss={val_loss_mean:.4f})")
 
-            # Milestone checkpoint every 50 epochs
-            if epoch % 50 == 0:
+            # ── Milestone checkpoint ──
+            if epoch % milestone_every == 0:
                 milestone_path = checkpoint_dir / f"epoch_{epoch:03d}.pth"
                 torch.save({
                     "epoch": epoch,
@@ -313,7 +384,6 @@ def train():
                     "scheduler_state_dict": scheduler.state_dict(),
                     "best_val_loss": best_val_loss,
                     "best_dice": best_dice,
-                    "epochs_without_improvement": epochs_without_improvement,
                 }, milestone_path)
                 print(f"  -> Milestone checkpoint saved to {milestone_path}")
 
