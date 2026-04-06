@@ -215,7 +215,9 @@ def train():
             model.load_state_dict(ckpt["model_state_dict"])
             if "optimizer_state_dict" in ckpt:
                 optimizer.load_state_dict(ckpt["optimizer_state_dict"])
-            # Scheduler is always rebuilt (type may differ across configs)
+            if "scheduler_state_dict" in ckpt:
+                scheduler.load_state_dict(ckpt["scheduler_state_dict"])
+                print("  Scheduler state restored from checkpoint")
             start_epoch = ckpt.get("epoch", 0) + 1
             best_val_loss = ckpt.get("best_val_loss", float("inf"))
             best_dice = ckpt.get("best_dice", 0.0)
@@ -224,7 +226,6 @@ def train():
             start_epoch = 1
             print("  (old checkpoint format: starting from epoch 1)")
         print(f"Resumed at epoch {start_epoch}, best_dice={best_dice:.4f}")
-        print(f"NOTE: Scheduler rebuilt from config at epoch {start_epoch}")
     else:
         print("Starting training from scratch")
 
@@ -259,6 +260,8 @@ def train():
                     pred, gt, nodes,
                     weight_tversky=loss_cfg.get("tversky_weight", 0.7),
                     weight_mse=loss_cfg.get("mse_weight", 0.3),
+                    tversky_alpha=loss_cfg.get("tversky_alpha", 0.1),
+                    tversky_beta=loss_cfg.get("tversky_beta", 0.9),
                 )
 
                 optimizer.zero_grad()
@@ -299,6 +302,8 @@ def train():
                         pred, gt, nodes,
                         weight_tversky=loss_cfg.get("tversky_weight", 0.7),
                         weight_mse=loss_cfg.get("mse_weight", 0.3),
+                        tversky_alpha=loss_cfg.get("tversky_alpha", 0.1),
+                        tversky_beta=loss_cfg.get("tversky_beta", 0.9),
                     )
                     val_losses.append(loss.item())
                     val_metrics.append(evaluate_batch(pred, gt, nodes))
@@ -310,7 +315,7 @@ def train():
             # ── Scheduler step ──
             sched_type = train_cfg["scheduler"].get("type", "CosineAnnealingWarmRestarts")
             if sched_type == "CosineAnnealingWarmRestarts":
-                scheduler.step(epoch)
+                scheduler.step()
             else:
                 scheduler.step(val_loss_mean)
 

@@ -105,24 +105,23 @@ def weighted_mse_loss(pred: torch.Tensor, target: torch.Tensor, fg_thresh: float
     return (weight * (pred - target) ** 2).mean()
 
 
-# Module-level instances to avoid repeated allocation
-_tversky_loss = TverskyLoss(alpha=0.1, beta=0.9)
-
-
 def criterion(
     pred: torch.Tensor,
     label: torch.Tensor,
     nodes: torch.Tensor,
     weight_tversky: float = 0.7,
     weight_mse: float = 0.3,
+    tversky_alpha: float = 0.1,
+    tversky_beta: float = 0.9,
 ) -> torch.Tensor:
-    """Combined loss: 0.7 * Tversky(0.1,0.9) + 0.3 * weighted_MSE.
+    """Combined loss: weight_tversky * Tversky(alpha,beta) + weight_mse * weighted_MSE.
 
-    - Tversky(0.1,0.9): 9× penalty on missed tumors → very aggressive ROI expansion
+    - Tversky(alpha,beta): asymmetric penalty on missed vs spurious tumors
     - Weighted MSE: pushes tumor center values toward 1.0
 
     pred, label: (B, N, 1), values in [0, 1] after model output clamp
     nodes: (N, 3) — not used but kept for compatibility
     """
+    tversky_fn = TverskyLoss(alpha=tversky_alpha, beta=tversky_beta)
     mse = weighted_mse_loss(pred, label)
-    return weight_tversky * _tversky_loss(pred, label) + weight_mse * mse
+    return weight_tversky * tversky_fn(pred, label) + weight_mse * mse
