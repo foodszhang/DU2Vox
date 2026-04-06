@@ -1,14 +1,13 @@
-# DU2Vox Stage 1 — Gaussian source experiment (1000 samples)
-# Same as gcain_full.yaml but with explicit experiment name
+# DU2Vox Stage 1 — Gaussian source experiment (1000 samples, 800 train / 200 val)
 
 experiment:
   name: "gcain_gaussian_1000"
 
 data:
   shared_dir: /home/foods/pro/FMT-SimGen/output/shared
-  samples_dir: /home/foods/pro/FMT-SimGen/data/samples
-  splits_dir: /home/foods/pro/FMT-SimGen/train/splits
-  manifest_path: /home/foods/pro/FMT-SimGen/output/dataset_manifest.json
+  samples_dir: /home/foods/pro/FMT-SimGen/data/gaussian_1000/samples
+  splits_dir: /home/foods/pro/FMT-SimGen/data/gaussian_1000/splits
+  manifest_path: /home/foods/pro/FMT-SimGen/data/gaussian_1000/dataset_manifest.json
   normalize_b: true
   normalize_gt: true
   binarize_gt: false

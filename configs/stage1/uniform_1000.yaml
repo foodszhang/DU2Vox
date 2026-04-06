@@ -1,4 +1,4 @@
-# DU2Vox Stage 1 — Uniform source experiment (1000 samples)
+# DU2Vox Stage 1 — Uniform source experiment (1000 samples, 800 train / 200 val)
 # For uniform/binary source distributions (e.g. box source instead of Gaussian)
 
 experiment:
