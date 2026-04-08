@@ -2,7 +2,8 @@
 Multi-Scale Graph Cross-Attention (MSGC).
 
 KNNGraphCrossAttention: kNN-based graph attention per node.
-MultiScaleKNNGraphAttention: Scale-adaptive fusion of L0/L1/L2 branches using L3 as query.
+MultiScaleKNNGraphAttention: Scale-adaptive fusion of L0/L1/L2 branches using L3 as key/value.
+Ref: MS-GDUN paper Section 2.2, Eq. (5)-(8).
 """
 
 import torch
@@ -75,8 +76,8 @@ class KNNGraphCrossAttention(nn.Module):
         kv_feat: torch.Tensor,
     ) -> torch.Tensor:
         """
-        q_feat: (B, N, C)  - query (from L3 branch)
-        kv_feat: (B, N, C) - key and value (from L0/L1/L2 branch)
+        q_feat: (B, N, C)  - query (from L0/L1/L2 local branch)
+        kv_feat: (B, N, C) - key and value (from L3 global branch)
 
         returns: (B, N, C)
         """
@@ -115,9 +116,10 @@ class KNNGraphCrossAttention(nn.Module):
 class MultiScaleKNNGraphAttention(nn.Module):
     """Multi-scale + scale-adaptive kNN attention.
 
-    Queries: x_l0, x_l1, x_l2
-    Keys/Values: x_l3
+    Queries: x_l0(L0), x_l1(L1), x_l2(L2) — local scale features
+    Keys/Values: x_l3(L3) — global context (shared across all branches)
     Uses scale-adaptive gate to fuse attention outputs.
+    Ref: MS-GDUN paper Section 2.2, Eq. (5)-(8).
     """
 
     def __init__(
@@ -127,7 +129,7 @@ class MultiScaleKNNGraphAttention(nn.Module):
         sens_w: torch.Tensor,
     ):
         super().__init__()
-        # Three attention branches: (L0,Q), (L1,Q), (L2,Q) all use L3 as K,V
+        # Three attention branches: L0/L1/L2 query L3 (all share L3 as K,V)
         self.attn_blocks = nn.ModuleList([
             KNNGraphCrossAttention(knn_idx, sens_w, feat_dim)
             for _ in range(3)
@@ -143,14 +145,14 @@ class MultiScaleKNNGraphAttention(nn.Module):
         x_l3: torch.Tensor,
     ) -> torch.Tensor:
         """
-        x_l0, x_l1, x_l2: (B, N, C) - query branches
-        x_l3: (B, N, C) - key/value branch
+        x_l0, x_l1, x_l2: (B, N, C) - query branches (local scale, L0/L1/L2)
+        x_l3: (B, N, C) - key/value branch (global scale, L3)
 
         returns: (B, N, C)
         """
-        O0 = self.attn_blocks[0](x_l3, x_l0)  # Q=x_l3, KV=x_l0
-        O1 = self.attn_blocks[1](x_l3, x_l1)  # Q=x_l3, KV=x_l1
-        O2 = self.attn_blocks[2](x_l3, x_l2)  # Q=x_l3, KV=x_l2
+        O0 = self.attn_blocks[0](x_l0, x_l3)  # Q=x_l0(L0), KV=x_l3(L3)
+        O1 = self.attn_blocks[1](x_l1, x_l3)  # Q=x_l1(L1), KV=x_l3(L3)
+        O2 = self.attn_blocks[2](x_l2, x_l3)  # Q=x_l2(L2), KV=x_l3(L3)
 
         Os = [O0, O1, O2]
 
