@@ -34,6 +34,7 @@ class FMTSimGenDataset(Dataset):
         split_file: str | Path,
         normalize_b: bool = True,
         normalize_gt: bool = True,
+        normalize_gt_mode: str = "per_sample",
         binarize_gt: bool = False,
         binarize_threshold: float = 0.05,
     ):
@@ -71,6 +72,7 @@ class FMTSimGenDataset(Dataset):
         # Store preprocessing options
         self.normalize_b = normalize_b
         self.normalize_gt = normalize_gt
+        self.normalize_gt_mode = normalize_gt_mode
         self.binarize_gt = binarize_gt
         self.binarize_threshold = binarize_threshold
 
@@ -97,9 +99,10 @@ class FMTSimGenDataset(Dataset):
             if self.binarize_gt:
                 gt = (gt > self.binarize_threshold).astype(np.float32)
             elif self.normalize_gt:
-                gt_max = gt.max()
-                if gt_max > 1e-8:
-                    gt = gt / gt_max
+                gt = torch.tensor(gt, dtype=torch.float32).unsqueeze(-1)
+                self.gt_list.append(gt)  # Store raw for global norm calculation
+                self.b_list.append(b)
+                continue  # Skip final clamping for now
             gt = torch.tensor(gt, dtype=torch.float32).unsqueeze(-1)
 
             assert b.shape[0] == n_surface, (
@@ -110,6 +113,27 @@ class FMTSimGenDataset(Dataset):
             )
             self.b_list.append(b)
             self.gt_list.append(gt)
+
+        # Global normalization: compute 99th percentile of gt_max across all samples
+        if self.normalize_gt and self.normalize_gt_mode == "global":
+            gt_maxes = [gt.max().item() for gt in self.gt_list]
+            self.global_gt_max = float(np.percentile(gt_maxes, 99))
+            # Re-apply global normalization to all samples
+            for i in range(len(self.gt_list)):
+                gt = self.gt_list[i]
+                if self.global_gt_max > 1e-8:
+                    gt = gt / self.global_gt_max
+                gt = torch.clamp(gt, min=0.0, max=1.0)
+                self.gt_list[i] = gt
+        elif self.normalize_gt:
+            # Per-sample normalization (original behavior)
+            for i in range(len(self.gt_list)):
+                gt = self.gt_list[i]
+                gt_max = gt.max()
+                if gt_max > 1e-8:
+                    gt = gt / gt_max
+                gt = torch.clamp(gt, min=0.0, max=1.0)
+                self.gt_list[i] = gt
 
     def __len__(self) -> int:
         return len(self.sample_ids)

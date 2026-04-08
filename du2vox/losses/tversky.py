@@ -105,6 +105,55 @@ def weighted_mse_loss(pred: torch.Tensor, target: torch.Tensor, fg_thresh: float
     return (weight * (pred - target) ** 2).mean()
 
 
+def core_weighted_loss(
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    core_threshold: float = 0.6,
+    core_weight: float = 2.0,
+) -> torch.Tensor:
+    """MSE loss with extra penalty on core region (gt > core_threshold).
+
+    Applies additional MSE penalty to push core region predictions higher.
+    Core nodes get `core_weight` times the base MSE weight.
+    """
+    diff = (pred - target) ** 2
+    mask = (target > core_threshold)
+    base = 1.0
+    weight = torch.ones_like(target) * base
+    weight[mask] = base * core_weight
+    return (weight * diff).mean()
+
+
+def criterion_gaussian(
+    pred: torch.Tensor,
+    label: torch.Tensor,
+    nodes: torch.Tensor,
+    weight_tversky: float = 0.5,
+    weight_mse: float = 0.2,
+    weight_core: float = 0.3,
+    core_threshold: float = 0.6,
+    tversky_alpha: float = 0.1,
+    tversky_beta: float = 0.9,
+) -> torch.Tensor:
+    """Combined loss for Gaussian source: Tversky + weighted_MSE + core_MSE.
+
+    - 0.5 * Tversky(α=0.1, β=0.9): ROI detection
+    - 0.2 * weighted_MSE: global distribution fitting
+    - 0.3 * core_MSE: push core region predictions higher
+
+    pred, label: (B, N, 1), values in [0, 1] after model output clamp
+    nodes: (N, 3) — not used but kept for compatibility
+    """
+    tversky_fn = TverskyLoss(alpha=tversky_alpha, beta=tversky_beta)
+    mse = weighted_mse_loss(pred, label)
+    core = core_weighted_loss(pred, label, core_threshold=core_threshold, core_weight=2.0)
+    return (
+        weight_tversky * tversky_fn(pred, label)
+        + weight_mse * mse
+        + weight_core * core
+    )
+
+
 def criterion(
     pred: torch.Tensor,
     label: torch.Tensor,

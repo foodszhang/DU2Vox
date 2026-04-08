@@ -11,7 +11,7 @@ data:
   manifest_path: /home/foods/pro/FMT-SimGen/data/uniform_1000/dataset_manifest.json
   normalize_b: true
   normalize_gt: false
-  binarize_gt: false
+  binarize_gt: true
   binarize_threshold: 0.05
 
 model:
@@ -36,6 +36,7 @@ training:
   early_stopping: null
 
 loss:
+  type: "uniform"
   tversky_weight: 0.7
   tversky_alpha: 0.1
   tversky_beta: 0.9

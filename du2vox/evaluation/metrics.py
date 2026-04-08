@@ -35,6 +35,9 @@ def evaluate_batch(
     # Binary Dice @ 0.1
     dice_bin_01 = binary_dice_coeff(pred, label, threshold=0.1).item()
 
+    # Binary Dice @ 0.6
+    dice_bin_06 = binary_dice_coeff(pred, label, threshold=0.6).item()
+
     # Recall/Precision @ 0.3
     pred_bin_03 = (pred_squeeze > 0.3).float()
     label_bin_03 = (label_squeeze > 0.05).float()
@@ -52,6 +55,15 @@ def evaluate_batch(
     FP_01 = (pred_bin_01 * (1 - label_bin_01)).sum(dim=1)
     recall_01 = (TP_01 / (TP_01 + FN_01 + 1e-8)).mean().item()
     precision_01 = (TP_01 / (TP_01 + FP_01 + 1e-8)).mean().item()
+
+    # Recall/Precision @ 0.6
+    pred_bin_06 = (pred_squeeze > 0.6).float()
+    label_bin_06 = (label_squeeze > 0.05).float()
+    TP_06 = (pred_bin_06 * label_bin_06).sum(dim=1)
+    FN_06 = ((1 - pred_bin_06) * label_bin_06).sum(dim=1)
+    FP_06 = (pred_bin_06 * (1 - label_bin_06)).sum(dim=1)
+    recall_06 = (TP_06 / (TP_06 + FN_06 + 1e-8)).mean().item()
+    precision_06 = (TP_06 / (TP_06 + FP_06 + 1e-8)).mean().item()
 
     # Location error
     le = location_error(pred, label, nodes).item()
@@ -71,11 +83,14 @@ def evaluate_batch(
         "dice": dice,
         "dice_bin_0.5": dice_bin_05,
         "dice_bin_0.3": dice_bin_03,
+        "dice_bin_0.6": dice_bin_06,
         "dice_bin_0.1": dice_bin_01,
         "recall_0.3": recall_03,
         "precision_0.3": precision_03,
         "recall_0.1": recall_01,
         "precision_0.1": precision_01,
+        "recall_0.6": recall_06,
+        "precision_0.6": precision_06,
         "location_error": le,
         "mse": mse,
         "pred_max": pred_max,

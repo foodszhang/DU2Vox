@@ -10,6 +10,7 @@ data:
   manifest_path: /home/foods/pro/FMT-SimGen/data/gaussian_1000/dataset_manifest.json
   normalize_b: true
   normalize_gt: true
+  normalize_gt_mode: "global"
   binarize_gt: false
   binarize_threshold: 0.05
 
@@ -35,10 +36,13 @@ training:
   early_stopping: null
 
 loss:
-  tversky_weight: 0.7
+  type: "gaussian"
+  tversky_weight: 0.5
   tversky_alpha: 0.1
   tversky_beta: 0.9
-  mse_weight: 0.3
+  mse_weight: 0.2
+  core_weight: 0.3
+  core_threshold: 0.6
 
 logging:
   print_every: 1

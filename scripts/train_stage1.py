@@ -22,8 +22,30 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ReduceLROnPlat
 
 from du2vox.models.stage1.gcain import GCAIN_full
 from du2vox.data.dataset import FMTSimGenDataset
-from du2vox.losses.tversky import criterion
+from du2vox.losses.tversky import criterion, criterion_gaussian
 from du2vox.evaluation.metrics import evaluate_batch, summarize_metrics
+
+
+def compute_loss(pred, gt, nodes, loss_cfg):
+    """Select loss function based on loss.type config."""
+    loss_type = loss_cfg.get("type", "uniform")
+    if loss_type == "gaussian":
+        return criterion_gaussian(
+            pred, gt, nodes,
+            weight_tversky=loss_cfg.get("tversky_weight", 0.5),
+            weight_mse=loss_cfg.get("mse_weight", 0.2),
+            weight_core=loss_cfg.get("core_weight", 0.3),
+            core_threshold=loss_cfg.get("core_threshold", 0.6),
+            tversky_alpha=loss_cfg.get("tversky_alpha", 0.1),
+            tversky_beta=loss_cfg.get("tversky_beta", 0.9),
+        )
+    return criterion(
+        pred, gt, nodes,
+        weight_tversky=loss_cfg.get("tversky_weight", 0.7),
+        weight_mse=loss_cfg.get("mse_weight", 0.3),
+        tversky_alpha=loss_cfg.get("tversky_alpha", 0.1),
+        tversky_beta=loss_cfg.get("tversky_beta", 0.9),
+    )
 
 
 class DualLogger:
@@ -132,6 +154,7 @@ def train():
         split_file=splits_dir / "train.txt",
         normalize_b=data_cfg.get("normalize_b", True),
         normalize_gt=data_cfg.get("normalize_gt", True),
+        normalize_gt_mode=data_cfg.get("normalize_gt_mode", "per_sample"),
         binarize_gt=data_cfg.get("binarize_gt", False),
         binarize_threshold=data_cfg.get("binarize_threshold", 0.05),
     )
@@ -141,6 +164,7 @@ def train():
         split_file=splits_dir / "val.txt",
         normalize_b=data_cfg.get("normalize_b", True),
         normalize_gt=data_cfg.get("normalize_gt", True),
+        normalize_gt_mode=data_cfg.get("normalize_gt_mode", "per_sample"),
         binarize_gt=data_cfg.get("binarize_gt", False),
         binarize_threshold=data_cfg.get("binarize_threshold", 0.05),
     )
@@ -239,7 +263,7 @@ def train():
 
     # CSV header
     print(
-        "[CSV] epoch,train_loss,val_loss,dice,dice_03,dice_01,"
+        "[CSV] epoch,train_loss,val_loss,dice,dice_03,dice_01,dice_06,"
         "recall_01,prec_03,loc_err,mse,pred_max,pred_mean,pred_std,lr"
     )
 
@@ -256,13 +280,7 @@ def train():
                 pred = model(X0, b)
                 pred = apply_activation(pred)
 
-                loss = criterion(
-                    pred, gt, nodes,
-                    weight_tversky=loss_cfg.get("tversky_weight", 0.7),
-                    weight_mse=loss_cfg.get("mse_weight", 0.3),
-                    tversky_alpha=loss_cfg.get("tversky_alpha", 0.1),
-                    tversky_beta=loss_cfg.get("tversky_beta", 0.9),
-                )
+                loss = compute_loss(pred, gt, nodes, loss_cfg)
 
                 optimizer.zero_grad()
                 loss.backward()
@@ -298,13 +316,7 @@ def train():
                     X0 = torch.zeros(b.size(0), n_nodes, 1, device="cuda")
                     pred = model(X0, b)
                     pred = apply_activation(pred)
-                    loss = criterion(
-                        pred, gt, nodes,
-                        weight_tversky=loss_cfg.get("tversky_weight", 0.7),
-                        weight_mse=loss_cfg.get("mse_weight", 0.3),
-                        tversky_alpha=loss_cfg.get("tversky_alpha", 0.1),
-                        tversky_beta=loss_cfg.get("tversky_beta", 0.9),
-                    )
+                    loss = compute_loss(pred, gt, nodes, loss_cfg)
                     val_losses.append(loss.item())
                     val_metrics.append(evaluate_batch(pred, gt, nodes))
 
@@ -329,6 +341,7 @@ def train():
                 f"Val: {val_loss_mean:.4f} | "
                 f"Dice: {val_summary['dice']:.4f} | "
                 f"Dice@0.3: {current_dice:.4f} | "
+                f"Dice@0.6: {val_summary.get('dice_bin_0.6', 0.0):.4f} | "
                 f"Dice@0.1: {val_summary.get('dice_bin_0.1', 0.0):.4f} | "
                 f"Rec@0.1: {val_summary.get('recall_0.1', 0.0):.4f} | "
                 f"Prec@0.3: {val_summary.get('precision_0.3', 0.0):.4f} | "
@@ -342,6 +355,7 @@ def train():
                 print(f"  ── Val Detail ──")
                 print(f"  Dice_bin@0.5: {val_summary.get('dice_bin_0.5', 0):.4f}")
                 print(f"  Dice_bin@0.3: {val_summary.get('dice_bin_0.3', 0):.4f}")
+                print(f"  Dice_bin@0.6: {val_summary.get('dice_bin_0.6', 0):.4f}")
                 print(f"  Dice_bin@0.1: {val_summary.get('dice_bin_0.1', 0):.4f}")
                 print(f"  Recall@0.3:   {val_summary.get('recall_0.3', 0):.4f}")
                 print(f"  Recall@0.1:   {val_summary.get('recall_0.1', 0):.4f}")
@@ -397,6 +411,7 @@ def train():
                 f"[CSV] {epoch},{train_loss_mean:.6f},{val_loss_mean:.6f},"
                 f"{val_summary['dice']:.6f},{current_dice:.6f},"
                 f"{val_summary.get('dice_bin_0.1', 0):.6f},"
+                f"{val_summary.get('dice_bin_0.6', 0):.6f},"
                 f"{val_summary.get('recall_0.1', 0):.6f},"
                 f"{val_summary.get('precision_0.3', 0):.6f},"
                 f"{val_summary.get('location_error', 0):.6f},"
