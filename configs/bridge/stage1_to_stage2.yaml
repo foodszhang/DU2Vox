@@ -1,0 +1,23 @@
+# DU2Vox Stage 1→2 Bridge Configuration
+
+# Paths (override on command line as needed)
+stage1:
+  checkpoint: runs/gcain_gaussian_1000/checkpoints/best.pth
+  config: configs/stage1/gaussian_1000.yaml
+  shared_dir: /home/foods/pro/FMT-SimGen/output/shared
+  samples_dir: /home/foods/pro/FMT-SimGen/data/gaussian_1000/samples
+  splits_dir: /home/foods/pro/FMT-SimGen/data/gaussian_1000/splits
+
+roi:
+  tau: 0.5                    # Activation threshold (≈ 1σ of Gaussian GT)
+  dilate_layers: 1            # Tetrahedral dilation layers
+
+fem_bridge:
+  n_candidates: 16            # KDTree candidates per query point
+
+pipeline:
+  device: cuda
+  batch_size: 32
+  skip_inference: false
+  skip_roi: false
+  compute_prior_cache: false
