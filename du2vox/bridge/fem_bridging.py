@@ -66,7 +66,7 @@ def barycentric_coords_batch(
         try:
             lam123[i] = np.linalg.solve(T[i], rhs[i])
         except np.linalg.LinAlgError:
-            lam123[i] = np.array([0.33, 0.33, 0.34])  # degenerate tet
+            lam123[i] = np.array([-1.0, -1.0, -1.0])  # degenerate tet → outside
 
     lam0 = 1.0 - lam123.sum(axis=1, keepdims=True)  # [M, 1]
     bary = np.concatenate([lam0, lam123], axis=1)  # [M, 4]
