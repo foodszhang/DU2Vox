@@ -1,1 +1,2 @@
-# Stage 2 (Residual INR) - to be implemented
+from du2vox.models.stage2.residual_inr import ResidualINR, PositionalEncoding
+from du2vox.models.stage2.stage2_dataset import Stage2Dataset

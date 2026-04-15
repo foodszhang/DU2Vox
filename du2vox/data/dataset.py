@@ -46,11 +46,23 @@ class FMTSimGenDataset(Dataset):
         mesh = np.load(shared_dir / "mesh.npz")
         self.nodes = torch.tensor(mesh["nodes"], dtype=torch.float32)
         n_nodes = self.nodes.shape[0]
-        n_surface = len(mesh["surface_node_indices"])
+        n_surface_full = len(mesh["surface_node_indices"])
 
-        # System matrix A [S, N]
+        # System matrix A [S, N] - crop to visible nodes if visible_mask exists
         A_sp = scipy.sparse.load_npz(shared_dir / "system_matrix.A.npz")
-        self.A = torch.tensor(A_sp.toarray(), dtype=torch.float32)
+        visible_mask_path = shared_dir / "visible_mask.npy"
+        if visible_mask_path.exists():
+            self.visible_mask = np.load(visible_mask_path)
+            self.n_surface = int(self.visible_mask.sum())
+            A_full = A_sp.toarray()
+            A_full = A_full[self.visible_mask, :]
+            self.A = torch.tensor(A_full, dtype=torch.float32)
+            print(f"  A cropped to visible: {A_full.shape[0]} x {A_full.shape[1]}")
+        else:
+            self.visible_mask = None
+            self.n_surface = n_surface_full
+            self.A = torch.tensor(A_sp.toarray(), dtype=torch.float32)
+            print(f"  A full surface: {A_sp.shape[0]} x {A_sp.shape[1]}")
 
         # Full-node Laplacians [N, N]
         self.L = load_npz_as_torch_sparse(shared_dir / "graph_laplacian_full.Lap.npz")
@@ -105,8 +117,8 @@ class FMTSimGenDataset(Dataset):
                 continue  # Skip final clamping for now
             gt = torch.tensor(gt, dtype=torch.float32).unsqueeze(-1)
 
-            assert b.shape[0] == n_surface, (
-                f"b has {b.shape[0]} surface nodes but mesh has {n_surface}"
+            assert b.shape[0] == self.n_surface, (
+                f"b has {b.shape[0]} surface nodes but A has {self.n_surface} rows"
             )
             assert gt.shape[0] == n_nodes, (
                 f"gt has {gt.shape[0]} nodes but mesh has {n_nodes}"

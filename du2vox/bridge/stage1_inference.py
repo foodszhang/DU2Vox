@@ -20,7 +20,16 @@ def _load_shared_assets(shared_dir: Path, device: str) -> dict:
     nodes = torch.tensor(mesh["nodes"], dtype=torch.float32).to(device)
 
     A_sp = scipy.sparse.load_npz(shared_dir / "system_matrix.A.npz")
-    A = torch.tensor(A_sp.toarray(), dtype=torch.float32).to(device)
+    A_full = A_sp.toarray().astype(np.float32)
+
+    # Apply visible_mask cropping (same as training dataset)
+    visible_mask_path = shared_dir / "visible_mask.npy"
+    if visible_mask_path.exists():
+        visible_mask = np.load(visible_mask_path)
+        A_full = A_full[visible_mask, :]
+        print(f"  A cropped to visible: {A_full.shape[0]} x {A_full.shape[1]}")
+
+    A = torch.tensor(A_full, dtype=torch.float32).to(device)
 
     def load_lap(name: str) -> torch.Tensor:
         mat = scipy.sparse.load_npz(shared_dir / name)

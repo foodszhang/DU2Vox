@@ -8,6 +8,62 @@ with exact barycentric coordinate computation.
 import numpy as np
 from scipy.spatial import KDTree
 
+import numba
+
+
+@numba.njit(cache=True)
+def _barycentric_batch(
+    queries: np.ndarray,
+    tet_vertices: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Batch barycentric coordinate via np.linalg.solve.
+
+    T[:, 0] = v1 - v0  (edge from v0 to v1)
+    T[:, 1] = v2 - v0  (edge from v0 to v2)
+    T[:, 2] = v3 - v0  (edge from v0 to v3)
+    rhs     = p  - v0
+
+    Returns
+    -------
+    bary  : [M, 4]  (λ0, λ1, λ2, λ3)
+    inside: [M] bool
+    """
+    M = queries.shape[0]
+    bary = np.zeros((M, 4), dtype=np.float64)
+    inside = np.zeros(M, dtype=np.bool_)
+
+    for i in numba.prange(M):
+        p = queries[i, :]
+        v0 = tet_vertices[i, 0, :]
+        T = np.empty((3, 3), dtype=np.float64)
+        T[:, 0] = tet_vertices[i, 1, :] - v0
+        T[:, 1] = tet_vertices[i, 2, :] - v0
+        T[:, 2] = tet_vertices[i, 3, :] - v0
+        rhs = p - v0
+
+        det = (
+            T[0, 0] * (T[1, 1] * T[2, 2] - T[1, 2] * T[2, 1])
+            - T[0, 1] * (T[1, 0] * T[2, 2] - T[1, 2] * T[2, 0])
+            + T[0, 2] * (T[1, 0] * T[2, 1] - T[1, 1] * T[2, 0])
+        )
+        if abs(det) < 1e-12:
+            continue
+
+        lam123 = np.linalg.solve(T, rhs)
+        l1, l2, l3 = lam123[0], lam123[1], lam123[2]
+        l0 = 1.0 - l1 - l2 - l3
+
+        tol = -1e-8
+        if l0 >= tol and l1 >= tol and l2 >= tol and l3 >= tol:
+            bary[i, 0] = l0
+            bary[i, 1] = l1
+            bary[i, 2] = l2
+            bary[i, 3] = l3
+            inside[i] = True
+
+    return bary, inside
+
 
 def barycentric_coords(
     p: np.ndarray,
@@ -101,7 +157,7 @@ class FEMBridge:
             roi_tet_indices: If given, build index over only these tets.
             n_candidates: Number of nearest centroids to check per query point.
         """
-        self.nodes = nodes
+        self.nodes = nodes.astype(np.float64)
         self.elements = elements
         self.n_candidates = n_candidates
 
@@ -119,6 +175,12 @@ class FEMBridge:
 
         # Precompute tet bounding boxes for fast rejection
         self._tet_verts = active_verts  # [M, 4, 3]
+
+        # ROI tet set for O(1) membership testing
+        if roi_tet_indices is not None:
+            self._roi_set = set(roi_tet_indices.tolist())
+        else:
+            self._roi_set = None
 
     def locate_point(self, query: np.ndarray) -> tuple[int, np.ndarray | None]:
         """
@@ -179,9 +241,10 @@ class FEMBridge:
         self,
         queries: np.ndarray,
         coarse_d: np.ndarray,
+        K: int = 16,
     ) -> tuple[np.ndarray, np.ndarray]:
         """
-        Extract 8D prior features for M query points.
+        Extract 8D prior features for M query points (numpy + numba accelerated).
 
         prior_8d[i] = [d_v0, d_v1, d_v2, d_v3, λ0, λ1, λ2, λ3]
         where v0..v3 are vertices of the containing tet and λi are
@@ -190,24 +253,69 @@ class FEMBridge:
         Args:
             queries: [M, 3] query points in mm.
             coarse_d: [N_nodes] Stage 1 coarse distribution values.
+            K: Number of nearest centroid candidates per query point.
 
         Returns:
             prior_8d: [M, 8] — zeros for points outside ROI
             valid_mask: [M] bool — True if inside a ROI tet
         """
         M = queries.shape[0]
-        prior_8d = np.zeros((M, 8), dtype=np.float32)
+        queries = queries.astype(np.float64)
+        prior_8d = np.zeros((M, 8), dtype=np.float64)
+        valid = np.zeros(M, dtype=bool)
+        remaining = np.ones(M, dtype=bool)
 
-        tet_indices, bary_coords = self.locate_points_batch(queries)
-        valid_mask = tet_indices >= 0
+        k = min(K, len(self.centroids))
+        _, knn = self.kdtree.query(queries, k=k)
+        if k == 1:
+            knn = knn[:, np.newaxis]
 
-        for i in np.where(valid_mask)[0]:
-            tet_vertices = self.elements[tet_indices[i]]  # [4] node indices
-            d_verts = coarse_d[tet_vertices].astype(np.float32)  # [4]
-            lam = bary_coords[i].astype(np.float32)  # [4]
-            prior_8d[i] = np.concatenate([d_verts, lam])
+        max_candidates = 32
+        cand_local = np.full((M, max_candidates), -1, dtype=np.int64)
+        cand_count = np.zeros(M, dtype=np.int64)
 
-        return prior_8d, valid_mask
+        for i in range(M):
+            seen: set[int] = set()
+            cnt = 0
+            for ki in range(k):
+                local_idx = int(knn[i, ki])
+                if local_idx in seen:
+                    continue
+                seen.add(local_idx)
+                tet_global = int(self.active_tet_indices[local_idx])
+                if self._roi_set is not None and tet_global not in self._roi_set:
+                    continue
+                cand_local[i, cnt] = local_idx
+                cnt += 1
+                if cnt >= max_candidates:
+                    break
+            cand_count[i] = cnt
+
+        for slot in range(max_candidates):
+            has_cand = (cand_count > slot) & remaining
+            idx = np.where(has_cand)[0]
+            if len(idx) == 0:
+                break
+
+            tet_local_slot = cand_local[idx, slot]
+            verts = self._tet_verts[tet_local_slot]  # [len(idx), 4, 3]
+
+            bary, inside = _barycentric_batch(queries[idx], verts)
+
+            hit_local = np.where(inside)[0]
+            if len(hit_local) == 0:
+                continue
+
+            global_idx = idx[hit_local]
+            global_tet = self.active_tet_indices[tet_local_slot[hit_local]]
+            node_ids = self.elements[global_tet]  # [H, 4]
+
+            prior_8d[global_idx, :4] = coarse_d[node_ids]
+            prior_8d[global_idx, 4:] = bary[hit_local]
+            valid[global_idx] = True
+            remaining[global_idx] = False
+
+        return prior_8d.astype(np.float32), valid.astype(bool)
 
 
 def compute_prior_cache(

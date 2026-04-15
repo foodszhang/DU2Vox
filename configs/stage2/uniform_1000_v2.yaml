@@ -1,0 +1,42 @@
+# DU2Vox Stage 2 — Residual INR training
+# Uses output/bridge_train/ + output/bridge_val/ (Stage 1 → ROI → FEM prior)
+
+experiment:
+  name: "stage2_residual_inr_uniform_v2"
+
+data:
+  train_bridge_dir: output/bridge_train/
+  val_bridge_dir: output/bridge_val/
+  shared_dir: /home/foods/pro/FMT-SimGen/output/shared
+  samples_dir: /home/foods/pro/FMT-SimGen/data/uniform_1000_v2/samples
+  train_split: /home/foods/pro/FMT-SimGen/data/uniform_1000_v2/splits/train.txt
+  val_split: /home/foods/pro/FMT-SimGen/data/uniform_1000_v2/splits/val.txt
+  n_query_points: 4096
+  roi_padding_mm: 1.0
+
+model:
+  n_freqs: 10
+  hidden_dim: 256
+  n_hidden_layers: 4
+  prior_dim: 8
+  skip_connection: true
+
+training:
+  lr: 1.0e-4
+  weight_decay: 1.0e-5
+  batch_size: 8
+  max_epochs: 200
+  grad_clip_norm: 1.0
+  scheduler:
+    type: "CosineAnnealingLR"
+    T_max: 200
+    eta_min: 1.0e-6
+  early_stopping_patience: 20
+  warmup_epochs: 5
+
+loss:
+  type: "mse"       # MSE only on valid ROI points
+
+logging:
+  print_every: 1
+  detail_every: 5
