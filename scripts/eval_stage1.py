@@ -38,11 +38,11 @@ def evaluate(
         cfg = yaml.safe_load(f)
 
     model_cfg = cfg["model"]
-    paths_cfg = cfg["paths"]
+    data_cfg = cfg["data"]
 
-    shared_dir = Path(paths_cfg["shared_dir"])
-    samples_dir = Path(paths_cfg["samples_dir"])
-    splits_dir = Path(paths_cfg["splits_dir"])
+    shared_dir = Path(data_cfg["shared_dir"])
+    samples_dir = Path(data_cfg["samples_dir"])
+    splits_dir = Path(data_cfg["splits_dir"])
 
     split_file = splits_dir / f"{split}.txt"
     dataset = FMTSimGenDataset(

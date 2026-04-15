@@ -1,17 +1,27 @@
-# DU2Vox Stage 2 — Residual INR training
-# Uses output/bridge_train/ + output/bridge_val/ (Stage 1 → ROI → FEM prior)
+# DU2Vox Stage 2 — Residual INR training (baseline_de_only)
+# Uses precomputed grid data for fast training.
+#
+# Modes:
+#   precomputed_*-dir set → fast fork-safe DataLoader (num_workers>0)
+#   not set              → slow on-demand FEMBridge dataset (num_workers=0)
 
 experiment:
-  name: "stage2_residual_inr_uniform_v2"
+  name: "baseline_de_only"
 
 data:
+  # Precomputed grid data (set after running precompute_stage2_data.py)
+  precomputed_train_dir: precomputed/train/
+  precomputed_val_dir: precomputed/val/
+
+  # On-demand bridge data (fallback / used for precomputation)
   train_bridge_dir: output/bridge_train/
   val_bridge_dir: output/bridge_val/
   shared_dir: /home/foods/pro/FMT-SimGen/output/shared
   samples_dir: /home/foods/pro/FMT-SimGen/data/uniform_1000_v2/samples
   train_split: /home/foods/pro/FMT-SimGen/data/uniform_1000_v2/splits/train.txt
   val_split: /home/foods/pro/FMT-SimGen/data/uniform_1000_v2/splits/val.txt
-  n_query_points: 4096
+
+  n_query_points: 4096        # random query points per sample per epoch (training)
   roi_padding_mm: 1.0
 
 model:
@@ -27,12 +37,13 @@ training:
   batch_size: 8
   max_epochs: 200
   grad_clip_norm: 1.0
+  num_workers: 4               # >0 for precomputed mode (fork-safe)
   scheduler:
     type: "CosineAnnealingLR"
     T_max: 200
     eta_min: 1.0e-6
   early_stopping_patience: 20
-  warmup_epochs: 5
+  warmup_epochs: 5            # linear lr ramp before cosine annealing
 
 loss:
   type: "mse"       # MSE only on valid ROI points

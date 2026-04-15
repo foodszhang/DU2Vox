@@ -176,12 +176,6 @@ class FEMBridge:
         # Precompute tet bounding boxes for fast rejection
         self._tet_verts = active_verts  # [M, 4, 3]
 
-        # ROI tet set for O(1) membership testing
-        if roi_tet_indices is not None:
-            self._roi_set = set(roi_tet_indices.tolist())
-        else:
-            self._roi_set = None
-
     def locate_point(self, query: np.ndarray) -> tuple[int, np.ndarray | None]:
         """
         Locate a single query point in the indexed tetrahedra.
@@ -282,9 +276,6 @@ class FEMBridge:
                 if local_idx in seen:
                     continue
                 seen.add(local_idx)
-                tet_global = int(self.active_tet_indices[local_idx])
-                if self._roi_set is not None and tet_global not in self._roi_set:
-                    continue
                 cand_local[i, cnt] = local_idx
                 cnt += 1
                 if cnt >= max_candidates:

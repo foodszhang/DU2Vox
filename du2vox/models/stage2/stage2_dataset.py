@@ -1,8 +1,9 @@
 """
 Stage 2 dataset: bridge output → ROI bbox → query points → 8D prior + GT.
 
-Each sample = one bridge output (coarse_d + roi_tet_indices + roi_info).
-Uses LRU cache for FEMBridge to avoid OOM when pre-building all samples.
+Two modes:
+- Stage2Dataset:           on-demand computation (slow, for compatibility)
+- Stage2DatasetPrecomputed: load precomputed .npz grids (fast, for training)
 """
 
 from __future__ import annotations
@@ -71,6 +72,10 @@ class Stage2Dataset(Dataset):
     def _get_bridge(self, sid: str) -> FEMBridge:
         """Get FEMBridge from LRU cache (build if not cached)."""
         if sid in self._bridge_cache:
+            # Move to end (most recently used)
+            if sid in self._cache_order:
+                self._cache_order.remove(sid)
+            self._cache_order.append(sid)
             return self._bridge_cache[sid]
 
         c = self._cache[sid]
@@ -120,4 +125,101 @@ class Stage2Dataset(Dataset):
             "gt":         torch.from_numpy(gt_values.astype(np.float32)),
             "valid":      torch.from_numpy(valid),
             "sample_id":  sid,
+        }
+
+
+class Stage2DatasetPrecomputed(Dataset):
+    """
+    Precomputed grid dataset — fast, fork-safe, for training.
+
+    Uses an LRU cache for loaded .npz files so repeated accesses within an epoch
+    (same sample appearing in multiple batches across epochs) are fast.
+
+    Parameters
+    ----------
+    precomputed_dir : directory with precomputed/*.npz files
+    sample_ids       : list of sample IDs to use
+    n_query_points   : random query points per sample per epoch (sampled from valid grid points)
+    cache_size       : max number of .npz files to hold in memory (default: 32)
+    """
+
+    def __init__(
+        self,
+        precomputed_dir: str,
+        sample_ids: List[str],
+        n_query_points: int = 4096,
+        cache_size: int = 32,
+    ):
+        self.precomputed_dir = Path(precomputed_dir)
+        self.sample_ids = sample_ids
+        self.n_query_points = n_query_points
+        self._cache_size = cache_size
+
+        # LRU cache: sid -> loaded npz arrays
+        self._npz_cache: dict[str, dict] = {}
+        self._cache_order: list[str] = []
+
+        # Preload valid counts (lightweight — just the mask sum)
+        self._valid_counts: dict[str, int] = {}
+        for sid in sample_ids:
+            path = self.precomputed_dir / f"{sid}.npz"
+            if path.exists():
+                with np.load(path) as data:
+                    self._valid_counts[sid] = int(data["valid_mask"].sum())
+            else:
+                self._valid_counts[sid] = 0
+
+    def _load_npz(self, sid: str) -> dict:
+        """Load .npz from cache or disk (LRU)."""
+        if sid in self._npz_cache:
+            # Move to end (most recently used)
+            self._cache_order.remove(sid)
+            self._cache_order.append(sid)
+            return self._npz_cache[sid]
+
+        path = self.precomputed_dir / f"{sid}.npz"
+        arrays = dict(np.load(path, allow_pickle=False))
+
+        # Evict if at capacity
+        while len(self._npz_cache) >= self._cache_size:
+            evict_sid = self._cache_order.pop(0)
+            del self._npz_cache[evict_sid]
+
+        self._npz_cache[sid] = arrays
+        self._cache_order.append(sid)
+        return arrays
+
+    def __len__(self) -> int:
+        return len(self.sample_ids)
+
+    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
+        sid = self.sample_ids[idx]
+        data = self._load_npz(sid)
+
+        valid_mask = data["valid_mask"]
+        valid_indices = np.where(valid_mask)[0]
+        n_valid = len(valid_indices)
+
+        if n_valid == 0:
+            # Degenerate case: return zeros
+            return {
+                "coords":   torch.zeros(self.n_query_points, 3, dtype=torch.float32),
+                "prior_8d": torch.zeros(self.n_query_points, 8, dtype=torch.float32),
+                "gt":       torch.zeros(self.n_query_points, dtype=torch.float32),
+                "valid":    torch.zeros(self.n_query_points, dtype=torch.bool),
+                "sample_id": sid,
+            }
+
+        # Sample n_query_points from valid indices
+        if n_valid >= self.n_query_points:
+            chosen = np.random.choice(valid_indices, self.n_query_points, replace=False)
+        else:
+            chosen = np.random.choice(valid_indices, self.n_query_points, replace=True)
+
+        return {
+            "coords":   torch.from_numpy(data["grid_coords"][chosen].copy()),
+            "prior_8d": torch.from_numpy(data["prior_8d"][chosen].copy()),
+            "gt":       torch.from_numpy(data["gt_values"][chosen].copy()),
+            "valid":    torch.ones(self.n_query_points, dtype=torch.bool),
+            "sample_id": sid,
         }

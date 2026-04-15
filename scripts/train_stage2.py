@@ -2,10 +2,13 @@
 """
 Stage 2 Residual INR training entry point.
 
+Supports two dataset modes:
+- precomputed:  Stage2DatasetPrecomputed (fast, fork-safe, num_workers>0)
+- on-demand:    Stage2Dataset (slow, FEMBridge not fork-safe, num_workers=0)
+
 Usage:
     python scripts/train_stage2.py --config configs/stage2/uniform_1000_v2.yaml
-
-Accepts --max_samples N and --max_epochs M for quick smoke tests.
+    python scripts/train_stage2.py --config configs/stage2/uniform_1000_v2.yaml --experiment_name baseline_de_only
 """
 from __future__ import annotations
 
@@ -23,7 +26,7 @@ from torch.utils.data import DataLoader
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from du2vox.models.stage2.residual_inr import ResidualINR
-from du2vox.models.stage2.stage2_dataset import Stage2Dataset
+from du2vox.models.stage2.stage2_dataset import Stage2Dataset, Stage2DatasetPrecomputed
 
 
 def load_split(split_file: str):
@@ -32,29 +35,46 @@ def load_split(split_file: str):
 
 
 def build_dataloader(cfg: dict, sample_ids: list, shuffle: bool = False,
-                     bridge_dir: str | None = None):
-    dataset = Stage2Dataset(
-        bridge_dir=bridge_dir or cfg["data"]["bridge_dir"],
-        shared_dir=cfg["data"]["shared_dir"],
-        samples_dir=cfg["data"]["samples_dir"],
-        sample_ids=sample_ids,
-        n_query_points=cfg["data"]["n_query_points"],
-        roi_padding_mm=cfg["data"]["roi_padding_mm"],
-    )
-    return DataLoader(
-        dataset,
-        batch_size=cfg["training"]["batch_size"],
-        shuffle=shuffle,
-        num_workers=0,  # FEM bridge is not fork-safe
-        pin_memory=True,
-    )
+                      precomputed_dir: str | None = None,
+                      bridge_dir: str | None = None):
+    if precomputed_dir and Path(precomputed_dir).exists():
+        dataset = Stage2DatasetPrecomputed(
+            precomputed_dir=precomputed_dir,
+            sample_ids=sample_ids,
+            n_query_points=cfg["data"]["n_query_points"],
+        )
+        return DataLoader(
+            dataset,
+            batch_size=cfg["training"]["batch_size"],
+            shuffle=shuffle,
+            num_workers=cfg["training"].get("num_workers", 4),
+            pin_memory=True,
+            prefetch_factor=2 if cfg["training"].get("num_workers", 4) > 0 else None,
+        )
+    else:
+        # Fallback to on-demand dataset
+        dataset = Stage2Dataset(
+            bridge_dir=bridge_dir or cfg["data"]["bridge_dir"],
+            shared_dir=cfg["data"]["shared_dir"],
+            samples_dir=cfg["data"]["samples_dir"],
+            sample_ids=sample_ids,
+            n_query_points=cfg["data"]["n_query_points"],
+            roi_padding_mm=cfg["data"]["roi_padding_mm"],
+        )
+        return DataLoader(
+            dataset,
+            batch_size=cfg["training"]["batch_size"],
+            shuffle=shuffle,
+            num_workers=0,  # FEM bridge is not fork-safe
+            pin_memory=True,
+        )
 
 
 def train_step(model: ResidualINR, batch: dict, optimizer: torch.optim.Optimizer) -> dict:
     coords   = batch["coords"].cuda()      # [B, N, 3]
-    prior    = batch["prior_8d"].cuda()   # [B, N, 8]
-    gt       = batch["gt"].cuda()         # [B, N]
-    valid    = batch["valid"].cuda()      # [B, N]
+    prior    = batch["prior_8d"].cuda()     # [B, N, 8]
+    gt       = batch["gt"].cuda()           # [B, N]
+    valid    = batch["valid"].cuda()        # [B, N]
 
     d_hat, fem_interp, residual = model(coords, prior)
 
@@ -67,7 +87,7 @@ def train_step(model: ResidualINR, batch: dict, optimizer: torch.optim.Optimizer
 
     optimizer.zero_grad()
     loss.backward()
-    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+    torch.nn.utils.clip_grad_norm_(model.parameters(), cfg["training"].get("grad_clip_norm", 1.0))
     optimizer.step()
 
     with torch.no_grad():
@@ -96,49 +116,90 @@ def compute_dice(pred: torch.Tensor, target: torch.Tensor, threshold: float = 0.
     return (2 * intersection / (pred_bin.sum() + target_bin.sum() + 1e-8)).item()
 
 
-def validate(model: ResidualINR, val_loader: DataLoader) -> dict:
+def validate(model: ResidualINR, val_loader: DataLoader, precomputed_dir: str | None = None,
+             val_sample_ids: list | None = None) -> dict:
+    """Validate with per-sample Dice averaging and FEM baseline comparison."""
     model.eval()
-    total_loss = 0.0
-    total_valid = 0
-    n_batches = 0
-    all_preds = []
-    all_gt = []
+    per_sample_metrics = []
 
     with torch.no_grad():
         for batch in val_loader:
             coords  = batch["coords"].cuda()
             prior   = batch["prior_8d"].cuda()
-            gt      = batch["gt"].cuda()
-            valid   = batch["valid"].cuda()
+            gt      = batch["gt"]
+            valid   = batch["valid"]
+            sids    = batch["sample_id"]
 
-            d_hat, _, _ = model(coords, prior)
+            B, N = coords.shape[:2]
+            d_hat, fem_interp, _ = model(coords, prior)
+            d_hat = d_hat.cpu()
+            fem_interp = fem_interp.cpu()
 
-            valid_mask = valid.flatten()
-            if valid_mask.sum() > 0:
-                loss = nn.functional.mse_loss(
-                    d_hat.flatten()[valid_mask], gt.flatten()[valid_mask]
+            for b in range(B):
+                v = valid[b].numpy()
+                g = gt[b].numpy()
+                p = d_hat[b].numpy()
+                f = fem_interp[b].numpy()
+
+                v_mask = v > 0
+                if v_mask.sum() == 0:
+                    continue
+
+                # Per-sample dice at threshold 0.5
+                stage2_d = compute_dice(
+                    torch.from_numpy(p[v_mask]),
+                    torch.from_numpy(g[v_mask]),
+                    0.5
                 )
-                total_loss += loss.item()
-                total_valid += int(valid_mask.sum())
-                n_batches += 1
+                fem_d = compute_dice(
+                    torch.from_numpy(f[v_mask]),
+                    torch.from_numpy(g[v_mask]),
+                    0.5
+                )
 
-                all_preds.append(d_hat.flatten()[valid_mask].cpu())
-                all_gt.append(gt.flatten()[valid_mask].cpu())
+                stage2_mse = float(np.mean((p[v_mask] - g[v_mask]) ** 2))
+                fem_mse = float(np.mean((f[v_mask] - g[v_mask]) ** 2))
 
-    all_preds = torch.cat(all_preds)
-    all_gt = torch.cat(all_gt)
+                per_sample_metrics.append({
+                    "sample_id": sids[b],
+                    "stage2_dice_05": stage2_d,
+                    "fem_dice_05": fem_d,
+                    "delta_dice_05": stage2_d - fem_d,
+                    "stage2_mse": stage2_mse,
+                    "fem_mse": fem_mse,
+                })
 
-    dice_05 = compute_dice(all_preds, all_gt, 0.5)
-    dice_01 = compute_dice(all_preds, all_gt, 0.1)
-    dice_08 = compute_dice(all_preds, all_gt, 0.8)
+    if not per_sample_metrics:
+        return {
+            "val_loss": 0.0, "val_valid": 0,
+            "stage2_dice_05": 0.0, "fem_dice_05": 0.0, "delta_dice_05": 0.0,
+            "stage2_mse": 0.0, "fem_mse": 0.0,
+            "per_sample": {},
+        }
 
-    return {
-        "val_loss": total_loss / max(n_batches, 1),
-        "val_valid": total_valid,
-        "dice_05": dice_05,
-        "dice_01": dice_01,
-        "dice_08": dice_08,
-    }
+    keys = ["stage2_dice_05", "fem_dice_05", "delta_dice_05", "stage2_mse", "fem_mse"]
+    summary = {k: float(np.mean([m[k] for m in per_sample_metrics])) for k in keys}
+    summary["per_sample"] = {m["sample_id"]: {k: m[k] for k in keys} for m in per_sample_metrics}
+
+    # Per-sample averaged val_loss
+    total_loss = 0.0
+    n_samples = 0
+    for batch in val_loader:
+        coords = batch["coords"].cuda()
+        prior = batch["prior_8d"].cuda()
+        gt = batch["gt"].cuda()
+        valid = batch["valid"].cuda()
+        d_hat, _, _ = model(coords, prior)
+        v = valid.flatten()
+        if v.sum() > 0:
+            total_loss += nn.functional.mse_loss(
+                d_hat.flatten()[v], gt.flatten()[v]
+            ).item() * int(v.sum())
+            n_samples += int(v.sum())
+    summary["val_loss"] = total_loss / max(n_samples, 1)
+    summary["val_valid"] = n_samples
+
+    return summary
 
 
 def main():
@@ -164,6 +225,14 @@ def main():
         train_ids = train_ids[: args.max_samples]
         val_ids   = val_ids[: max(1, args.max_samples // 4)]
 
+    # Precomputed mode
+    precomputed_train = cfg["data"].get("precomputed_train_dir")
+    precomputed_val = cfg["data"].get("precomputed_val_dir")
+
+    if precomputed_train:
+        print(f"[Stage2] Mode: precomputed (train={precomputed_train}, val={precomputed_val})")
+    else:
+        print(f"[Stage2] Mode: on-demand (bridge_dir fallback)")
     print(f"[Stage2] Training: {len(train_ids)} samples, Val: {len(val_ids)} samples")
 
     # Build model
@@ -181,29 +250,36 @@ def main():
         weight_decay=cfg["training"]["weight_decay"],
     )
 
+    warmup_epochs = cfg["training"].get("warmup_epochs", 5)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer,
         T_max=cfg["training"]["scheduler"].get("T_max", max_epochs),
         eta_min=cfg["training"]["scheduler"].get("eta_min", 1e-6),
     )
 
-    train_bridge = cfg["data"].get("train_bridge_dir", cfg["data"].get("bridge_dir", ""))
-    val_bridge = cfg["data"].get("val_bridge_dir", cfg["data"].get("bridge_dir", ""))
-    train_loader = build_dataloader(cfg, train_ids, shuffle=True, bridge_dir=train_bridge)
-    val_loader = build_dataloader(cfg, val_ids, shuffle=False, bridge_dir=val_bridge)
+    train_loader = build_dataloader(
+        cfg, train_ids, shuffle=True,
+        precomputed_dir=precomputed_train,
+        bridge_dir=cfg["data"].get("train_bridge_dir", cfg["data"].get("bridge_dir", "")),
+    )
+    val_loader = build_dataloader(
+        cfg, val_ids, shuffle=False,
+        precomputed_dir=precomputed_val,
+        bridge_dir=cfg["data"].get("val_bridge_dir", cfg["data"].get("bridge_dir", "")),
+    )
 
     # Training loop
     log_path = Path("logs") / exp_name
     log_path.mkdir(parents=True, exist_ok=True)
 
-    best_val = float("inf")
     best_dice = 0.0
+    best_val_loss = float("inf")
     patience  = cfg["training"].get("early_stopping_patience", 20)
     patience_counter = 0
     train_log = []
 
-    print(f"\n{'Epoch':>5}  {'Loss':>10}  {'ValLoss':>10}  {'Dice05':>8}  {'Dice01':>8}  {'Dice08':>8}  {'ResNorm':>8}  {'FemBase':>10}  {'Valid':>7}  {'Time':>6}")
-    print("-" * 100)
+    print(f"\n{'Epoch':>5}  {'Loss':>10}  {'ValLoss':>10}  {'S2Dice':>8}  {'FemDice':>8}  {'ΔDice':>8}  {'ResNorm':>8}  {'FemMSE':>10}  {'Valid':>7}  {'Time':>6}")
+    print("-" * 110)
 
     for epoch in range(1, max_epochs + 1):
         t0 = time.perf_counter()
@@ -214,6 +290,14 @@ def main():
         epoch_valid = 0
         n_steps = 0
 
+        # Warmup: linear lr ramp
+        if epoch <= warmup_epochs:
+            lr_scale = epoch / warmup_epochs
+            for pg in optimizer.param_groups:
+                pg["lr"] = cfg["training"]["lr"] * lr_scale
+        else:
+            scheduler.step()
+
         for batch in train_loader:
             metrics = train_step(model, batch, optimizer)
             epoch_loss += metrics["loss"]
@@ -222,9 +306,7 @@ def main():
             epoch_valid += metrics["valid_count"]
             n_steps += 1
 
-        scheduler.step()
-
-        val_metrics = validate(model, val_loader)
+        val_metrics = validate(model, val_loader, precomputed_dir=precomputed_val)
         elapsed = time.perf_counter() - t0
 
         avg_loss = epoch_loss / max(n_steps, 1)
@@ -235,37 +317,41 @@ def main():
             "epoch": epoch,
             "train_loss": avg_loss,
             "val_loss": val_metrics["val_loss"],
-            "dice_05": val_metrics["dice_05"],
-            "dice_01": val_metrics["dice_01"],
-            "dice_08": val_metrics["dice_08"],
-            "fem_baseline_loss": avg_fem,
+            "stage2_dice_05": val_metrics["stage2_dice_05"],
+            "fem_dice_05": val_metrics["fem_dice_05"],
+            "delta_dice_05": val_metrics["delta_dice_05"],
+            "stage2_mse": val_metrics["stage2_mse"],
+            "fem_mse": val_metrics["fem_mse"],
             "residual_norm": avg_res,
             "valid_count": epoch_valid,
             "elapsed_s": elapsed,
+            "lr": optimizer.param_groups[0]["lr"],
         }
         train_log.append(entry)
 
         # Log every epoch
         print(
             f"{epoch:>5}  {avg_loss:>10.6f}  {val_metrics['val_loss']:>10.6f}  "
-            f"{val_metrics['dice_05']:>8.4f}  {val_metrics['dice_01']:>8.4f}  {val_metrics['dice_08']:>8.4f}  "
-            f"{avg_res:>8.4f}  {avg_fem:>10.6f}  {epoch_valid:>7}  {elapsed:>5.1f}s"
+            f"{val_metrics['stage2_dice_05']:>8.4f}  {val_metrics['fem_dice_05']:>8.4f}  "
+            f"{val_metrics['delta_dice_05']:>8.4f}  "
+            f"{avg_res:>8.4f}  {val_metrics['fem_mse']:>10.6f}  "
+            f"{epoch_valid:>7}  {elapsed:>5.1f}s"
         )
 
-        # Save best by dice_05
-        if val_metrics["dice_05"] > best_dice:
-            best_dice = val_metrics["dice_05"]
-            best_val = val_metrics["val_loss"]
+        # Save best by stage2_dice_05
+        if val_metrics["stage2_dice_05"] > best_dice:
+            best_dice = val_metrics["stage2_dice_05"]
+            best_val_loss = val_metrics["val_loss"]
             ckpt_path = Path(args.checkpoint_dir) / exp_name / "best.pth"
             ckpt_path.parent.mkdir(parents=True, exist_ok=True)
             torch.save(model.state_dict(), ckpt_path)
             patience_counter = 0
-            print(f"  -> Best model saved (dice_05={best_dice:.4f}, val_loss={best_val:.6f})")
+            print(f"  -> Best model saved (stage2_dice_05={best_dice:.4f}, val_loss={best_val_loss:.6f})")
         else:
             patience_counter += 1
 
         # Early stopping
-        if patience_counter >= patience:
+        if patience_counter >= patience and epoch > warmup_epochs:
             print(f"\nEarly stopping at epoch {epoch}")
             break
 
@@ -273,7 +359,7 @@ def main():
     with open(log_path / "train_log.json", "w") as f:
         json.dump(train_log, f, indent=2)
 
-    print(f"\nTraining complete. Best val_loss: {best_val:.6f}, Best dice_05: {best_dice:.4f}")
+    print(f"\nTraining complete. Best stage2_dice_05: {best_dice:.4f}, Best val_loss: {best_val_loss:.6f}")
     print(f"Checkpoints: {Path(args.checkpoint_dir) / exp_name / 'best.pth'}")
 
 

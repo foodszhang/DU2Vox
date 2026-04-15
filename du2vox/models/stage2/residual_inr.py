@@ -2,14 +2,12 @@
 Stage 2 Residual INR.
 
 Architecture (n_hidden_layers=4):
-    Input:   PE(q) [pe_dim] + prior_8d [8] = in_dim
-    proj:   Linear(in_dim → hidden)
-    h0:     Linear(hidden → hidden) + ReLU
-    h1:     Linear(hidden → hidden) + ReLU   ← skip here
-    skip:   concat([h1_out, proj(x_in)]) → Linear(hidden+proj→hidden) + ReLU
-    h2:     Linear(hidden → hidden) + ReLU
-    h3:     Linear(hidden → hidden) + ReLU
-    out:    Linear(hidden → 1), zero-init
+    Input:   PE(q_norm) [pe_dim] + prior_8d [8] = in_dim
+             q_norm = 2 * (q - bbox_min) / (bbox_max - bbox_min) - 1  → [-1, 1]
+    proj:    Linear(in_dim → hidden)
+    h[0..n-1]:  n_hidden_layers × Linear(hidden → hidden) + ReLU
+       middle layer (i = n_hidden_layers // 2): concat([h_out, proj(x_in)]) → hidden
+    out:     Linear(hidden → 1), zero-init
 
 Zero-init output → step-0 residual = 0 (identity).
 """
@@ -54,24 +52,24 @@ class ResidualINR(nn.Module):
     ):
         super().__init__()
         self.pe = PositionalEncoding(n_freqs=n_freqs, include_input=True)
-        in_dim = self.pe.out_dim + prior_dim  # PE(q) + prior_8d
+        in_dim = self.pe.out_dim + prior_dim  # PE(q_norm) + prior_8d
 
         # Input projection
         self.input_proj = nn.Linear(in_dim, hidden_dim)
 
-        # Build hidden layers explicitly
-        self.h0 = nn.Linear(hidden_dim, hidden_dim)
-        self.h1 = nn.Linear(hidden_dim, hidden_dim)
-        self.act = nn.ReLU(inplace=True)
+        # Build hidden layers: n_hidden_layers of Linear(hidden, hidden)
+        # The middle layer (mid) uses a wider Linear if skip_connection is enabled
+        mid = n_hidden_layers // 2
+        self.hidden_layers = nn.ModuleList()
+        for i in range(n_hidden_layers):
+            if skip_connection and i == mid:
+                # Skip layer: concat([h, proj_in]) → hidden_dim + hidden_dim
+                self.hidden_layers.append(nn.Linear(hidden_dim * 2, hidden_dim))
+            else:
+                self.hidden_layers.append(nn.Linear(hidden_dim, hidden_dim))
 
-        if skip_connection:
-            # Middle layer: concat hidden + projected input → hidden
-            # skip_proj: x_in (in_dim=59) → in_dim (59), so cat(64,59)=123
-            self.h1 = nn.Linear(hidden_dim + in_dim, hidden_dim)
-            self.skip_proj = nn.Linear(in_dim, in_dim)
-
-        self.h2 = nn.Linear(hidden_dim, hidden_dim)
-        self.h3 = nn.Linear(hidden_dim, hidden_dim)
+        # Skip projection: x_in → hidden_dim (then ReLU)
+        self.skip_proj = nn.Linear(in_dim, hidden_dim)
 
         # Output: zero-init → residual=0 at init
         self.out = nn.Linear(hidden_dim, 1)
@@ -80,43 +78,57 @@ class ResidualINR(nn.Module):
 
         self.in_dim = in_dim
         self.hidden_dim = hidden_dim
+        self.n_hidden_layers = n_hidden_layers
         self.skip_connection = skip_connection
+        self.act = nn.ReLU(inplace=True)
 
     def forward(
         self,
         coords: torch.Tensor,
         prior_8d: torch.Tensor,
+        bbox_min: torch.Tensor | None = None,
+        bbox_max: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
-        coords:   [B, N, 3]
+        coords:   [B, N, 3]  — raw coordinates in mm
         prior_8d: [B, N, 8]
+        bbox_min: [B, 3]  or [3] — if None, coords assumed already in [-1,1]
+        bbox_max: [B, 3]  or [3]
         Returns: (d_hat, fem_interp, residual)  each [B, N]
         """
         B, N = coords.shape[:2]
         flat_coords = coords.reshape(B * N, 3)
-        pe_q = self.pe(flat_coords)                    # [B*N, pe_dim]
-        flat_prior = prior_8d.reshape(B * N, 8)        # [B*N, 8]
-        x_in = torch.cat([pe_q, flat_prior], dim=-1) # [B*N, in_dim]
+
+        # Normalize coords to [-1, 1] for PE
+        if bbox_min is not None and bbox_max is not None:
+            if bbox_min.dim() == 1:
+                bbox_min = bbox_min.unsqueeze(0)  # [1, 3]
+            if bbox_max.dim() == 1:
+                bbox_max = bbox_max.unsqueeze(0)  # [1, 3]
+            coords_norm = 2.0 * (flat_coords.unsqueeze(0) - bbox_min[:, None, :]) / \
+                          (bbox_max[:, None, :] - bbox_min[:, None, :] + 1e-8) - 1.0
+            coords_norm = coords_norm.squeeze(0)  # [B*N, 3]
+        else:
+            coords_norm = flat_coords
+
+        pe_q = self.pe(coords_norm)                        # [B*N, pe_dim]
+        flat_prior = prior_8d.reshape(B * N, 8)             # [B*N, 8]
+        x_in = torch.cat([pe_q, flat_prior], dim=-1)       # [B*N, in_dim]
 
         # Input projection
-        x = torch.relu(self.input_proj(x_in))         # [B*N, hidden]
+        x = self.act(self.input_proj(x_in))                 # [B*N, hidden]
 
-        # h0
-        x = self.act(self.h0(x))                      # [B*N, hidden]
-
-        # h1 (middle layer — skip)
-        if self.skip_connection:
-            proj_in = torch.relu(self.skip_proj(x_in)) # [B*N, hidden]
-            x = self.act(self.h1(torch.cat([x, proj_in], dim=-1)))  # [B*N, hidden]
-        else:
-            x = self.act(self.h1(x))
-
-        # h2, h3
-        x = self.act(self.h2(x))
-        x = self.act(self.h3(x))
+        # Hidden layers with skip connection at middle layer
+        mid = self.n_hidden_layers // 2
+        for i, layer in enumerate(self.hidden_layers):
+            if self.skip_connection and i == mid:
+                proj_in = self.act(self.skip_proj(x_in))   # [B*N, hidden]
+                x = self.act(layer(torch.cat([x, proj_in], dim=-1)))  # [B*N, hidden]
+            else:
+                x = self.act(layer(x))
 
         # Residual
-        residual = self.out(x).squeeze(-1)             # [B*N]
+        residual = self.out(x).squeeze(-1)                  # [B*N]
 
         # FEM interpolation: Σ λi * d_vi
         fem_interp = (flat_prior[:, :4] * flat_prior[:, 4:8]).sum(dim=-1)  # [B*N]

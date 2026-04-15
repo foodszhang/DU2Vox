@@ -103,7 +103,7 @@ def run_fem_stage(
     from du2vox.bridge.fem_bridging import FEMBridge
 
     output_dir = Path(args.output_dir)
-    samples_dir = Path(args.samples_dir)
+    samples_dir = Path(args.samples_dir or cfg["data"]["samples_dir"])
 
     print(f"\n[FEM] Computing 8D prior features for {len(sample_ids)} samples")
 
