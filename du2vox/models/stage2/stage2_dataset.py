@@ -159,16 +159,6 @@ class Stage2DatasetPrecomputed(Dataset):
         self._npz_cache: dict[str, dict] = {}
         self._cache_order: list[str] = []
 
-        # Preload valid counts (lightweight — just the mask sum)
-        self._valid_counts: dict[str, int] = {}
-        for sid in sample_ids:
-            path = self.precomputed_dir / f"{sid}.npz"
-            if path.exists():
-                with np.load(path) as data:
-                    self._valid_counts[sid] = int(data["valid_mask"].sum())
-            else:
-                self._valid_counts[sid] = 0
-
     def _load_npz(self, sid: str) -> dict:
         """Load .npz from cache or disk (LRU)."""
         if sid in self._npz_cache:
@@ -216,8 +206,18 @@ class Stage2DatasetPrecomputed(Dataset):
         else:
             chosen = np.random.choice(valid_indices, self.n_query_points, replace=True)
 
+        # Use pre-normalized coords if available, otherwise normalize on the fly
+        if "grid_coords_norm" in data:
+            coords = data["grid_coords_norm"][chosen].copy()
+        else:
+            # Legacy npz: normalize raw coords to [-1,1] using bbox metadata
+            raw = data["grid_coords"][chosen].copy()
+            bbox_min = data["bbox_min"]
+            bbox_max = data["bbox_max"]
+            coords = (2.0 * (raw - bbox_min) / (bbox_max - bbox_min + 1e-8) - 1.0)
+
         return {
-            "coords":   torch.from_numpy(data["grid_coords"][chosen].copy()),
+            "coords":   torch.from_numpy(coords.astype(np.float32)),
             "prior_8d": torch.from_numpy(data["prior_8d"][chosen].copy()),
             "gt":       torch.from_numpy(data["gt_values"][chosen].copy()),
             "valid":    torch.ones(self.n_query_points, dtype=torch.bool),

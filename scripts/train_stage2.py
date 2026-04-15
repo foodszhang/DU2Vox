@@ -18,6 +18,7 @@ import sys
 import time
 from pathlib import Path
 
+import numpy as np
 import torch
 import torch.nn as nn
 import yaml
@@ -70,7 +71,8 @@ def build_dataloader(cfg: dict, sample_ids: list, shuffle: bool = False,
         )
 
 
-def train_step(model: ResidualINR, batch: dict, optimizer: torch.optim.Optimizer) -> dict:
+def train_step(model: ResidualINR, batch: dict, optimizer: torch.optim.Optimizer,
+               grad_clip_norm: float = 1.0) -> dict:
     coords   = batch["coords"].cuda()      # [B, N, 3]
     prior    = batch["prior_8d"].cuda()     # [B, N, 8]
     gt       = batch["gt"].cuda()           # [B, N]
@@ -87,7 +89,7 @@ def train_step(model: ResidualINR, batch: dict, optimizer: torch.optim.Optimizer
 
     optimizer.zero_grad()
     loss.backward()
-    torch.nn.utils.clip_grad_norm_(model.parameters(), cfg["training"].get("grad_clip_norm", 1.0))
+    torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip_norm)
     optimizer.step()
 
     with torch.no_grad():
@@ -116,11 +118,12 @@ def compute_dice(pred: torch.Tensor, target: torch.Tensor, threshold: float = 0.
     return (2 * intersection / (pred_bin.sum() + target_bin.sum() + 1e-8)).item()
 
 
-def validate(model: ResidualINR, val_loader: DataLoader, precomputed_dir: str | None = None,
-             val_sample_ids: list | None = None) -> dict:
+def validate(model: ResidualINR, val_loader: DataLoader) -> dict:
     """Validate with per-sample Dice averaging and FEM baseline comparison."""
     model.eval()
     per_sample_metrics = []
+    total_loss = 0.0
+    n_valid_points = 0
 
     with torch.no_grad():
         for batch in val_loader:
@@ -134,10 +137,23 @@ def validate(model: ResidualINR, val_loader: DataLoader, precomputed_dir: str | 
             d_hat, fem_interp, _ = model(coords, prior)
             d_hat = d_hat.cpu()
             fem_interp = fem_interp.cpu()
+            gt_np = gt.numpy()
+            valid_np = valid.numpy()
+
+            # Accumulate val_loss in the same loop
+            v_all = valid_np.flatten()
+            g_all = gt_np.flatten()
+            p_all = d_hat.numpy().flatten()
+            if v_all.sum() > 0:
+                total_loss += nn.functional.mse_loss(
+                    torch.from_numpy(p_all[v_all > 0]),
+                    torch.from_numpy(g_all[v_all > 0])
+                ).item() * int(v_all.sum())
+                n_valid_points += int(v_all.sum())
 
             for b in range(B):
-                v = valid[b].numpy()
-                g = gt[b].numpy()
+                v = valid_np[b]
+                g = gt_np[b]
                 p = d_hat[b].numpy()
                 f = fem_interp[b].numpy()
 
@@ -145,7 +161,6 @@ def validate(model: ResidualINR, val_loader: DataLoader, precomputed_dir: str | 
                 if v_mask.sum() == 0:
                     continue
 
-                # Per-sample dice at threshold 0.5
                 stage2_d = compute_dice(
                     torch.from_numpy(p[v_mask]),
                     torch.from_numpy(g[v_mask]),
@@ -180,24 +195,8 @@ def validate(model: ResidualINR, val_loader: DataLoader, precomputed_dir: str | 
     keys = ["stage2_dice_05", "fem_dice_05", "delta_dice_05", "stage2_mse", "fem_mse"]
     summary = {k: float(np.mean([m[k] for m in per_sample_metrics])) for k in keys}
     summary["per_sample"] = {m["sample_id"]: {k: m[k] for k in keys} for m in per_sample_metrics}
-
-    # Per-sample averaged val_loss
-    total_loss = 0.0
-    n_samples = 0
-    for batch in val_loader:
-        coords = batch["coords"].cuda()
-        prior = batch["prior_8d"].cuda()
-        gt = batch["gt"].cuda()
-        valid = batch["valid"].cuda()
-        d_hat, _, _ = model(coords, prior)
-        v = valid.flatten()
-        if v.sum() > 0:
-            total_loss += nn.functional.mse_loss(
-                d_hat.flatten()[v], gt.flatten()[v]
-            ).item() * int(v.sum())
-            n_samples += int(v.sum())
-    summary["val_loss"] = total_loss / max(n_samples, 1)
-    summary["val_valid"] = n_samples
+    summary["val_loss"] = total_loss / max(n_valid_points, 1)
+    summary["val_valid"] = n_valid_points
 
     return summary
 
@@ -299,14 +298,15 @@ def main():
             scheduler.step()
 
         for batch in train_loader:
-            metrics = train_step(model, batch, optimizer)
+            metrics = train_step(model, batch, optimizer,
+                                 grad_clip_norm=cfg["training"].get("grad_clip_norm", 1.0))
             epoch_loss += metrics["loss"]
             epoch_fem  += metrics["fem_baseline_loss"]
             epoch_res  += metrics["residual_norm"]
             epoch_valid += metrics["valid_count"]
             n_steps += 1
 
-        val_metrics = validate(model, val_loader, precomputed_dir=precomputed_val)
+        val_metrics = validate(model, val_loader)
         elapsed = time.perf_counter() - t0
 
         avg_loss = epoch_loss / max(n_steps, 1)

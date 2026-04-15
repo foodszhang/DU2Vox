@@ -66,16 +66,17 @@ def evaluate_full_grid(
             continue
 
         data = np.load(path)
-        coords_all = data["grid_coords"]          # [G, 3]
-        prior_all  = data["prior_8d"]             # [G, 8]
-        gt_all     = data["gt_values"]            # [G]
-        valid_all  = data["valid_mask"]           # [G]
+        coords_norm = data["grid_coords_norm"]   # [G, 3] — already normalized [-1,1]
+        coords_raw  = data["grid_coords"]         # [G, 3] — raw mm, for FEM eval
+        prior_all   = data["prior_8d"]            # [G, 8]
+        gt_all      = data["gt_values"]          # [G]
+        valid_all   = data["valid_mask"]          # [G]
 
         v_mask = valid_all > 0
         if v_mask.sum() == 0:
             continue
 
-        coords_v = coords_all[v_mask]
+        coords_v = coords_norm[v_mask]   # normalized [-1,1] — for model input
         prior_v  = prior_all[v_mask]
         gt_v     = gt_all[v_mask]
 

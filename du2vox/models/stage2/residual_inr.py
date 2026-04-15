@@ -86,34 +86,19 @@ class ResidualINR(nn.Module):
         self,
         coords: torch.Tensor,
         prior_8d: torch.Tensor,
-        bbox_min: torch.Tensor | None = None,
-        bbox_max: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
-        coords:   [B, N, 3]  — raw coordinates in mm
+        coords:   [B, N, 3]  — coordinates, pre-normalized to [-1, 1]
+                  (Stage2DatasetPrecomputed stores grid_coords_norm in .npz)
         prior_8d: [B, N, 8]
-        bbox_min: [B, 3]  or [3] — if None, coords assumed already in [-1,1]
-        bbox_max: [B, 3]  or [3]
         Returns: (d_hat, fem_interp, residual)  each [B, N]
         """
         B, N = coords.shape[:2]
         flat_coords = coords.reshape(B * N, 3)
 
-        # Normalize coords to [-1, 1] for PE
-        if bbox_min is not None and bbox_max is not None:
-            if bbox_min.dim() == 1:
-                bbox_min = bbox_min.unsqueeze(0)  # [1, 3]
-            if bbox_max.dim() == 1:
-                bbox_max = bbox_max.unsqueeze(0)  # [1, 3]
-            coords_norm = 2.0 * (flat_coords.unsqueeze(0) - bbox_min[:, None, :]) / \
-                          (bbox_max[:, None, :] - bbox_min[:, None, :] + 1e-8) - 1.0
-            coords_norm = coords_norm.squeeze(0)  # [B*N, 3]
-        else:
-            coords_norm = flat_coords
-
-        pe_q = self.pe(coords_norm)                        # [B*N, pe_dim]
+        pe_q = self.pe(flat_coords)                         # [B*N, pe_dim]
         flat_prior = prior_8d.reshape(B * N, 8)             # [B*N, 8]
-        x_in = torch.cat([pe_q, flat_prior], dim=-1)       # [B*N, in_dim]
+        x_in = torch.cat([pe_q, flat_prior], dim=-1)      # [B*N, in_dim]
 
         # Input projection
         x = self.act(self.input_proj(x_in))                 # [B*N, hidden]

@@ -64,8 +64,9 @@ def build_grid(bbox_min: np.ndarray, bbox_max: np.ndarray, spacing: float) -> tu
 def precompute_sample(
     sid: str,
     bridge_dir: Path,
-    shared_dir: Path,
     samples_dir: Path,
+    nodes: np.ndarray,
+    elements: np.ndarray,
     grid_spacing: float,
     roi_padding_mm: float,
     n_candidates: int = 16,
@@ -77,14 +78,9 @@ def precompute_sample(
     roi_tet_indices = np.load(bd / "roi_tet_indices.npy")
     roi_info = json.loads((bd / "roi_info.json").read_text())
 
-    # Load mesh
-    mesh = np.load(shared_dir / "mesh.npz")
-    nodes = mesh["nodes"].astype(np.float64)
-    elements = mesh["elements"]
-
     # Build FEMBridge
     bridge = FEMBridge(
-        nodes.astype(np.float64),
+        nodes,
         elements,
         roi_tet_indices=roi_tet_indices,
         n_candidates=n_candidates,
@@ -98,6 +94,9 @@ def precompute_sample(
     # Build regular grid
     grid_coords, grid_shape = build_grid(lo, hi, grid_spacing)
     n_points = len(grid_coords)
+
+    # Normalize coords to [-1, 1] for PE (done once at precompute time)
+    grid_coords_norm = (2.0 * (grid_coords - lo) / (hi - lo + 1e-8) - 1.0).astype(np.float32)
 
     # Prior features for all grid points
     prior_8d, valid = bridge.get_prior_features(
@@ -117,7 +116,8 @@ def precompute_sample(
     del bridge
 
     return {
-        "grid_coords": grid_coords,
+        "grid_coords": grid_coords,           # raw (mm) — for FEM eval
+        "grid_coords_norm": grid_coords_norm, # normalized [-1,1] — for training
         "prior_8d": prior_8d,
         "gt_values": gt_values,
         "valid_mask": valid,
@@ -153,12 +153,18 @@ def main():
     samples_dir = Path(cfg["data"]["samples_dir"])
     roi_padding = args.roi_padding_mm if args.roi_padding_mm is not None else cfg["data"]["roi_padding_mm"]
 
+    # Load mesh once (shared across all samples)
+    print(f"[Precompute] Loading mesh from {shared_dir}...")
+    mesh = np.load(shared_dir / "mesh.npz")
+    nodes = mesh["nodes"].astype(np.float64)
+    elements = mesh["elements"]
+    print(f"[Precompute] Mesh: {len(nodes)} nodes, {len(elements)} tets")
+
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"[Precompute] Split={args.split}, n_samples={len(sample_ids)}, "
           f"spacing={args.grid_spacing}mm, padding={roi_padding}mm")
-    print(f"[Precompute] Bridge={bridge_dir}, Shared={shared_dir}, Samples={samples_dir}")
     print(f"[Precompute] Output={output_dir}")
 
     total_time = 0.0
@@ -174,8 +180,9 @@ def main():
             data = precompute_sample(
                 sid=sid,
                 bridge_dir=bridge_dir,
-                shared_dir=shared_dir,
                 samples_dir=samples_dir,
+                nodes=nodes,
+                elements=elements,
                 grid_spacing=args.grid_spacing,
                 roi_padding_mm=roi_padding,
                 n_candidates=args.n_candidates,
