@@ -108,6 +108,8 @@ def train_step(
 
     model: ResidualINR (DE-only) or ResidualINR (multiview, receives view_feat externally)
     view_encoder: ViewEncoderModule or None (DE-only mode)
+
+    Uses gisc-style loss: weighted BCE + sparse + Focal Tversky on final prediction.
     """
     coords   = batch["coords"].cuda()      # [B, N, 3] — normalized [-1,1] for INR
     prior    = batch["prior_8d"].cuda()   # [B, N, 8]
@@ -138,7 +140,33 @@ def train_step(
         # Final prediction = FEM baseline + residual; clamp to [0, 1] for Dice
         final_pred = torch.clamp(fem_interp.flatten()[valid_mask] + pred_flat, 0.0, 1.0)
 
-        loss = nn.functional.mse_loss(pred_flat, gt_flat)
+        # gisc-style loss: weighted BCE + sparse + Focal Tversky on final_pred
+        pos_weight = 150.0
+        lambda_tv = 0.3
+        sparse_w = 0.01
+        alpha_tv = 0.6
+        beta_tv = 0.4
+        gamma_tv = 1.33
+
+        p = final_pred.clamp(1e-6, 1 - 1e-6)
+        g = (gt_flat >= 0.5).float()
+
+        w_bce = g * (pos_weight - 1) + 1
+        bce_loss = torch.nn.functional.binary_cross_entropy(p, g, weight=w_bce)
+        sparse_loss = sparse_w * (p * (1 - g)).mean()
+
+        eps = 1e-6
+        TP = (p * g).sum(); FP = (p * (1 - g)).sum(); FN = ((1 - p) * g).sum()
+        TI = (TP + eps) / (TP + alpha_tv * FP + beta_tv * FN + eps)
+        focal_tv_loss = torch.clamp(1 - TI, 0, 1) ** gamma_tv
+
+        loss = bce_loss + sparse_loss + lambda_tv * focal_tv_loss
+
+        loss_components = {
+            "bce": bce_loss.detach(),
+            "sparse": sparse_loss.detach(),
+            "focal_tv": focal_tv_loss.detach(),
+        }
     else:
         loss = torch.tensor(0.0, device=coords.device)
 
@@ -164,6 +192,9 @@ def train_step(
         "fem_baseline_loss": fem_loss.item(),
         "residual_norm": residual_norm.item(),
         "valid_count": int(valid_mask.sum()),
+        "bce": loss_components["bce"].item() if valid_mask.sum() > 0 else 0.0,
+        "sparse": loss_components["sparse"].item() if valid_mask.sum() > 0 else 0.0,
+        "focal_tv": loss_components["focal_tv"].item() if valid_mask.sum() > 0 else 0.0,
     }
 
 
@@ -396,6 +427,9 @@ def main():
         epoch_loss = 0.0
         epoch_fem = 0.0
         epoch_res = 0.0
+        epoch_bce = 0.0
+        epoch_sparse = 0.0
+        epoch_focal_tv = 0.0
         epoch_valid = 0
         n_steps = 0
 
@@ -416,6 +450,9 @@ def main():
             epoch_loss += metrics["loss"]
             epoch_fem  += metrics["fem_baseline_loss"]
             epoch_res  += metrics["residual_norm"]
+            epoch_bce  += metrics["bce"]
+            epoch_sparse += metrics["sparse"]
+            epoch_focal_tv += metrics["focal_tv"]
             epoch_valid += metrics["valid_count"]
             n_steps += 1
 
@@ -425,6 +462,9 @@ def main():
         avg_loss = epoch_loss / max(n_steps, 1)
         avg_fem  = epoch_fem  / max(n_steps, 1)
         avg_res  = epoch_res  / max(n_steps, 1)
+        avg_bce  = epoch_bce  / max(n_steps, 1)
+        avg_sparse = epoch_sparse / max(n_steps, 1)
+        avg_focal_tv = epoch_focal_tv / max(n_steps, 1)
 
         entry = {
             "epoch": epoch,
@@ -436,6 +476,9 @@ def main():
             "stage2_mse": val_metrics["stage2_mse"],
             "fem_mse": val_metrics["fem_mse"],
             "residual_norm": avg_res,
+            "bce": avg_bce,
+            "sparse": avg_sparse,
+            "focal_tv": avg_focal_tv,
             "valid_count": epoch_valid,
             "elapsed_s": elapsed,
             "lr": optimizer.param_groups[0]["lr"],
@@ -449,6 +492,9 @@ def main():
             f"{val_metrics['delta_dice_05']:>8.4f}  "
             f"{avg_res:>8.4f}  {val_metrics['fem_mse']:>10.6f}  "
             f"{epoch_valid:>7}  {elapsed:>5.1f}s"
+        )
+        print(
+            f"         bce={avg_bce:.4f}  sp={avg_sparse:.4f}  ft={avg_focal_tv:.4f}"
         )
 
         # Save best by stage2_dice_05
