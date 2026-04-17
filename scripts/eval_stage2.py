@@ -65,8 +65,15 @@ def evaluate_full_grid(
             print(f"  WARNING: {sid} not found, skipping")
             continue
 
-        data = np.load(path)
-        coords_norm = data["grid_coords_norm"]   # [G, 3] — already normalized [-1,1]
+        data = dict(np.load(path))
+        # Legacy fallback: if grid_coords_norm not present, normalize raw coords using bbox metadata
+        if "grid_coords_norm" in data:
+            coords_norm = data["grid_coords_norm"]   # [G, 3] — already normalized [-1,1]
+        else:
+            raw = data["grid_coords"]
+            bbox_min = data["bbox_min"]
+            bbox_max = data["bbox_max"]
+            coords_norm = (2.0 * (raw - bbox_min) / (bbox_max - bbox_min + 1e-8) - 1.0).astype(np.float32)
         coords_raw  = data["grid_coords"]         # [G, 3] — raw mm, for FEM eval
         prior_all   = data["prior_8d"]            # [G, 8]
         gt_all      = data["gt_values"]          # [G]

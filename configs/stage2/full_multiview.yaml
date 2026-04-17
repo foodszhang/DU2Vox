@@ -1,0 +1,66 @@
+# DU2Vox Stage 2 — full_multiview: DE + MCX multiview features
+# Stage 1 frozen, ViewEncoder + ResidualINR trained jointly.
+#
+# Modes:
+#   precomputed_*-dir set → fast fork-safe DataLoader (num_workers>0)
+#   not set              → slow on-demand FEMBridge dataset (num_workers=0)
+
+experiment:
+  name: "full_multiview"
+
+data:
+  # Precomputed grid data (set after running precompute_stage2_data.py)
+  precomputed_train_dir: precomputed/train/
+  precomputed_val_dir: precomputed/val/
+
+  # FMT-SimGen samples dir (contains proj.npz for MCX views)
+  samples_dir: /home/foods/pro/FMT-SimGen/data/uniform_1000_v2/samples
+
+  # On-demand bridge data (fallback / used for precomputation)
+  train_bridge_dir: output/bridge_train/
+  val_bridge_dir: output/bridge_val/
+  shared_dir: /home/foods/pro/FMT-SimGen/output/shared
+  train_split: /home/foods/pro/FMT-SimGen/data/uniform_1000_v2/splits/train.txt
+  val_split: /home/foods/pro/FMT-SimGen/data/uniform_1000_v2/splits/val.txt
+
+  n_query_points: 4096        # random query points per sample per epoch (training)
+  roi_padding_mm: 1.0
+
+model:
+  # Positional encoding
+  n_freqs: 10
+
+  # Residual INR
+  hidden_dim: 256
+  n_hidden_layers: 4
+  prior_dim: 8
+  skip_connection: true
+
+  # View encoder (multiview MCX)
+  view_encoder: true
+  view_feat_dim: 32          # dimension of fused view features per query
+  fusion_method: "mean"        # "mean" or "attn" — mean is more robust
+  encoder_base_channels: 32   # base channels in 2D U-Net encoder
+  encoder_out_channels: 32    # output channels per view feature map
+  view_encoder_lr_scale: 0.1  # multiplier for view encoder learning rate
+
+training:
+  lr: 1.0e-4
+  weight_decay: 1.0e-5
+  batch_size: 4               # smaller batch for multiview (more GPU memory)
+  max_epochs: 200
+  grad_clip_norm: 1.0
+  num_workers: 2              # fork-safe DataLoader
+  scheduler:
+    type: "CosineAnnealingLR"
+    T_max: 200
+    eta_min: 1.0e-6
+  early_stopping_patience: 20
+  warmup_epochs: 5
+
+loss:
+  type: "mse"       # MSE on valid ROI points
+
+logging:
+  print_every: 1
+  detail_every: 5

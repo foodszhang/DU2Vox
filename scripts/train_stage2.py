@@ -5,10 +5,12 @@ Stage 2 Residual INR training entry point.
 Supports two dataset modes:
 - precomputed:  Stage2DatasetPrecomputed (fast, fork-safe, num_workers>0)
 - on-demand:    Stage2Dataset (slow, FEMBridge not fork-safe, num_workers=0)
+- multiview:    Stage2DatasetPrecomputedMultiview (DE + MCX projections)
 
 Usage:
     python scripts/train_stage2.py --config configs/stage2/uniform_1000_v2.yaml
     python scripts/train_stage2.py --config configs/stage2/uniform_1000_v2.yaml --experiment_name baseline_de_only
+    python scripts/train_stage2.py --config configs/stage2/full_multiview.yaml
 """
 from __future__ import annotations
 
@@ -17,6 +19,7 @@ import json
 import sys
 import time
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 import torch
@@ -27,7 +30,11 @@ from torch.utils.data import DataLoader
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from du2vox.models.stage2.residual_inr import ResidualINR
-from du2vox.models.stage2.stage2_dataset import Stage2Dataset, Stage2DatasetPrecomputed
+from du2vox.models.stage2.stage2_dataset import (
+    Stage2Dataset,
+    Stage2DatasetPrecomputed,
+    Stage2DatasetPrecomputedMultiview,
+)
 
 
 def load_split(split_file: str):
@@ -35,22 +42,40 @@ def load_split(split_file: str):
         return [l.strip() for l in f if l.strip()]
 
 
-def build_dataloader(cfg: dict, sample_ids: list, shuffle: bool = False,
-                      precomputed_dir: str | None = None,
-                      bridge_dir: str | None = None):
+def build_dataloader(
+    cfg: dict,
+    sample_ids: list,
+    shuffle: bool = False,
+    precomputed_dir: str | None = None,
+    bridge_dir: str | None = None,
+) -> DataLoader:
+    """Build a DataLoader. Selects dataset type based on config."""
+    batch_size = cfg["training"]["batch_size"]
+    num_workers = cfg["training"].get("num_workers", 4)
+    n_query = cfg["data"]["n_query_points"]
+
     if precomputed_dir and Path(precomputed_dir).exists():
-        dataset = Stage2DatasetPrecomputed(
-            precomputed_dir=precomputed_dir,
-            sample_ids=sample_ids,
-            n_query_points=cfg["data"]["n_query_points"],
-        )
+        # Check if multiview mode is enabled
+        if cfg["model"].get("view_encoder", False):
+            dataset = Stage2DatasetPrecomputedMultiview(
+                precomputed_dir=precomputed_dir,
+                samples_dir=cfg["data"]["samples_dir"],
+                sample_ids=sample_ids,
+                n_query_points=n_query,
+            )
+        else:
+            dataset = Stage2DatasetPrecomputed(
+                precomputed_dir=precomputed_dir,
+                sample_ids=sample_ids,
+                n_query_points=n_query,
+            )
         return DataLoader(
             dataset,
-            batch_size=cfg["training"]["batch_size"],
+            batch_size=batch_size,
             shuffle=shuffle,
-            num_workers=cfg["training"].get("num_workers", 4),
+            num_workers=num_workers,
             pin_memory=True,
-            prefetch_factor=2 if cfg["training"].get("num_workers", 4) > 0 else None,
+            prefetch_factor=2 if num_workers > 0 else None,
         )
     else:
         # Fallback to on-demand dataset
@@ -59,26 +84,46 @@ def build_dataloader(cfg: dict, sample_ids: list, shuffle: bool = False,
             shared_dir=cfg["data"]["shared_dir"],
             samples_dir=cfg["data"]["samples_dir"],
             sample_ids=sample_ids,
-            n_query_points=cfg["data"]["n_query_points"],
+            n_query_points=n_query,
             roi_padding_mm=cfg["data"]["roi_padding_mm"],
         )
         return DataLoader(
             dataset,
-            batch_size=cfg["training"]["batch_size"],
+            batch_size=batch_size,
             shuffle=shuffle,
             num_workers=0,  # FEM bridge is not fork-safe
             pin_memory=True,
         )
 
 
-def train_step(model: ResidualINR, batch: dict, optimizer: torch.optim.Optimizer,
-               grad_clip_norm: float = 1.0) -> dict:
-    coords   = batch["coords"].cuda()      # [B, N, 3]
-    prior    = batch["prior_8d"].cuda()     # [B, N, 8]
-    gt       = batch["gt"].cuda()           # [B, N]
-    valid    = batch["valid"].cuda()        # [B, N]
+def train_step(
+    model: nn.Module,
+    batch: dict,
+    optimizer: torch.optim.Optimizer,
+    grad_clip_norm: float = 1.0,
+    view_encoder: Optional[nn.Module] = None,
+) -> dict:
+    """
+    Train one batch. Supports both DE-only and multiview modes.
 
-    d_hat, fem_interp, residual = model(coords, prior)
+    model: ResidualINR (DE-only) or ResidualINR (multiview, receives view_feat externally)
+    view_encoder: ViewEncoderModule or None (DE-only mode)
+    """
+    coords   = batch["coords"].cuda()      # [B, N, 3] — normalized [-1,1] for INR
+    prior    = batch["prior_8d"].cuda()   # [B, N, 8]
+    gt       = batch["gt"].cuda()          # [B, N]
+    valid    = batch["valid"].cuda()       # [B, N]
+
+    is_multiview = "proj_imgs" in batch and "coords_world" in batch
+
+    if is_multiview:
+        coords_world = batch["coords_world"].cuda()  # [B, N, 3] — world mm for projection
+        proj_imgs = batch["proj_imgs"].cuda()        # [B, 7, 1, 256, 256]
+        with torch.no_grad():
+            view_feat, visibility = view_encoder(proj_imgs, coords_world)  # [B, N, view_feat_dim], [B, N, 7]
+        d_hat, fem_interp, residual = model(coords, prior, view_feat)
+    else:
+        d_hat, fem_interp, residual = model(coords, prior)
 
     # Loss only on valid ROI points
     valid_mask = valid.flatten()
@@ -90,6 +135,8 @@ def train_step(model: ResidualINR, batch: dict, optimizer: torch.optim.Optimizer
     optimizer.zero_grad()
     loss.backward()
     torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip_norm)
+    if view_encoder is not None:
+        torch.nn.utils.clip_grad_norm_(view_encoder.parameters(), grad_clip_norm)
     optimizer.step()
 
     with torch.no_grad():
@@ -118,7 +165,11 @@ def compute_dice(pred: torch.Tensor, target: torch.Tensor, threshold: float = 0.
     return (2 * intersection / (pred_bin.sum() + target_bin.sum() + 1e-8)).item()
 
 
-def validate(model: ResidualINR, val_loader: DataLoader) -> dict:
+def validate(
+    model: nn.Module,
+    val_loader: DataLoader,
+    view_encoder: Optional[nn.Module] = None,
+) -> dict:
     """Validate with per-sample Dice averaging and FEM baseline comparison."""
     model.eval()
     per_sample_metrics = []
@@ -134,7 +185,15 @@ def validate(model: ResidualINR, val_loader: DataLoader) -> dict:
             sids    = batch["sample_id"]
 
             B, N = coords.shape[:2]
-            d_hat, fem_interp, _ = model(coords, prior)
+
+            is_multiview = "proj_imgs" in batch and "coords_world" in batch
+            if is_multiview:
+                coords_world = batch["coords_world"].cuda()
+                proj_imgs = batch["proj_imgs"].cuda()
+                view_feat, _ = view_encoder(proj_imgs, coords_world)
+                d_hat, fem_interp, _ = model(coords, prior, view_feat)
+            else:
+                d_hat, fem_interp, _ = model(coords, prior)
             d_hat = d_hat.cpu()
             fem_interp = fem_interp.cpu()
             gt_np = gt.numpy()
@@ -235,19 +294,56 @@ def main():
     print(f"[Stage2] Training: {len(train_ids)} samples, Val: {len(val_ids)} samples")
 
     # Build model
-    model = ResidualINR(
-        n_freqs=cfg["model"]["n_freqs"],
-        hidden_dim=cfg["model"]["hidden_dim"],
-        n_hidden_layers=cfg["model"]["n_hidden_layers"],
-        prior_dim=cfg["model"]["prior_dim"],
-        skip_connection=cfg["model"]["skip_connection"],
-    ).cuda()
+    view_encoder_cfg = cfg["model"].get("view_encoder", False)
 
-    optimizer = torch.optim.AdamW(
-        model.parameters(),
-        lr=cfg["training"]["lr"],
-        weight_decay=cfg["training"]["weight_decay"],
-    )
+    if view_encoder_cfg:
+        # Multiview mode: ViewEncoderModule + ResidualINR
+        from du2vox.models.stage2.view_encoder import ViewEncoderModule
+
+        view_encoder = ViewEncoderModule(
+            view_feat_dim=cfg["model"]["view_feat_dim"],
+            fusion_method=cfg["model"].get("fusion_method", "attn"),
+            encoder_out_channels=cfg["model"].get("encoder_out_channels", 32),
+            encoder_base_channels=cfg["model"].get("encoder_base_channels", 32),
+        ).cuda()
+
+        model = ResidualINR(
+            n_freqs=cfg["model"]["n_freqs"],
+            hidden_dim=cfg["model"]["hidden_dim"],
+            n_hidden_layers=cfg["model"]["n_hidden_layers"],
+            prior_dim=cfg["model"]["prior_dim"],
+            skip_connection=cfg["model"]["skip_connection"],
+            view_feat_dim=cfg["model"]["view_feat_dim"],
+        ).cuda()
+
+        # Joint optimizer with separate LR for view encoder
+        lr_scale = cfg["model"].get("view_encoder_lr_scale", 1.0)
+        ve_lr = cfg["training"]["lr"] * lr_scale
+        optimizer = torch.optim.AdamW(
+            [
+                {"params": model.parameters(), "lr": cfg["training"]["lr"]},
+                {"params": view_encoder.parameters(), "lr": ve_lr},
+            ],
+            weight_decay=cfg["training"]["weight_decay"],
+        )
+        print(f"[Stage2] Multiview mode: view_feat_dim={cfg['model']['view_feat_dim']}, "
+              f"fusion={cfg['model'].get('fusion_method', 'mean')}, ve_lr={ve_lr:.0e}")
+    else:
+        # DE-only mode
+        view_encoder = None
+        model = ResidualINR(
+            n_freqs=cfg["model"]["n_freqs"],
+            hidden_dim=cfg["model"]["hidden_dim"],
+            n_hidden_layers=cfg["model"]["n_hidden_layers"],
+            prior_dim=cfg["model"]["prior_dim"],
+            skip_connection=cfg["model"]["skip_connection"],
+        ).cuda()
+
+        optimizer = torch.optim.AdamW(
+            model.parameters(),
+            lr=cfg["training"]["lr"],
+            weight_decay=cfg["training"]["weight_decay"],
+        )
 
     warmup_epochs = cfg["training"].get("warmup_epochs", 5)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
@@ -298,15 +394,18 @@ def main():
             scheduler.step()
 
         for batch in train_loader:
-            metrics = train_step(model, batch, optimizer,
-                                 grad_clip_norm=cfg["training"].get("grad_clip_norm", 1.0))
+            metrics = train_step(
+                model, batch, optimizer,
+                grad_clip_norm=cfg["training"].get("grad_clip_norm", 1.0),
+                view_encoder=view_encoder,
+            )
             epoch_loss += metrics["loss"]
             epoch_fem  += metrics["fem_baseline_loss"]
             epoch_res  += metrics["residual_norm"]
             epoch_valid += metrics["valid_count"]
             n_steps += 1
 
-        val_metrics = validate(model, val_loader)
+        val_metrics = validate(model, val_loader, view_encoder=view_encoder)
         elapsed = time.perf_counter() - t0
 
         avg_loss = epoch_loss / max(n_steps, 1)
@@ -344,7 +443,13 @@ def main():
             best_val_loss = val_metrics["val_loss"]
             ckpt_path = Path(args.checkpoint_dir) / exp_name / "best.pth"
             ckpt_path.parent.mkdir(parents=True, exist_ok=True)
-            torch.save(model.state_dict(), ckpt_path)
+            if view_encoder is not None:
+                torch.save({
+                    "residual_inr": model.state_dict(),
+                    "view_encoder": view_encoder.state_dict(),
+                }, ckpt_path)
+            else:
+                torch.save(model.state_dict(), ckpt_path)
             patience_counter = 0
             print(f"  -> Best model saved (stage2_dice_05={best_dice:.4f}, val_loss={best_val_loss:.6f})")
         else:

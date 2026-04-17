@@ -49,10 +49,11 @@ class ResidualINR(nn.Module):
         n_hidden_layers: int = 4,
         prior_dim: int = 8,
         skip_connection: bool = True,
+        view_feat_dim: int = 0,  # 0 = DE-only mode (no view features)
     ):
         super().__init__()
         self.pe = PositionalEncoding(n_freqs=n_freqs, include_input=True)
-        in_dim = self.pe.out_dim + prior_dim  # PE(q_norm) + prior_8d
+        in_dim = self.pe.out_dim + prior_dim + view_feat_dim  # PE(q_norm) + prior_8d + view_feat
 
         # Input projection
         self.input_proj = nn.Linear(in_dim, hidden_dim)
@@ -80,17 +81,20 @@ class ResidualINR(nn.Module):
         self.hidden_dim = hidden_dim
         self.n_hidden_layers = n_hidden_layers
         self.skip_connection = skip_connection
+        self.view_feat_dim = view_feat_dim
         self.act = nn.ReLU(inplace=True)
 
     def forward(
         self,
         coords: torch.Tensor,
         prior_8d: torch.Tensor,
+        view_feat: torch.Tensor = None,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
-        coords:   [B, N, 3]  — coordinates, pre-normalized to [-1, 1]
-                  (Stage2DatasetPrecomputed stores grid_coords_norm in .npz)
-        prior_8d: [B, N, 8]
+        coords:     [B, N, 3] — coordinates, pre-normalized to [-1, 1]
+                    (Stage2DatasetPrecomputed stores grid_coords_norm in .npz)
+        prior_8d:   [B, N, 8]
+        view_feat:  [B, N, view_feat_dim] or None (DE-only mode)
         Returns: (d_hat, fem_interp, residual)  each [B, N]
         """
         B, N = coords.shape[:2]
@@ -98,7 +102,12 @@ class ResidualINR(nn.Module):
 
         pe_q = self.pe(flat_coords)                         # [B*N, pe_dim]
         flat_prior = prior_8d.reshape(B * N, 8)             # [B*N, 8]
-        x_in = torch.cat([pe_q, flat_prior], dim=-1)      # [B*N, in_dim]
+
+        if view_feat is not None:
+            flat_view = view_feat.reshape(B * N, -1)        # [B*N, view_feat_dim]
+            x_in = torch.cat([pe_q, flat_prior, flat_view], dim=-1)
+        else:
+            x_in = torch.cat([pe_q, flat_prior], dim=-1)    # [B*N, pe_dim + 8]
 
         # Input projection
         x = self.act(self.input_proj(x_in))                 # [B*N, hidden]
