@@ -37,8 +37,10 @@ VOXEL_SIZE_MM = 0.2
 #
 # The production pipeline uses centering offset (0, 30, 0), NOT physical center.
 # This constant MUST match: MCX_VOLUME_CENTER_WORLD = [0.0, 30.0, 0.0].
-TRUNK_OFFSET_Y = 30.0  # mm — the Y centering offset
-MCX_VOLUME_CENTER_WORLD = np.array([0.0, 30.0, 0.0], dtype=np.float32)
+# volume_center_world=(0,0,0) is the correct centering for projection.
+# With this value, world Y=0 aligns with the detector center.
+# The trunk volume (world Y=[30,70]) projects to the central region of the FOV.
+MCX_VOLUME_CENTER_WORLD = np.array([0.0, 0.0, 0.0], dtype=np.float32)
 
 ANGLES = [-90, -60, -30, 0, 30, 60, 90]
 
