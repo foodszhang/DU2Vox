@@ -1,0 +1,47 @@
+# DU2Vox Stage 2 — full_multiview_v6: world-space + gisc loss
+# Phase 4: gisc-style loss (weighted BCE + sparse + Focal Tversky)
+# Uses world-space projection (grid_coords_mcx_vox_norm NOT available in precomputed)
+# Packet: Phase 5 Exp B
+
+experiment:
+  name: "full_multiview_v6"
+
+data:
+  precomputed_train_dir: precomputed/train/
+  precomputed_val_dir: precomputed/val/
+  samples_dir: /home/foods/pro/FMT-SimGen/data/uniform_1000_v2/samples
+  train_split: /home/foods/pro/FMT-SimGen/data/uniform_1000_v2/splits/train.txt
+  val_split: /home/foods/pro/FMT-SimGen/data/uniform_1000_v2/splits/val.txt
+  n_query_points: 4096
+  roi_padding_mm: 4.0
+
+model:
+  n_freqs: 10
+  hidden_dim: 128
+  n_hidden_layers: 4
+  prior_dim: 8
+  skip_connection: true
+  view_encoder: true
+  view_feat_dim: 32
+  fusion_method: "attn"
+  encoder_base_channels: 32
+  encoder_out_channels: 32
+  view_encoder_lr_scale: 1.0
+
+training:
+  lr: 1.0e-4
+  weight_decay: 1.0e-5
+  batch_size: 8
+  max_epochs: 200
+  grad_clip_norm: 1.0
+  num_workers: 2
+  scheduler:
+    type: "CosineAnnealingLR"
+    T_max: 200
+    eta_min: 1.0e-6
+  early_stopping_patience: 30
+  warmup_epochs: 5
+
+logging:
+  print_every: 1
+  detail_every: 5

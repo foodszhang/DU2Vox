@@ -102,7 +102,6 @@ def train_step(
     optimizer: torch.optim.Optimizer,
     grad_clip_norm: float = 1.0,
     view_encoder: Optional[nn.Module] = None,
-    dice_weight: float = 0.0,
 ) -> dict:
     """
     Train one batch. Supports both DE-only and multiview modes.
@@ -139,18 +138,7 @@ def train_step(
         # Final prediction = FEM baseline + residual; clamp to [0, 1] for Dice
         final_pred = torch.clamp(fem_interp.flatten()[valid_mask] + pred_flat, 0.0, 1.0)
 
-        mse_loss = nn.functional.mse_loss(pred_flat, gt_flat)
-
-        # Phase 4: MSE + Dice mixed loss (Dice on final clamped prediction)
-        if dice_weight > 0:
-            pred_bin = (final_pred >= 0.5).float()
-            gt_bin = (gt_flat >= 0.5).float()
-            intersection = (pred_bin * gt_bin).sum()
-            dice_val = 2 * intersection / (pred_bin.sum() + gt_bin.sum() + 1e-8)
-            dice_loss = 1.0 - dice_val  # scalar, higher is worse
-            loss = (1 - dice_weight) * mse_loss + dice_weight * dice_loss
-        else:
-            loss = mse_loss
+        loss = nn.functional.mse_loss(pred_flat, gt_flat)
     else:
         loss = torch.tensor(0.0, device=coords.device)
 
@@ -400,7 +388,7 @@ def main():
     train_log = []
 
     print(f"\n{'Epoch':>5}  {'Loss':>10}  {'ValLoss':>10}  {'S2Dice':>8}  {'FemDice':>8}  {'ΔDice':>8}  {'ResNorm':>8}  {'FemMSE':>10}  {'Valid':>7}  {'Time':>6}")
-    print("-" * 110)
+    print("-" * 100)
 
     for epoch in range(1, max_epochs + 1):
         t0 = time.perf_counter()
@@ -424,7 +412,6 @@ def main():
                 model, batch, optimizer,
                 grad_clip_norm=cfg["training"].get("grad_clip_norm", 1.0),
                 view_encoder=view_encoder,
-                dice_weight=cfg["training"].get("dice_weight", 0.0),
             )
             epoch_loss += metrics["loss"]
             epoch_fem  += metrics["fem_baseline_loss"]
