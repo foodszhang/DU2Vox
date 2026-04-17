@@ -12,7 +12,7 @@ import torch.nn.functional as F
 
 # ─── Projection constants (from FMT-SimGen view_config + mcx_config) ────────
 CAMERA_DISTANCE_MM = 200.0
-FOV_MM = 50.0
+FOV_MM = 80.0
 DETECTOR_RESOLUTION = (256, 256)  # (width, height) in pixels
 VOXEL_SIZE_MM = 0.2
 
@@ -26,7 +26,7 @@ VOXEL_SIZE_MM = 0.2
 # The trunk_offset_mm=[0, 30, 0] is the centering shift: the atlas is centered
 # at Y=0, and the trunk crop offset of 30mm means the trunk center is at world Y=30.
 # The projection uses volume_center_world=(0, 30, 0), so world Y is shifted by 30.
-# This means the FOV covers world Y=[-25+30, 25+30]=[5, 55] for the trunk.
+# This means the FOV covers world Y=[-40+30, 40+30]=[-10, 70] for the trunk.
 # The DU2Vox projection must use the SAME centering: (0, 30, 0).
 TRUNK_OFFSET_Y = 30.0  # mm — the Y offset applied in the reference projection
 MCX_VOLUME_CENTER_WORLD = np.array([0.0, 30.0, 0.0], dtype=np.float32)
