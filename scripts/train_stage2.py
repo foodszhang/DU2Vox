@@ -119,8 +119,7 @@ def train_step(
     if is_multiview:
         coords_world = batch["coords_world"].cuda()  # [B, N, 3] — world mm for projection
         proj_imgs = batch["proj_imgs"].cuda()        # [B, 7, 1, 256, 256]
-        with torch.no_grad():
-            view_feat, visibility = view_encoder(proj_imgs, coords_world)  # [B, N, view_feat_dim], [B, N, 7]
+        view_feat, visibility = view_encoder(proj_imgs, coords_world)  # [B, N, view_feat_dim], [B, N, 7]
         d_hat, fem_interp, residual = model(coords, prior, view_feat)
     else:
         d_hat, fem_interp, residual = model(coords, prior)

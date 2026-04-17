@@ -21,14 +21,23 @@ VOXEL_SIZE_MM = 0.2
 #   voxel_size_mm: 0.2
 #   trunk_offset_mm: [0, 30, 0]
 #
-# The reference projection (project_volume_reference) centers at (nx/2, ny/2, nz/2)
-# in voxel space, then converts to world mm. It then SUBTRACTS volume_center_world.
-# The trunk_offset_mm=[0, 30, 0] is the centering shift: the atlas is centered
-# at Y=0, and the trunk crop offset of 30mm means the trunk center is at world Y=30.
-# The projection uses volume_center_world=(0, 30, 0), so world Y is shifted by 30.
-# This means the FOV covers world Y=[-40+30, 40+30]=[-10, 70] for the trunk.
-# The DU2Vox projection must use the SAME centering: (0, 30, 0).
-TRUNK_OFFSET_Y = 30.0  # mm — the Y offset applied in the reference projection
+# IMPORTANT: Two coordinate frames are in use here:
+#
+#   PHYSICAL CENTER (what the trunk volume actually spans in world mm):
+#     X = (190/2) * 0.2 = 19.0 mm  (±19mm from atlas center)
+#     Y = (200/2) * 0.2 + 30 = 50.0 mm  (trunk_offset_y=30mm shifts atlas center)
+#     Z = (104/2) * 0.2 = 10.4 mm
+#   → Trunk volume world range: Y=[-30, 10] mm
+#
+#   CENTERING OFFSET (what project_volume_reference SUBTRACTS to center the volume):
+#     This is what run_mcx_pipeline.py passes as volume_center_world=(0, 30, 0).
+#     Subtracting (0, 30, 0) centers the projection on world Y=0 (atlas center).
+#   → FOV world Y for trunk: FOV/2 offset from 0 → Y=[-40, 40] for FOV=80
+#     After trunk_offset shift, this covers world Y=[-10, 70].
+#
+# The production pipeline uses centering offset (0, 30, 0), NOT physical center.
+# This constant MUST match: MCX_VOLUME_CENTER_WORLD = [0.0, 30.0, 0.0].
+TRUNK_OFFSET_Y = 30.0  # mm — the Y centering offset
 MCX_VOLUME_CENTER_WORLD = np.array([0.0, 30.0, 0.0], dtype=np.float32)
 
 ANGLES = [-90, -60, -30, 0, 30, 60, 90]
