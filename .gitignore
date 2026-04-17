@@ -18,3 +18,4 @@ logs/
 .DS_Store
 results/
 runs/
+precomputed/
