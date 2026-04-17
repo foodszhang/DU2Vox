@@ -102,6 +102,7 @@ def train_step(
     optimizer: torch.optim.Optimizer,
     grad_clip_norm: float = 1.0,
     view_encoder: Optional[nn.Module] = None,
+    dice_weight: float = 0.0,
 ) -> dict:
     """
     Train one batch. Supports both DE-only and multiview modes.
@@ -119,7 +120,12 @@ def train_step(
     if is_multiview:
         coords_world = batch["coords_world"].cuda()  # [B, N, 3] — world mm for projection
         proj_imgs = batch["proj_imgs"].cuda()        # [B, 7, 1, 256, 256]
-        view_feat, visibility = view_encoder(proj_imgs, coords_world)  # [B, N, view_feat_dim], [B, N, 7]
+        # Phase 3: voxel-space coords for projection (preserves aspect ratio)
+        coords_vox = batch.get("coords_mcx_vox_norm")
+        coords_vox = coords_vox.cuda() if coords_vox is not None else None
+        view_feat, visibility = view_encoder(
+            proj_imgs, coords_world, coords_vox_norm=coords_vox
+        )  # [B, N, view_feat_dim], [B, N, 7]
         d_hat, fem_interp, residual = model(coords, prior, view_feat)
     else:
         d_hat, fem_interp, residual = model(coords, prior)
@@ -127,7 +133,24 @@ def train_step(
     # Loss only on valid ROI points
     valid_mask = valid.flatten()
     if valid_mask.sum() > 0:
-        loss = nn.functional.mse_loss(d_hat.flatten()[valid_mask], gt.flatten()[valid_mask])
+        pred_flat = d_hat.flatten()[valid_mask]
+        gt_flat = gt.flatten()[valid_mask]
+
+        # Final prediction = FEM baseline + residual; clamp to [0, 1] for Dice
+        final_pred = torch.clamp(fem_interp.flatten()[valid_mask] + pred_flat, 0.0, 1.0)
+
+        mse_loss = nn.functional.mse_loss(pred_flat, gt_flat)
+
+        # Phase 4: MSE + Dice mixed loss (Dice on final clamped prediction)
+        if dice_weight > 0:
+            pred_bin = (final_pred >= 0.5).float()
+            gt_bin = (gt_flat >= 0.5).float()
+            intersection = (pred_bin * gt_bin).sum()
+            dice_val = 2 * intersection / (pred_bin.sum() + gt_bin.sum() + 1e-8)
+            dice_loss = 1.0 - dice_val  # scalar, higher is worse
+            loss = (1 - dice_weight) * mse_loss + dice_weight * dice_loss
+        else:
+            loss = mse_loss
     else:
         loss = torch.tensor(0.0, device=coords.device)
 
@@ -189,7 +212,11 @@ def validate(
             if is_multiview:
                 coords_world = batch["coords_world"].cuda()
                 proj_imgs = batch["proj_imgs"].cuda()
-                view_feat, _ = view_encoder(proj_imgs, coords_world)
+                coords_vox = batch.get("coords_mcx_vox_norm")
+                coords_vox = coords_vox.cuda() if coords_vox is not None else None
+                view_feat, _ = view_encoder(
+                    proj_imgs, coords_world, coords_vox_norm=coords_vox
+                )
                 d_hat, fem_interp, _ = model(coords, prior, view_feat)
             else:
                 d_hat, fem_interp, _ = model(coords, prior)
@@ -397,6 +424,7 @@ def main():
                 model, batch, optimizer,
                 grad_clip_norm=cfg["training"].get("grad_clip_norm", 1.0),
                 view_encoder=view_encoder,
+                dice_weight=cfg["training"].get("dice_weight", 0.0),
             )
             epoch_loss += metrics["loss"]
             epoch_fem  += metrics["fem_baseline_loss"]

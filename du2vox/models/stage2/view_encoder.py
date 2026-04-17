@@ -16,30 +16,24 @@ FOV_MM = 80.0
 DETECTOR_RESOLUTION = (256, 256)  # (width, height) in pixels
 VOXEL_SIZE_MM = 0.2
 
-# MCX trunk volume geometry (from default.yaml + mcx_volume.py):
+# MCX trunk volume geometry (from default.yaml):
 #   volume_shape: [Z=104, Y=200, X=190] after 2× downsample
 #   voxel_size_mm: 0.2
-#   trunk_offset_mm: [0, 30, 0]
+#   trunk_origin_atlas_mm: [0, 30, 0] (physical offset of voxel [0,0,0] in atlas world)
 #
-# IMPORTANT: Two coordinate frames are in use here:
+# In DETECTOR-CENTERED coordinates (grid_coords after rebuild):
+#   trunk occupies world Y ∈ [0, 40]mm (atlas Y - 30mm offset)
+#   trunk origin in detector = atlas [0, 30, 0] - 30 = [0, 0, 0]
+#   physical volume center = (0, 20, 0) in world mm (midpoint of [0,40] range)
 #
-#   PHYSICAL CENTER (what the trunk volume actually spans in world mm):
-#     X = (190/2) * 0.2 = 19.0 mm  (±19mm from atlas center)
-#     Y = (200/2) * 0.2 + 30 = 50.0 mm  (trunk_offset_y=30mm shifts atlas center)
-#     Z = (104/2) * 0.2 = 10.4 mm
-#   → Trunk volume world range: Y=[-30, 10] mm
-#
-#   CENTERING OFFSET (what project_volume_reference SUBTRACTS to center the volume):
-#     This is what run_mcx_pipeline.py passes as volume_center_world=(0, 30, 0).
-#     Subtracting (0, 30, 0) centers the projection on world Y=0 (atlas center).
-#   → FOV world Y for trunk: FOV/2 offset from 0 → Y=[-40, 40] for FOV=80
-#     After trunk_offset shift, this covers world Y=[-10, 70].
-#
-# The production pipeline uses centering offset (0, 30, 0), NOT physical center.
-# This constant MUST match: MCX_VOLUME_CENTER_WORLD = [0.0, 30.0, 0.0].
-# volume_center_world=(0,0,0) is the correct centering for projection.
-# With this value, world Y=0 aligns with the detector center.
-# The trunk volume (world Y=[30,70]) projects to the central region of the FOV.
+# VOXEL-SPACE approach (Phase 3):
+#   Center: subtract physical volume center (0, 20, 0) in world mm
+#   Normalize by physical half-extents: (19.0, 20.0, 10.4) mm
+#   This preserves aspect ratio vs. FOV-based normalization
+MCX_PHYSICAL_CENTER = np.array([0.0, 20.0, 0.0], dtype=np.float32)
+MCX_HALF_EXTENTS = np.array([19.0, 20.0, 10.4], dtype=np.float32)  # half of [38, 40, 20.8]
+
+# Backward compat — MCX_VOLUME_CENTER_WORLD kept for any direct calls
 MCX_VOLUME_CENTER_WORLD = np.array([0.0, 0.0, 0.0], dtype=np.float32)
 
 ANGLES = [-90, -60, -30, 0, 30, 60, 90]
@@ -50,28 +44,38 @@ ANGLES = [-90, -60, -30, 0, 30, 60, 90]
 def project_3d_to_2d(
     points: torch.Tensor,
     angle_deg: float,
+    voxel_space: bool = False,
 ) -> torch.Tensor:
     """
-    Project 3D world coordinates (mm) to normalized UV coordinates on a
-    single detector view, for grid_sample.
+    Project 3D coordinates to normalized UV coordinates on a single detector view,
+    for grid_sample.
 
-    Geometry (from mcx_projection.py / TurntableCamera):
-      1. World → subtract MCX volume center: puts volume origin at world [0,0,0]
-      2. Rotate around Y axis by angle_deg
-      3. Orthographic: detector (u,v) = (X_rot, Y_rot) in mm
-      4. Normalize to [-1, 1]:  u_ndc = X_rot / (FOV/2),  v_ndc = Y_rot / (FOV/2)
+    Two modes:
 
-    MCX volume center world (mm): (19.0, 50.0, 10.4)
-      X = (190/2) * 0.2 = 19.0
-      Y = (200/2) * 0.2 + 30 = 50.0   (trunk_offset_y = 30mm)
-      Z = (104/2) * 0.2 = 10.4
+    World-space mode (voxel_space=False):
+      Geometry (from mcx_projection.py / TurntableCamera):
+        1. World → detector: no centering shift needed (coords are detector-centered)
+        2. Rotate around Y axis by angle_deg
+        3. Orthographic: detector (u,v) = (X_rot, Y_rot) in mm
+        4. Normalize to [-1, 1]:  u_ndc = X_rot / (FOV/2),  v_ndc = Y_rot / (FOV/2)
+      MCX_VOLUME_CENTER_WORLD = (0, 0, 0) for detector-centered coords.
+
+    Voxel-space mode (voxel_space=True):
+      Uses physical volume center and half-extents for normalization.
+      1. Center at physical volume center (0, 10, 0) world mm
+      2. Rotate around Y axis
+      3. Normalize by physical half-extents (19.0, 20.0, 10.4) — preserves aspect ratio
+      4. Orthographic UV from rotated Y
 
     Parameters
     ----------
     points : torch.Tensor [..., 3]
-        3D world coordinates in mm. Last dim is (X, Y, Z).
+        3D coordinates. World mm if voxel_space=False, voxel indices if voxel_space=True.
     angle_deg : float
         Camera rotation angle in degrees.
+    voxel_space : bool
+        If True, use voxel-space normalization (preserves aspect ratio).
+        If False, use world-space with FOV normalization.
 
     Returns
     -------
@@ -80,13 +84,20 @@ def project_3d_to_2d(
     """
     half_fov = FOV_MM / 2.0
 
-    # 1. Center: subtract MCX volume center (world mm)
-    cx, cy, cz = MCX_VOLUME_CENTER_WORLD
-    x_c = points[..., 0] - cx
-    y_c = points[..., 1] - cy
-    z_c = points[..., 2] - cz
+    if voxel_space:
+        # Voxel-space: center by physical volume center, normalize by half-extents
+        hx, hy, hz = MCX_HALF_EXTENTS
+        x_c = points[..., 0]  # already in voxel space (normalized by hx)
+        y_c = points[..., 1]  # normalized by hy
+        z_c = points[..., 2]  # normalized by hz
+    else:
+        # World-space: detector-centered coords, no centering offset
+        cx, cy, cz = MCX_VOLUME_CENTER_WORLD
+        x_c = points[..., 0] - cx
+        y_c = points[..., 1] - cy
+        z_c = points[..., 2] - cz
 
-    # 2. Rotate around Y axis (column-vector convention: new = old @ R.T)
+    # Rotate around Y axis (column-vector convention: new = old @ R.T)
     angle_rad = torch.deg2rad(torch.tensor(angle_deg, device=points.device, dtype=points.dtype))
     cos_a = torch.cos(angle_rad)
     sin_a = torch.sin(angle_rad)
@@ -98,9 +109,14 @@ def project_3d_to_2d(
     x_rot = x_c * cos_a + z_c * sin_a
     y_rot = y_c  # orthographic: Y stays Y
 
-    # 3+4. Orthographic → normalize to [-1, 1]
-    u = x_rot / half_fov
-    v = y_rot / half_fov
+    # Normalize to [-1, 1]
+    if voxel_space:
+        # Already normalized by half-extents, just clamp
+        u = torch.clamp(x_rot, -1.0, 1.0)
+        v = torch.clamp(y_rot, -1.0, 1.0)
+    else:
+        u = x_rot / half_fov
+        v = y_rot / half_fov
 
     return torch.stack([u, v], dim=-1)
 
@@ -256,11 +272,9 @@ class ProjectAndSample(nn.Module):
     """
     Project 3D query points onto 7 view feature maps and sample per-view features.
 
-    Parameters
-    ----------
-    feat_map_size : int
-        Feature map resolution (default 64). Each feature map is [B, C, H', W']
-        where H' = W' = feat_map_size.
+    Supports two projection modes:
+    - world-space: uses FOV-based normalization (legacy)
+    - voxel-space: uses physical volume half-extents (Phase 3, preserves aspect ratio)
     """
 
     def __init__(self, feat_map_size: int = 64):
@@ -272,16 +286,19 @@ class ProjectAndSample(nn.Module):
         self,
         coords_world: torch.Tensor,
         feat_maps: torch.Tensor,
+        coords_vox_norm: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Parameters
         ----------
         coords_world : torch.Tensor [B, N, 3]
-            Query point world coordinates in mm.
-            IMPORTANT: these are raw world coords (mm), NOT normalized [-1,1].
-            For precomputed grids: coords = grid_coords (stored in mm), NOT grid_coords_norm.
+            Query point world coordinates in mm (detector-centered).
+            Used for world-space projection when coords_vox_norm is None.
         feat_maps : torch.Tensor [B, 7, C, H', W']
             Encoded feature maps for each of the 7 views.
+        coords_vox_norm : torch.Tensor [B, N, 3] or None
+            Voxel-space normalized coordinates (centered by physical volume center,
+            normalized by half-extents). If provided, uses voxel-space projection.
 
         Returns
         -------
@@ -294,29 +311,29 @@ class ProjectAndSample(nn.Module):
         n_views = len(self.angles)
         C = feat_maps.shape[2]
 
-        # coords_world: [B, N, 3] → unsqueeze for all views: [B, N, 1, 3]
-        pts = coords_world.unsqueeze(2)  # [B, N, 1, 3]
+        use_voxel = coords_vox_norm is not None
 
         multi_view_feat = torch.zeros(B, N, n_views, C, device=feat_maps.device, dtype=feat_maps.dtype)
         visibility = torch.zeros(B, N, n_views, device=feat_maps.device, dtype=torch.bool)
 
-        # Process each view independently
         for view_idx, angle in enumerate(self.angles):
-            # Project to UV [B, N, 2] in [-1, 1]
-            uv = project_3d_to_2d(coords_world, angle)  # [B, N, 2]
+            if use_voxel:
+                # Voxel-space projection: coords already centered + normalized
+                uv = project_3d_to_2d(coords_vox_norm, angle, voxel_space=True)
+            else:
+                # World-space projection
+                uv = project_3d_to_2d(coords_world, angle, voxel_space=False)
 
-            # Check visibility (within FOV)
-            valid = (uv.abs() <= 1.0).all(dim=-1)  # [B, N]
+            # Check visibility (within FOV, clamping for voxel-space)
+            valid = (uv.abs() <= 1.0).all(dim=-1)
 
-            # Normalize UV for grid_sample: need [B, H, W, 2] format
-            # grid_sample expects [..., 2] where ... is spatial dims
-            uv_grid = uv.unsqueeze(2)  # [B, N, 1, 2]
+            # Normalize UV for grid_sample: need [B, N, 1, 2] format
+            uv_grid = uv.unsqueeze(2)
 
             # Sample from feat_maps[:, view_idx]: [B, C, H', W']
-            # grid_sample: input [B, C, H, W], grid [B, H_out, W_out, 2]
             view_feat = F.grid_sample(
-                feat_maps[:, view_idx],   # [B, C, H', W']
-                uv_grid,                  # [B, N, 1, 2]
+                feat_maps[:, view_idx],
+                uv_grid,
                 mode="bilinear",
                 padding_mode="zeros",
                 align_corners=False,
@@ -462,6 +479,7 @@ class ViewEncoderModule(nn.Module):
         self,
         proj_imgs: torch.Tensor,
         coords_world: torch.Tensor,
+        coords_vox_norm: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Parameters
@@ -470,7 +488,10 @@ class ViewEncoderModule(nn.Module):
             7 MCX projection images (fluences). Values should be non-negative.
             Zero-mean normalization applied internally.
         coords_world : torch.Tensor [B, N, 3]
-            Query points in world mm coords (NOT normalized [-1,1]).
+            Query points in world mm coords (detector-centered).
+        coords_vox_norm : torch.Tensor [B, N, 3] or None
+            Voxel-space normalized coords (centered by physical volume center,
+            normalized by half-extents). If provided, uses voxel-space projection.
 
         Returns
         -------
@@ -482,27 +503,26 @@ class ViewEncoderModule(nn.Module):
         B, n_views = proj_imgs.shape[:2]
 
         # Normalize projections: log-scale for better dynamic range
-        # MCX fluence values span many orders of magnitude; log1p helps
         proj_norm = torch.log1p(proj_imgs.clamp(min=0))
 
         # Encode each view (shared encoder, batch over views)
         feat_maps_list = []
         for v in range(n_views):
-            # [B, 1, 256, 256] → [B, C, H', W']
             feat = self.encoder(proj_norm[:, v])
             feat_maps_list.append(feat)
 
         # Stack: [B, 7, C, H', W']
         feat_maps = torch.stack(feat_maps_list, dim=1)
 
-        # Project and sample
+        # Project and sample (voxel-space if coords_vox_norm provided)
         multi_view_feat, visibility = self.project_and_sample(
             coords_world,
             feat_maps,
-        )  # [B, N, 7, C], [B, N, 7]
+            coords_vox_norm=coords_vox_norm,
+        )
 
         # Fuse
-        fused = self.fusion(multi_view_feat, visibility)  # [B, N, C]
-        view_feat = self.fuse_proj(fused)                 # [B, N, view_feat_dim]
+        fused = self.fusion(multi_view_feat, visibility)
+        view_feat = self.fuse_proj(fused)
 
         return view_feat, visibility

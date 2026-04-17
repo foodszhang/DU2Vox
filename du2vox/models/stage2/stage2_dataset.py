@@ -297,6 +297,28 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
         # Raw world coords (mm) for projection — always use raw grid_coords
         coords_world = data["grid_coords"][chosen].copy().astype(np.float32)
 
+        # ── Phase 3: voxel-space coordinates ──────────────────────────────────
+        # MCX trunk volume geometry (detector-centered frame):
+        #   voxel_size = 0.2mm, trunk origin at detector world [0, 0, 0]
+        #   physical volume center = [0, 10, 0] world mm
+        #   physical half-extents = [19.0, 20.0, 10.4] world mm
+        PHYSICAL_CENTER = np.array([0.0, 20.0, 0.0], dtype=np.float32)
+        HALF_EXTENTS = np.array([19.0, 20.0, 10.4], dtype=np.float32)
+        VOXEL_SIZE = 0.2
+
+        # coords_mcx_vox_norm: world coords → centered + normalized by half-extents
+        coords_mcx_vox_norm = (coords_world - PHYSICAL_CENTER) / HALF_EXTENTS
+
+        # mcx_valid: point is inside the physical trunk volume
+        # Trunk voxel bounds: X=[0,189], Y=[0,199], Z=[0,103]
+        # In world: X=[-19,19], Y=[0,40], Z=[-10.4,10.4]
+        world_xyz = coords_world  # [N, 3] in detector world mm
+        mcx_valid = (
+            (world_xyz[:, 0] >= -19.0) & (world_xyz[:, 0] <= 19.0) &
+            (world_xyz[:, 1] >= 0.0) & (world_xyz[:, 1] <= 40.0) &
+            (world_xyz[:, 2] >= -10.4) & (world_xyz[:, 2] <= 10.4)
+        )
+
         # Load MCX projection images: [7, 256, 256] in angle order
         proj_path = self.samples_dir / sid / "proj.npz"
         if proj_path.exists():
@@ -316,6 +338,8 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
             "gt":          torch.from_numpy(data["gt_values"][chosen].copy()),
             "valid":       torch.ones(self.n_query_points, dtype=torch.bool),
             "coords_world": torch.from_numpy(coords_world),
+            "coords_mcx_vox_norm": torch.from_numpy(coords_mcx_vox_norm.astype(np.float32)),
+            "mcx_valid":   torch.from_numpy(mcx_valid),
             "proj_imgs":   torch.from_numpy(proj_imgs).unsqueeze(1),  # [7, 1, 256, 256]
             "sample_id":   sid,
         }
