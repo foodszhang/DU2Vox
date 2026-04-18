@@ -32,10 +32,12 @@ from pathlib import Path
 
 import numpy as np
 import yaml
+from scipy.ndimage import map_coordinates
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from du2vox.bridge.fem_bridging import FEMBridge
+from du2vox.utils.frame import FrameManifest
 
 
 def load_split(path: str) -> list[str]:
@@ -70,8 +72,15 @@ def precompute_sample(
     grid_spacing: float,
     roi_padding_mm: float,
     n_candidates: int = 16,
+    frame_manifest: FrameManifest | None = None,
 ) -> dict:
-    """Precompute grid data for one sample."""
+    """Precompute grid data for one sample.
+
+    [FIX v3] Note:
+    - nodes 必须是 trunk-local mm (frame: mcx_trunk_local_mm)
+    - GT 从 gt_voxels.npy 三线性查，不再用 FEM 插值
+    - bbox 也在 trunk-local 下
+    """
     # Load bridge metadata
     bd = bridge_dir / sid
     coarse_d = np.load(bd / "coarse_d.npy").astype(np.float32)
@@ -91,12 +100,19 @@ def precompute_sample(
     lo = np.array(bbox["min"], dtype=np.float32) - roi_padding_mm
     hi = np.array(bbox["max"], dtype=np.float32) + roi_padding_mm
 
+    # [FIX v3] Clamp ROI bbox to MCX bbox (prevent out-of-bounds)
+    if frame_manifest is not None:
+        lo = np.maximum(lo, frame_manifest.mcx_bbox_min.astype(np.float32))
+        hi = np.minimum(hi, frame_manifest.mcx_bbox_max.astype(np.float32))
+
     # Build regular grid
     grid_coords, grid_shape = build_grid(lo, hi, grid_spacing)
     n_points = len(grid_coords)
 
     # Normalize coords to [-1, 1] for PE (done once at precompute time)
-    grid_coords_norm = (2.0 * (grid_coords - lo) / (hi - lo + 1e-8) - 1.0).astype(np.float32)
+    grid_coords_norm = (
+        2.0 * (grid_coords - lo) / (hi - lo + 1e-8) - 1.0
+    ).astype(np.float32)
 
     # Prior features for all grid points
     prior_8d, valid = bridge.get_prior_features(
@@ -105,19 +121,38 @@ def precompute_sample(
     prior_8d = prior_8d.astype(np.float32)
     valid = valid.astype(bool)
 
-    # GT values: load gt_nodes, interpolate at grid points
-    gt_nodes = np.load(samples_dir / sid / "gt_nodes.npy").astype(np.float32)
-    gt_prior, gt_valid = bridge.get_prior_features(
-        grid_coords.astype(np.float64), gt_nodes, K=n_candidates
+    # ================== [FIX v3] GT 改从 gt_voxels.npy 查 ==================
+    gt_voxels = np.load(samples_dir / sid / "gt_voxels.npy").astype(np.float32)
+    if frame_manifest is not None:
+        # world mm → gt_voxels fractional index
+        idx_float = frame_manifest.world_to_gt_index(grid_coords)  # [G, 3]
+    else:
+        raise RuntimeError(
+            "[FIX v3] precompute 需要 FrameManifest"
+        )
+
+    # map_coordinates 吃 (3, G)，order=1 = 三线性
+    gt_values = map_coordinates(
+        gt_voxels,
+        idx_float.T,
+        order=1, mode="constant", cval=0.0, prefilter=False,
+    ).astype(np.float32)
+
+    # 外部点（任一轴 index 在 [0, shape-1] 外）标记 valid=False
+    shape_arr = np.array(gt_voxels.shape)
+    outside = np.any(
+        (idx_float < 0) | (idx_float > shape_arr - 1), axis=1
     )
-    gt_values = (gt_prior[:, :4] * gt_prior[:, 4:8]).sum(axis=-1).astype(np.float32)
-    gt_values[~gt_valid] = 0.0
+    valid_gt = ~outside
+    valid = valid & valid_gt
+    gt_values[~valid_gt] = 0.0
+    # =======================================================================
 
     del bridge
 
     return {
-        "grid_coords": grid_coords,           # raw (mm) — for FEM eval
-        "grid_coords_norm": grid_coords_norm, # normalized [-1,1] — for training
+        "grid_coords": grid_coords,            # raw (mm) — for FEM eval
+        "grid_coords_norm": grid_coords_norm,  # normalized [-1,1] — for training
         "prior_8d": prior_8d,
         "gt_values": gt_values,
         "valid_mask": valid,
@@ -160,6 +195,17 @@ def main():
     elements = mesh["elements"]
     print(f"[Precompute] Mesh: {len(nodes)} nodes, {len(elements)} tets")
 
+    # [FIX v3] Load frame manifest
+    frame_manifest = FrameManifest.load(shared_dir)
+    print(f"[Precompute] Frame: {frame_manifest.world_frame}, "
+          f"MCX bbox max={frame_manifest.mcx_bbox_max}")
+
+    # Self-check: mesh.nodes should be trunk-local after FMT-SimGen fix
+    assert nodes.max() < 50, (
+        f"[FIX v3] mesh.nodes.max()={nodes.max():.1f}, "
+        f"看起来还是 atlas frame，请先重新跑 FMT-SimGen 的 01_generate_mesh.py"
+    )
+
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -186,6 +232,7 @@ def main():
                 grid_spacing=args.grid_spacing,
                 roi_padding_mm=roi_padding,
                 n_candidates=args.n_candidates,
+                frame_manifest=frame_manifest,
             )
             np.savez(out_path, **data)
             elapsed = time.perf_counter() - t0

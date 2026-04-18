@@ -19,23 +19,15 @@ VOXEL_SIZE_MM = 0.2
 # MCX trunk volume geometry (from default.yaml):
 #   volume_shape: [Z=104, Y=200, X=190] after 2× downsample
 #   voxel_size_mm: 0.2
-#   trunk_origin_atlas_mm: [0, 30, 0] (physical offset of voxel [0,0,0] in atlas world)
 #
-# In DETECTOR-CENTERED coordinates (grid_coords after rebuild):
-#   trunk occupies world Y ∈ [0, 40]mm (atlas Y - 30mm offset)
-#   trunk origin in detector = atlas [0, 30, 0] - 30 = [0, 0, 0]
-#   physical volume center = (0, 20, 0) in world mm (midpoint of [0,40] range)
-#
-# VOXEL-SPACE approach (Phase 3):
-#   Center: subtract physical volume center (0, 20, 0) in world mm
-#   Normalize by physical half-extents: (19.0, 20.0, 10.4) mm
-#   This preserves aspect ratio vs. FOV-based normalization
-MCX_PHYSICAL_CENTER = np.array([0.0, 20.0, 0.0], dtype=np.float32)
-MCX_HALF_EXTENTS = np.array([19.0, 20.0, 10.4], dtype=np.float32)  # half of [38, 40, 20.8]
+# [FIX v3] In trunk-local frame (mcx_trunk_local_mm):
+#   MCX corner is at world (0, 0, 0), so no centering offset needed.
+#   physical center = (19.0, 20.0, 10.4) (midpoint of [0,38]×[0,40]×[0,20.8])
+#   half_extents unchanged: (19.0, 20.0, 10.4)
+MCX_PHYSICAL_CENTER = np.array([19.0, 20.0, 10.4], dtype=np.float32)
+MCX_HALF_EXTENTS = np.array([19.0, 20.0, 10.4], dtype=np.float32)
 
-# Backward compat — MCX_VOLUME_CENTER_WORLD kept for any direct calls
-MCX_VOLUME_CENTER_WORLD = np.array([0.0, 0.0, 0.0], dtype=np.float32)
-
+# [FIX v3] MCX_VOLUME_CENTER_WORLD removed — world coords are already trunk-local
 ANGLES = [-90, -60, -30, 0, 30, 60, 90]
 
 
@@ -91,11 +83,10 @@ def project_3d_to_2d(
         y_c = points[..., 1]  # normalized by hy
         z_c = points[..., 2]  # normalized by hz
     else:
-        # World-space: detector-centered coords, no centering offset
-        cx, cy, cz = MCX_VOLUME_CENTER_WORLD
-        x_c = points[..., 0] - cx
-        y_c = points[..., 1] - cy
-        z_c = points[..., 2] - cz
+        # World-space: trunk-local mm coords, MCX corner at (0,0,0), no centering offset needed
+        x_c = points[..., 0]
+        y_c = points[..., 1]
+        z_c = points[..., 2]
 
     # Rotate around Y axis (column-vector convention: new = old @ R.T)
     angle_rad = torch.deg2rad(torch.tensor(angle_deg, device=points.device, dtype=points.dtype))
@@ -500,6 +491,12 @@ class ViewEncoderModule(nn.Module):
         visibility : torch.Tensor [B, N, 7]
             Visibility mask per view.
         """
+        # [FIX v3] Self-check: coords_world must be trunk-local (max < 50mm)
+        assert coords_world.max() < 50, (
+            f"ViewEncoder received atlas-frame coords (max={coords_world.max():.1f}), "
+            f"should be trunk-local (max < 50)"
+        )
+
         B, n_views = proj_imgs.shape[:2]
 
         # Normalize projections: log-scale for better dynamic range

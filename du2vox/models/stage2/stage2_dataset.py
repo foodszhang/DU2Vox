@@ -17,6 +17,7 @@ import torch
 from torch.utils.data import Dataset
 
 from du2vox.bridge.fem_bridging import FEMBridge
+from du2vox.utils.frame import FrameManifest
 
 # MCX projection angle order (from view_config.json)
 MCX_ANGLES = [-90, -60, -30, 0, 30, 60, 90]
@@ -54,6 +55,12 @@ class Stage2Dataset(Dataset):
         mesh = np.load(f"{shared_dir}/mesh.npz")
         self._nodes = mesh["nodes"].astype(np.float64)
         self._elements = mesh["elements"]
+
+        # [FIX v3] Self-check: mesh.nodes should be trunk-local
+        assert self._nodes.max() < 50, (
+            f"[FIX v3] mesh.nodes.max()={self._nodes.max():.1f}, "
+            f"看起来还是 atlas frame，请先重新跑 FMT-SimGen 的数据生成"
+        )
 
         self.sample_ids = sample_ids
 
@@ -251,6 +258,7 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
         sample_ids: List[str],
         n_query_points: int = 4096,
         cache_size: int = 16,
+        shared_dir: str | None = None,
     ):
         super().__init__(
             precomputed_dir=precomputed_dir,
@@ -259,6 +267,8 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
             cache_size=cache_size,
         )
         self.samples_dir = Path(samples_dir)
+        # [FIX v3] Load frame manifest for correct MCX coordinate transform
+        self.frame = FrameManifest.load(shared_dir) if shared_dir else None
 
     def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
         sid = self.sample_ids[idx]
@@ -297,26 +307,28 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
         # Raw world coords (mm) for projection — always use raw grid_coords
         coords_world = data["grid_coords"][chosen].copy().astype(np.float32)
 
-        # ── Phase 3: voxel-space coordinates ──────────────────────────────────
-        # MCX trunk volume geometry (detector-centered frame):
-        #   voxel_size = 0.2mm, trunk origin at detector world [0, 0, 0]
-        #   physical volume center = [0, 10, 0] world mm
-        #   physical half-extents = [19.0, 20.0, 10.4] world mm
-        PHYSICAL_CENTER = np.array([0.0, 20.0, 0.0], dtype=np.float32)
-        HALF_EXTENTS = np.array([19.0, 20.0, 10.4], dtype=np.float32)
-        VOXEL_SIZE = 0.2
-
-        # coords_mcx_vox_norm: world coords → centered + normalized by half-extents
-        coords_mcx_vox_norm = (coords_world - PHYSICAL_CENTER) / HALF_EXTENTS
+        # ── [FIX v3] MCX voxel-space coordinates ────────────────────────────────
+        # world coords are trunk-local mm (MCX corner at origin)
+        # coords_mcx_vox_norm = world / half_extents (no centering needed)
+        if self.frame is not None:
+            # Use FrameManifest: world → [-1, 1] within MCX volume
+            coords_mcx_vox_norm = self.frame.world_to_mcx_ndc(coords_world)
+            mcx_bbox_min = self.frame.mcx_bbox_min
+            mcx_bbox_max = self.frame.mcx_bbox_max
+        else:
+            # Fallback: old detector-centered formula (for backward compat)
+            PHYSICAL_CENTER = np.array([0.0, 20.0, 0.0], dtype=np.float32)
+            HALF_EXTENTS = np.array([19.0, 20.0, 10.4], dtype=np.float32)
+            coords_mcx_vox_norm = (coords_world - PHYSICAL_CENTER) / HALF_EXTENTS
+            mcx_bbox_min = np.array([-19.0, 0.0, -10.4], dtype=np.float32)
+            mcx_bbox_max = np.array([19.0, 40.0, 10.4], dtype=np.float32)
 
         # mcx_valid: point is inside the physical trunk volume
-        # Trunk voxel bounds: X=[0,189], Y=[0,199], Z=[0,103]
-        # In world: X=[-19,19], Y=[0,40], Z=[-10.4,10.4]
-        world_xyz = coords_world  # [N, 3] in detector world mm
+        world_xyz = coords_world  # [N, 3] in trunk-local mm
         mcx_valid = (
-            (world_xyz[:, 0] >= -19.0) & (world_xyz[:, 0] <= 19.0) &
-            (world_xyz[:, 1] >= 0.0) & (world_xyz[:, 1] <= 40.0) &
-            (world_xyz[:, 2] >= -10.4) & (world_xyz[:, 2] <= 10.4)
+            (world_xyz[:, 0] >= mcx_bbox_min[0]) & (world_xyz[:, 0] <= mcx_bbox_max[0]) &
+            (world_xyz[:, 1] >= mcx_bbox_min[1]) & (world_xyz[:, 1] <= mcx_bbox_max[1]) &
+            (world_xyz[:, 2] >= mcx_bbox_min[2]) & (world_xyz[:, 2] <= mcx_bbox_max[2])
         )
 
         # Load MCX projection images: [7, 256, 256] in angle order
