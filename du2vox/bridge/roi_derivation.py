@@ -51,12 +51,6 @@ def derive_roi(
     n_nodes = nodes.shape[0]
     n_tets = elements.shape[0]
 
-    # [FIX v3] Self-check: nodes should be trunk-local (max < 50mm)
-    assert nodes.max() < 50, (
-        f"[FIX v3] nodes.max()={nodes.max():.1f}, 看起来还是 atlas frame，"
-        f"请重新跑 FMT-SimGen 的数据生成"
-    )
-
     # Step 1: active nodes
     active_mask = coarse_d > tau
     active_node_indices = np.where(active_mask)[0]

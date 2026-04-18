@@ -56,11 +56,11 @@ class Stage2Dataset(Dataset):
         self._nodes = mesh["nodes"].astype(np.float64)
         self._elements = mesh["elements"]
 
-        # [FIX v3] Self-check: mesh.nodes should be trunk-local
-        assert self._nodes.max() < 50, (
-            f"[FIX v3] mesh.nodes.max()={self._nodes.max():.1f}, "
-            f"看起来还是 atlas frame，请先重新跑 FMT-SimGen 的数据生成"
-        )
+        # NOTE: mesh.npz is in atlas_corner_mm frame.
+        # DU2Vox uses it only for ROI bbox computation (done by derive_roi),
+        # which outputs roi_bbox_mm in the same atlas frame.
+        # Frame conversion (atlas→trunk) is handled via FrameManifest
+        # in precompute_stage2_data.py.
 
         self.sample_ids = sample_ids
 
