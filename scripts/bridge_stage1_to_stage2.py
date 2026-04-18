@@ -32,11 +32,13 @@ import yaml
 
 
 def load_shared_mesh(shared_dir: Path) -> tuple[np.ndarray, np.ndarray]:
-    """Load nodes and elements from mesh.npz."""
-    mesh = np.load(shared_dir / "mesh.npz")
-    nodes = mesh["nodes"].astype(np.float32)      # [N, 3]
-    elements = mesh["elements"].astype(np.int64)  # [N_tets, 4]
-    return nodes, elements
+    """Load nodes and elements from mesh.npz, rebased to trunk-local frame.
+
+    This is a thin wrapper around FrameManifest.load_mesh_nodes for
+    backward compatibility with scripts that already call this function.
+    """
+    from du2vox.utils.frame import FrameManifest
+    return FrameManifest.load_mesh_nodes(shared_dir)
 
 
 def run_inference_stage(args, cfg, sample_ids: list[str]) -> None:

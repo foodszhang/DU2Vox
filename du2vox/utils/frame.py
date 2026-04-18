@@ -11,6 +11,7 @@ class FrameManifest:
     """Frame metadata loaded from FMT-SimGen's frame_manifest.json."""
 
     world_frame: str
+    atlas_to_world_offset_mm: np.ndarray  # [3] — subtract from atlas to get world
     mcx_bbox_min: np.ndarray  # [3], trunk-local mm
     mcx_bbox_max: np.ndarray  # [3]
     mcx_voxel_size_mm: float
@@ -28,6 +29,7 @@ class FrameManifest:
         )
         return cls(
             world_frame=m["world_frame"],
+            atlas_to_world_offset_mm=np.array(m["atlas_to_world_offset_mm"]),
             mcx_bbox_min=np.array(m["mcx_volume"]["bbox_world_mm"]["min"]),
             mcx_bbox_max=np.array(m["mcx_volume"]["bbox_world_mm"]["max"]),
             mcx_voxel_size_mm=m["mcx_volume"]["voxel_size_mm"],
@@ -36,6 +38,26 @@ class FrameManifest:
             gt_spacing_mm=m["voxel_grid_gt"]["spacing_mm"],
             gt_shape=tuple(m["voxel_grid_gt"]["shape"]),
         )
+
+    def atlas_to_world(self, atlas_mm: np.ndarray) -> np.ndarray:
+        """atlas_corner_mm → mcx_trunk_local_mm."""
+        return np.asarray(atlas_mm, dtype=np.float64) - self.atlas_to_world_offset_mm
+
+    @staticmethod
+    def load_mesh_nodes(shared_dir: str | Path) -> tuple[np.ndarray, np.ndarray]:
+        """Load mesh.npz and rebase nodes to trunk-local frame.
+
+        This is the ONLY canonical way to read mesh.nodes in DU2Vox.
+        The mesh on disk is in atlas_corner_mm; this method rebases to
+        mcx_trunk_local_mm using the manifest's atlas_to_world_offset_mm.
+        """
+        frame = FrameManifest.load(shared_dir)
+        mesh = np.load(Path(shared_dir) / "mesh.npz")
+        nodes_disk = mesh["nodes"].astype(np.float64)
+        elements = mesh["elements"]
+        # mesh.npz is in atlas_corner_mm — rebase to world (trunk-local)
+        nodes = nodes_disk - frame.atlas_to_world_offset_mm
+        return nodes, elements
 
     # ─── Core transforms ───────────────────────────────────────────────────
 

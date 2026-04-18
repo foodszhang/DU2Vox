@@ -186,11 +186,9 @@ def main():
     samples_dir = Path(cfg["data"]["samples_dir"])
     roi_padding = args.roi_padding_mm if args.roi_padding_mm is not None else cfg["data"]["roi_padding_mm"]
 
-    # Load mesh once (shared across all samples)
+    # Load mesh once (shared across all samples) — rebased to trunk-local
     print(f"[Precompute] Loading mesh from {shared_dir}...")
-    mesh = np.load(shared_dir / "mesh.npz")
-    nodes = mesh["nodes"].astype(np.float64)
-    elements = mesh["elements"]
+    nodes, elements = FrameManifest.load_mesh_nodes(shared_dir)
     print(f"[Precompute] Mesh: {len(nodes)} nodes, {len(elements)} tets")
 
     # Load frame manifest

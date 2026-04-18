@@ -51,16 +51,8 @@ class Stage2Dataset(Dataset):
         self.n_query_points = n_query_points
         self.roi_padding_mm = roi_padding_mm
 
-        # Load shared mesh once
-        mesh = np.load(f"{shared_dir}/mesh.npz")
-        self._nodes = mesh["nodes"].astype(np.float64)
-        self._elements = mesh["elements"]
-
-        # NOTE: mesh.npz is in atlas_corner_mm frame.
-        # DU2Vox uses it only for ROI bbox computation (done by derive_roi),
-        # which outputs roi_bbox_mm in the same atlas frame.
-        # Frame conversion (atlas→trunk) is handled via FrameManifest
-        # in precompute_stage2_data.py.
+        # Load shared mesh — rebased to trunk-local via FrameManifest
+        self._nodes, self._elements = FrameManifest.load_mesh_nodes(shared_dir)
 
         self.sample_ids = sample_ids
 
