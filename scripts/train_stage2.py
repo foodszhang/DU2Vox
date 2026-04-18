@@ -102,6 +102,7 @@ def train_step(
     optimizer: torch.optim.Optimizer,
     grad_clip_norm: float = 1.0,
     view_encoder: Optional[nn.Module] = None,
+    loss_type: str = "gisc",
 ) -> dict:
     """
     Train one batch. Supports both DE-only and multiview modes.
@@ -109,7 +110,7 @@ def train_step(
     model: ResidualINR (DE-only) or ResidualINR (multiview, receives view_feat externally)
     view_encoder: ViewEncoderModule or None (DE-only mode)
 
-    Uses gisc-style loss: weighted BCE + sparse + Focal Tversky on final prediction.
+    loss_type: "gisc" (weighted BCE + sparse + Focal Tversky) or "soft_dice" (pure soft Dice).
     """
     coords   = batch["coords"].cuda()      # [B, N, 3] — normalized [-1,1] for INR
     prior    = batch["prior_8d"].cuda()   # [B, N, 8]
@@ -140,33 +141,41 @@ def train_step(
         # Final prediction = FEM baseline + residual; clamp to [0, 1] for Dice
         final_pred = torch.clamp(fem_interp.flatten()[valid_mask] + pred_flat, 0.0, 1.0)
 
-        # gisc-style loss: weighted BCE + sparse + Focal Tversky on final_pred
-        pos_weight = 150.0
-        lambda_tv = 0.3
-        sparse_w = 0.01
-        alpha_tv = 0.6
-        beta_tv = 0.4
-        gamma_tv = 1.33
-
         p = final_pred.clamp(1e-6, 1 - 1e-6)
-        g = (gt_flat >= 0.5).float()
-
-        w_bce = g * (pos_weight - 1) + 1
-        bce_loss = torch.nn.functional.binary_cross_entropy(p, g, weight=w_bce)
-        sparse_loss = sparse_w * (p * (1 - g)).mean()
-
         eps = 1e-6
-        TP = (p * g).sum(); FP = (p * (1 - g)).sum(); FN = ((1 - p) * g).sum()
-        TI = (TP + eps) / (TP + alpha_tv * FP + beta_tv * FN + eps)
-        focal_tv_loss = torch.clamp(1 - TI, 0, 1) ** gamma_tv
 
-        loss = bce_loss + sparse_loss + lambda_tv * focal_tv_loss
+        if loss_type == "soft_dice":
+            # Pure soft Dice loss: 1 - 2*TP/(P+G)
+            g = gt_flat.clamp(eps, 1 - eps)
+            TP = (p * g).sum()
+            dice_loss = 1 - 2 * TP / (p.sum() + g.sum() + eps)
+            loss = dice_loss
+            loss_components = {"dice": dice_loss.detach(), "bce": torch.tensor(0.0), "sparse": torch.tensor(0.0), "focal_tv": torch.tensor(0.0)}
+        else:
+            # gisc-style loss: weighted BCE + sparse + Focal Tversky on final_pred
+            pos_weight = 150.0
+            lambda_tv = 0.3
+            sparse_w = 0.01
+            alpha_tv = 0.6
+            beta_tv = 0.4
+            gamma_tv = 1.33
 
-        loss_components = {
-            "bce": bce_loss.detach(),
-            "sparse": sparse_loss.detach(),
-            "focal_tv": focal_tv_loss.detach(),
-        }
+            g = (gt_flat >= 0.5).float()
+
+            w_bce = g * (pos_weight - 1) + 1
+            bce_loss = torch.nn.functional.binary_cross_entropy(p, g, weight=w_bce)
+            sparse_loss = sparse_w * (p * (1 - g)).mean()
+
+            TP = (p * g).sum(); FP = (p * (1 - g)).sum(); FN = ((1 - p) * g).sum()
+            TI = (TP + eps) / (TP + alpha_tv * FP + beta_tv * FN + eps)
+            focal_tv_loss = torch.clamp(1 - TI, 0, 1) ** gamma_tv
+
+            loss = bce_loss + sparse_loss + lambda_tv * focal_tv_loss
+            loss_components = {
+                "bce": bce_loss.detach(),
+                "sparse": sparse_loss.detach(),
+                "focal_tv": focal_tv_loss.detach(),
+            }
     else:
         loss = torch.tensor(0.0, device=coords.device)
 
@@ -391,6 +400,7 @@ def main():
         )
 
     warmup_epochs = cfg["training"].get("warmup_epochs", 5)
+    loss_type = cfg.get("loss", {}).get("type", "gisc")  # "gisc" or "soft_dice"
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer,
         T_max=cfg["training"]["scheduler"].get("T_max", max_epochs),
@@ -412,7 +422,8 @@ def main():
     log_path = Path("logs") / exp_name
     log_path.mkdir(parents=True, exist_ok=True)
 
-    best_dice = 0.0
+    best_delta = -float("inf")   # Allow negative — training may degrade, delta tells us how much
+    best_ckpt_info = None        # {epoch, stage2_dice_05, fem_dice_05, delta_dice_05}
     best_val_loss = float("inf")
     patience  = cfg["training"].get("early_stopping_patience", 20)
     patience_counter = 0
@@ -446,6 +457,7 @@ def main():
                 model, batch, optimizer,
                 grad_clip_norm=cfg["training"].get("grad_clip_norm", 1.0),
                 view_encoder=view_encoder,
+                loss_type=loss_type,
             )
             epoch_loss += metrics["loss"]
             epoch_fem  += metrics["fem_baseline_loss"]
@@ -497,9 +509,18 @@ def main():
             f"         bce={avg_bce:.4f}  sp={avg_sparse:.4f}  ft={avg_focal_tv:.4f}"
         )
 
-        # Save best by stage2_dice_05
-        if val_metrics["stage2_dice_05"] > best_dice:
-            best_dice = val_metrics["stage2_dice_05"]
+        # Save best by delta_dice_05 (relative improvement over FEM baseline)
+        # Noise tolerance: only save if delta improved by > 0.0005
+        delta = val_metrics["delta_dice_05"]
+        improved = delta > best_delta + 0.0005
+        if improved:
+            best_delta = delta
+            best_ckpt_info = {
+                "epoch": epoch,
+                "stage2_dice_05": val_metrics["stage2_dice_05"],
+                "fem_dice_05": val_metrics["fem_dice_05"],
+                "delta_dice_05": delta,
+            }
             best_val_loss = val_metrics["val_loss"]
             ckpt_path = Path(args.checkpoint_dir) / exp_name / "best.pth"
             ckpt_path.parent.mkdir(parents=True, exist_ok=True)
@@ -511,20 +532,21 @@ def main():
             else:
                 torch.save(model.state_dict(), ckpt_path)
             patience_counter = 0
-            print(f"  -> Best model saved (stage2_dice_05={best_dice:.4f}, val_loss={best_val_loss:.6f})")
+            print(f"  -> Best ckpt saved: ΔDice={delta:+.4f} (S2={val_metrics['stage2_dice_05']:.4f} vs FEM={val_metrics['fem_dice_05']:.4f})")
         else:
             patience_counter += 1
 
         # Early stopping
         if patience_counter >= patience and epoch > warmup_epochs:
-            print(f"\nEarly stopping at epoch {epoch}")
+            print(f"\nEarly stopping at epoch {epoch} (best ΔDice={best_delta:+.4f} at ep={best_ckpt_info['epoch']})")
             break
 
     # Save train log
     with open(log_path / "train_log.json", "w") as f:
         json.dump(train_log, f, indent=2)
 
-    print(f"\nTraining complete. Best stage2_dice_05: {best_dice:.4f}, Best val_loss: {best_val_loss:.6f}")
+    print(f"\nTraining complete. Best ΔDice@0.5: {best_delta:+.4f} (ep={best_ckpt_info['epoch']}, S2={best_ckpt_info['stage2_dice_05']:.4f}, FEM={best_ckpt_info['fem_dice_05']:.4f})")
+    print(f"Best val_loss: {best_val_loss:.6f}")
     print(f"Checkpoints: {Path(args.checkpoint_dir) / exp_name / 'best.pth'}")
 
 

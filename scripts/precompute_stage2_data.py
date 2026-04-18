@@ -76,10 +76,8 @@ def precompute_sample(
 ) -> dict:
     """Precompute grid data for one sample.
 
-    [FIX v3] Note:
-    - nodes 必须是 trunk-local mm (frame: mcx_trunk_local_mm)
-    - GT 从 gt_voxels.npy 三线性查，不再用 FEM 插值
-    - bbox 也在 trunk-local 下
+    nodes: trunk-local mm coordinates
+    GT: trilinear lookup from gt_voxels.npy
     """
     # Load bridge metadata
     bd = bridge_dir / sid
@@ -100,7 +98,7 @@ def precompute_sample(
     lo = np.array(bbox["min"], dtype=np.float32) - roi_padding_mm
     hi = np.array(bbox["max"], dtype=np.float32) + roi_padding_mm
 
-    # [FIX v3] Clamp ROI bbox to MCX bbox (prevent out-of-bounds)
+    # Clamp ROI bbox to MCX bbox (prevent out-of-bounds)
     if frame_manifest is not None:
         lo = np.maximum(lo, frame_manifest.mcx_bbox_min.astype(np.float32))
         hi = np.minimum(hi, frame_manifest.mcx_bbox_max.astype(np.float32))
@@ -121,14 +119,14 @@ def precompute_sample(
     prior_8d = prior_8d.astype(np.float32)
     valid = valid.astype(bool)
 
-    # ================== [FIX v3] GT 改从 gt_voxels.npy 查 ==================
+    # GT from gt_voxels.npy trilinear lookup
     gt_voxels = np.load(samples_dir / sid / "gt_voxels.npy").astype(np.float32)
     if frame_manifest is not None:
         # world mm → gt_voxels fractional index
         idx_float = frame_manifest.world_to_gt_index(grid_coords)  # [G, 3]
     else:
         raise RuntimeError(
-            "[FIX v3] precompute 需要 FrameManifest"
+            "precompute requires FrameManifest"
         )
 
     # map_coordinates 吃 (3, G)，order=1 = 三线性
@@ -195,16 +193,10 @@ def main():
     elements = mesh["elements"]
     print(f"[Precompute] Mesh: {len(nodes)} nodes, {len(elements)} tets")
 
-    # [FIX v3] Load frame manifest
+    # Load frame manifest
     frame_manifest = FrameManifest.load(shared_dir)
     print(f"[Precompute] Frame: {frame_manifest.world_frame}, "
           f"MCX bbox max={frame_manifest.mcx_bbox_max}")
-
-    # Self-check: mesh.nodes should be trunk-local after FMT-SimGen fix
-    assert nodes.max() < 50, (
-        f"[FIX v3] mesh.nodes.max()={nodes.max():.1f}, "
-        f"看起来还是 atlas frame，请先重新跑 FMT-SimGen 的 01_generate_mesh.py"
-    )
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)

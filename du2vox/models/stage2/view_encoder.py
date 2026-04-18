@@ -20,14 +20,10 @@ VOXEL_SIZE_MM = 0.2
 #   volume_shape: [Z=104, Y=200, X=190] after 2× downsample
 #   voxel_size_mm: 0.2
 #
-# [FIX v3] In trunk-local frame (mcx_trunk_local_mm):
-#   MCX corner is at world (0, 0, 0), so no centering offset needed.
-#   physical center = (19.0, 20.0, 10.4) (midpoint of [0,38]×[0,40]×[0,20.8])
-#   half_extents unchanged: (19.0, 20.0, 10.4)
-MCX_PHYSICAL_CENTER = np.array([19.0, 20.0, 10.4], dtype=np.float32)
+# Trunk-local frame (mcx_trunk_local_mm): MCX corner at origin, no centering needed.
+# half-extents = (19.0, 20.0, 10.4) = trunk_size_mm / 2
 MCX_HALF_EXTENTS = np.array([19.0, 20.0, 10.4], dtype=np.float32)
 
-# [FIX v3] MCX_VOLUME_CENTER_WORLD removed — world coords are already trunk-local
 ANGLES = [-90, -60, -30, 0, 30, 60, 90]
 
 
@@ -491,10 +487,10 @@ class ViewEncoderModule(nn.Module):
         visibility : torch.Tensor [B, N, 7]
             Visibility mask per view.
         """
-        # [FIX v3] Self-check: coords_world must be trunk-local (max < 50mm)
-        assert coords_world.max() < 50, (
-            f"ViewEncoder received atlas-frame coords (max={coords_world.max():.1f}), "
-            f"should be trunk-local (max < 50)"
+        # Sanity check: coords should be trunk-local (max valid is ~40mm in Y)
+        assert coords_world.max() < 45, (
+            f"ViewEncoder received coords in wrong frame (max={coords_world.max():.1f}), "
+            f"should be trunk-local (< 45mm)"
         )
 
         B, n_views = proj_imgs.shape[:2]

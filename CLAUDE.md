@@ -138,13 +138,26 @@ out:     Linear(hidden → 1), **zero-init** → step-0 residual = 0 (identity, 
 | `grid_shape` | `[3]` int | `(nx, ny, nz)` grid dimensions |
 | `bbox_min/max` | `[3]` float32 | ROI bbox bounds (padded) |
 
+### Stage 2 View Encoder (MCX multiview)
+
+`du2vox/models/stage2/view_encoder.py` provides `ViewEncoderModule` for encoding MCX multi-view projection images (used in `full_multiview` ablation):
+
+- **`ViewEncoder`**: 2D U-Net encoder — input `[B, 1, 256, 256]` MCX fluence projection → output `[B, 32, 64, 64]` feature map. 4× downsampled to capture global context.
+- **`ProjectAndSample`**: Projects 3D query points onto 7 view feature maps via orthographic projection. Two modes:
+  - `voxel_space=True`: centers by physical volume center `(0, 20, 0)`mm, normalizes by half-extents `(19.0, 20.0, 10.4)` — preserves aspect ratio (Phase 3+)
+  - `voxel_space=False`: FOV-based normalization (`±40mm` → `±1`)
+  - Views at `ANGLES = [-90, -60, -30, 0, 30, 60, 90]` degrees around Y axis
+- **`MultiViewFusion`**: fuses per-view features via `"mean"` or learned `"attn"` (single attention head per query)
+
+`MCX_PHYSICAL_CENTER = (0, 20, 0)`mm and `MCX_HALF_EXTENTS = (19.0, 20.0, 10.4)`mm define voxel-space normalization in `project_3d_to_2d`.
+
 ### Ablation Naming
 
 | Experiment | Stage 2 Input | Purpose |
 |---|---|---|
 | `fem_interp_only` | FEM barycentric interpolation (no MLP) | Lower bound baseline |
-| `baseline_de_only` | PE(q_norm) + 8D prior (DE channel coarse_d) | Current: DE-only消融 |
-| `full_multiview` | PE(q) + 8D prior + MCX multiview features | Future: DE+MCX (planned) |
+| `baseline_de_only` | PE(q_norm) + 8D prior (DE channel coarse_d) | Current: DE-only ablation |
+| `full_multiview` | PE(q_norm) + 8D prior + ViewEncoderModule (7-view MCX) | DE+MCX fusion |
 
 ## Loss Functions
 
@@ -232,7 +245,8 @@ du2vox/
 │   └── reference/        # Reference MS-GDUN implementations
 ├── models/stage2/
 │   ├── residual_inr.py  # ResidualINR + PositionalEncoding (Stage 2)
-│   └── stage2_dataset.py # Stage2Dataset (on-demand) + Stage2DatasetPrecomputed
+│   ├── stage2_dataset.py # Stage2Dataset (on-demand) + Stage2DatasetPrecomputed
+│   └── view_encoder.py   # ViewEncoderModule: 2D U-Net + ProjectAndSample + MultiViewFusion
 ├── bridge/
 │   ├── stage1_inference.py  # Frozen Stage 1 inference
 │   ├── roi_derivation.py     # derive_roi: tau threshold + tet dilation
@@ -246,12 +260,15 @@ du2vox/
 
 scripts/
 ├── train_stage1.py
-├── eval_stage1.py            # Single-model eval
-├── evaluate_stage1.py        # Comprehensive eval: tables + figures for both sources
+├── eval_stage1.py             # Single-model eval
+├── evaluate_stage1.py       # Comprehensive eval: tables + figures for both sources
+├── render_stage1_figures.py  # Render Stage 1 evaluation figures
+├── export_nifti.py           # NIfTI export of reconstruction results
 ├── train_stage2.py           # Stage 2 training (precomputed or on-demand)
 ├── eval_stage2.py           # Stage 2 full-grid evaluation
-├── bridge_stage1_to_stage2.py  # Stage 1→2 bridge pipeline
-└── precompute_stage2_data.py   # Offline precomputation for Stage 2 training
+├── bridge_stage1_to_stage2.py   # Stage 1→2 bridge pipeline
+├── precompute_stage2_data.py    # Offline precomputation for Stage 2 training
+└── diagnose_projection_alignment.py  # MCX projection geometry debugging
 
 configs/
 ├── stage1/
@@ -259,5 +276,7 @@ configs/
 │   ├── uniform_1000.yaml
 │   └── uniform_1000_v2.yaml   # Current active config
 └── stage2/
-    └── uniform_1000_v2.yaml   # Stage 2 config (precomputed mode)
+    ├── uniform_1000_v2.yaml    # DE-only baseline (baseline_de_only)
+    ├── full_multiview_v6.yaml  # MCX 7-view fusion (full_multiview)
+    └── baseline_de_only_v6.yaml
 ```

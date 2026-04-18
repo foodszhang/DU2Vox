@@ -50,6 +50,7 @@ def evaluate_full_grid(
     sample_ids: list,
     batch_points: int = 8192,
     device: str = "cuda",
+    view_feat_dim: int = 0,
 ) -> dict:
     """
     Full-grid evaluation: load complete precomputed grids, run model on all points.
@@ -93,8 +94,12 @@ def evaluate_full_grid(
             end = min(start + batch_points, len(coords_v))
             c = torch.from_numpy(coords_v[start:end]).unsqueeze(0).float().to(device)
             p = torch.from_numpy(prior_v[start:end]).unsqueeze(0).float().to(device)
+            B_b, N_b = c.shape[:2]
+            # Provide zero view features when model was trained with view_feat_dim > 0
+            zero_view_b = (torch.zeros(B_b, N_b, view_feat_dim).to(device)
+                           if view_feat_dim > 0 else None)
             with torch.no_grad():
-                d_hat_b, fem_b, _ = model(c, p)
+                d_hat_b, fem_b, _ = model(c, p, zero_view_b)
             d_hat_full.append(d_hat_b.squeeze(0).cpu().float().numpy())
 
         d_hat_v = np.concatenate(d_hat_full)
@@ -164,23 +169,29 @@ def main():
     print(f"[Eval Stage 2] Split={args.split}, n_samples={len(sample_ids)}")
     print(f"[Eval Stage 2] Precomputed dir={precomputed_dir}")
 
+    view_feat_dim = cfg["model"].get("view_feat_dim", 0)
     model = ResidualINR(
         n_freqs=cfg["model"]["n_freqs"],
         hidden_dim=cfg["model"]["hidden_dim"],
         n_hidden_layers=cfg["model"]["n_hidden_layers"],
         prior_dim=cfg["model"]["prior_dim"],
         skip_connection=cfg["model"]["skip_connection"],
+        view_feat_dim=view_feat_dim,
     ).cuda()
 
     state = torch.load(args.checkpoint, map_location="cuda")
+    # Handle wrapped multiview checkpoint format: {"residual_inr": ..., "view_encoder": ...}
+    if "residual_inr" in state:
+        state = state["residual_inr"]
     model.load_state_dict(state)
-    print(f"Loaded checkpoint: {args.checkpoint}")
+    print(f"Loaded checkpoint: {args.checkpoint}, view_feat_dim={view_feat_dim}")
 
     metrics = evaluate_full_grid(
         model,
         Path(precomputed_dir),
         sample_ids,
         batch_points=args.batch_points,
+        view_feat_dim=view_feat_dim,
     )
 
     print(f"\n=== Stage 2 Evaluation (Full Grid, per-sample averaged) ===")

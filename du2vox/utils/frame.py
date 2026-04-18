@@ -45,11 +45,13 @@ class FrameManifest:
 
     def world_to_mcx_ndc(self, world_mm: np.ndarray) -> np.ndarray:
         """trunk-local mm → [-1, 1] in MCX volume (for F.grid_sample)."""
-        vs_mm = np.array([
-            self.mcx_shape_xyz[i] * self.mcx_voxel_size_mm
-            for i in range(3)
-        ])
-        return 2.0 * np.asarray(world_mm) / vs_mm - 1.0
+        # Cache volume size in mm — derived from constants, recomputed only once
+        if not hasattr(self, "_vs_mm"):
+            self._vs_mm = np.array([
+                self.mcx_shape_xyz[i] * self.mcx_voxel_size_mm
+                for i in range(3)
+            ], dtype=np.float64)
+        return 2.0 * np.asarray(world_mm) / self._vs_mm - 1.0
 
     def world_to_gt_index(self, world_mm: np.ndarray) -> np.ndarray:
         """trunk-local mm → gt_voxels grid fractional index (for trilinear)."""

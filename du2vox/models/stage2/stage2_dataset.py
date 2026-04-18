@@ -267,7 +267,7 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
             cache_size=cache_size,
         )
         self.samples_dir = Path(samples_dir)
-        # [FIX v3] Load frame manifest for correct MCX coordinate transform
+        # Load frame manifest for MCX coordinate transform
         self.frame = FrameManifest.load(shared_dir) if shared_dir else None
 
     def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
@@ -307,21 +307,13 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
         # Raw world coords (mm) for projection — always use raw grid_coords
         coords_world = data["grid_coords"][chosen].copy().astype(np.float32)
 
-        # ── [FIX v3] MCX voxel-space coordinates ────────────────────────────────
+        # MCX voxel-space coordinates
         # world coords are trunk-local mm (MCX corner at origin)
         # coords_mcx_vox_norm = world / half_extents (no centering needed)
-        if self.frame is not None:
-            # Use FrameManifest: world → [-1, 1] within MCX volume
-            coords_mcx_vox_norm = self.frame.world_to_mcx_ndc(coords_world)
-            mcx_bbox_min = self.frame.mcx_bbox_min
-            mcx_bbox_max = self.frame.mcx_bbox_max
-        else:
-            # Fallback: old detector-centered formula (for backward compat)
-            PHYSICAL_CENTER = np.array([0.0, 20.0, 0.0], dtype=np.float32)
-            HALF_EXTENTS = np.array([19.0, 20.0, 10.4], dtype=np.float32)
-            coords_mcx_vox_norm = (coords_world - PHYSICAL_CENTER) / HALF_EXTENTS
-            mcx_bbox_min = np.array([-19.0, 0.0, -10.4], dtype=np.float32)
-            mcx_bbox_max = np.array([19.0, 40.0, 10.4], dtype=np.float32)
+        # Use FrameManifest: world → [-1, 1] within MCX volume
+        coords_mcx_vox_norm = self.frame.world_to_mcx_ndc(coords_world)
+        mcx_bbox_min = self.frame.mcx_bbox_min
+        mcx_bbox_max = self.frame.mcx_bbox_max
 
         # mcx_valid: point is inside the physical trunk volume
         world_xyz = coords_world  # [N, 3] in trunk-local mm

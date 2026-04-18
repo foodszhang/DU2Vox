@@ -11,6 +11,10 @@ data:
   samples_dir: /home/foods/pro/FMT-SimGen/data/uniform_1000_v2/samples
   train_split: /home/foods/pro/FMT-SimGen/data/uniform_1000_v2/splits/train.txt
   val_split: /home/foods/pro/FMT-SimGen/data/uniform_1000_v2/splits/val.txt
+  shared_dir: /home/foods/pro/FMT-SimGen/output/shared
+  train_bridge_dir: output/bridge_train/
+  val_bridge_dir: output/bridge_val/
+  grid_spacing: 0.2
   n_query_points: 4096
   roi_padding_mm: 1.0
 
