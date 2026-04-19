@@ -20,9 +20,10 @@ VOXEL_SIZE_MM = 0.2
 #   volume_shape: [Z=104, Y=200, X=190] after 2× downsample
 #   voxel_size_mm: 0.2
 #
-# Trunk-local frame (mcx_trunk_local_mm): MCX corner at origin, no centering needed.
-# half-extents = (19.0, 20.0, 10.4) = trunk_size_mm / 2
+# Trunk-local frame (mcx_trunk_local_mm): MCX corner at origin (0,0,0).
+# Physical volume center = (19.0, 20.0, 10.4) in trunk-local mm.
 MCX_HALF_EXTENTS = np.array([19.0, 20.0, 10.4], dtype=np.float32)
+MCX_VOLUME_CENTER_WORLD = np.array([19.0, 20.0, 10.4], dtype=np.float32)  # 体中心，体旋转相机绕此点
 
 ANGLES = [-90, -60, -30, 0, 30, 60, 90]
 
@@ -41,12 +42,13 @@ def project_3d_to_2d(
     Two modes:
 
     World-space mode (voxel_space=False):
-      Geometry (from mcx_projection.py / TurntableCamera):
-        1. World → detector: no centering shift needed (coords are detector-centered)
-        2. Rotate around Y axis by angle_deg
-        3. Orthographic: detector (u,v) = (X_rot, Y_rot) in mm
-        4. Normalize to [-1, 1]:  u_ndc = X_rot / (FOV/2),  v_ndc = Y_rot / (FOV/2)
-      MCX_VOLUME_CENTER_WORLD = (0, 0, 0) for detector-centered coords.
+      Input is trunk-local mm (MCX corner origin). Subtracts MCX_VOLUME_CENTER_WORLD
+      so that rotation happens around the physical volume center — matching the
+      MCX TurntableCamera geometry.
+      1. World → detector: shift by -MCX_VOLUME_CENTER_WORLD
+      2. Rotate around Y axis by angle_deg
+      3. Orthographic: detector (u,v) = (X_rot, Y_rot) in mm
+      4. Normalize to [-1, 1]:  u_ndc = X_rot / (FOV/2),  v_ndc = Y_rot / (FOV/2)
 
     Voxel-space mode (voxel_space=True):
       Uses physical volume center and half-extents for normalization.
@@ -79,10 +81,13 @@ def project_3d_to_2d(
         y_c = points[..., 1]  # normalized by hy
         z_c = points[..., 2]  # normalized by hz
     else:
-        # World-space: trunk-local mm coords, MCX corner at (0,0,0), no centering offset needed
-        x_c = points[..., 0]
-        y_c = points[..., 1]
-        z_c = points[..., 2]
+        # World-space: trunk-local mm, MCX corner at (0,0,0).
+        # Shift to volume-center frame BEFORE rotating so rotation happens around
+        # the volume center — matching MCX TurntableCamera geometry.
+        cx, cy, cz = MCX_VOLUME_CENTER_WORLD
+        x_c = points[..., 0] - cx
+        y_c = points[..., 1] - cy
+        z_c = points[..., 2] - cz
 
     # Rotate around Y axis (column-vector convention: new = old @ R.T)
     angle_rad = torch.deg2rad(torch.tensor(angle_deg, device=points.device, dtype=points.dtype))
