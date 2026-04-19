@@ -51,11 +51,10 @@ def project_3d_to_2d(
       4. Normalize to [-1, 1]:  u_ndc = X_rot / (FOV/2),  v_ndc = Y_rot / (FOV/2)
 
     Voxel-space mode (voxel_space=True):
-      Uses physical volume center and half-extents for normalization.
-      1. Center at physical volume center (0, 10, 0) world mm
-      2. Rotate around Y axis
-      3. Normalize by physical half-extents (19.0, 20.0, 10.4) — preserves aspect ratio
-      4. Orthographic UV from rotated Y
+      Coords are pre-normalized by half-extents MCX_HALF_EXTENTS=(19, 20, 10.4)mm.
+      1. Rotate around Y axis
+      2. Normalize by half-extents (19.0, 20.0, 10.4) — preserves aspect ratio
+      3. Orthographic UV from rotated Y
 
     Parameters
     ----------

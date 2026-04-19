@@ -28,12 +28,6 @@ def derive_roi(
     tau: float = 0.5,
     dilate_layers: int = 1,
 ) -> dict:
-    # Defensive frame check: detect if nodes arrive in wrong frame before
-    # silent corruption propagates downstream. trunk-local max < 45mm.
-    assert nodes.max() < 45, (
-        f"derive_roi expects trunk-local nodes (max < 45mm), got max={nodes.max():.1f}. "
-        f"Load via FrameManifest.load_mesh_nodes() to ensure correct frame."
-    )
     """
     Derive ROI tetrahedra from a coarse distribution.
 
@@ -54,6 +48,13 @@ def derive_roi(
             activation_ratio: float — active_nodes / total_nodes
             roi_tet_ratio: float — roi_tets / total_tets
     """
+    # Defensive frame check: detect if nodes arrive in wrong frame before
+    # silent corruption propagates downstream. trunk-local max < 45mm.
+    assert nodes.max() < 45, (
+        f"derive_roi expects trunk-local nodes (max < 45mm), got max={nodes.max():.1f}. "
+        f"Load via FrameManifest.load_mesh_nodes() to ensure correct frame."
+    )
+
     n_nodes = nodes.shape[0]
     n_tets = elements.shape[0]
 

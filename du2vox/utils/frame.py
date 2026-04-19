@@ -45,18 +45,24 @@ class FrameManifest:
 
     @staticmethod
     def load_mesh_nodes(shared_dir: str | Path) -> tuple[np.ndarray, np.ndarray]:
-        """Load mesh.npz and rebase nodes to trunk-local frame.
+        """Load mesh.npz in trunk-local frame (written at mesh write time by FMT-SimGen).
 
         This is the ONLY canonical way to read mesh.nodes in DU2Vox.
-        The mesh on disk is in atlas_corner_mm; this method rebases to
-        mcx_trunk_local_mm using the manifest's atlas_to_world_offset_mm.
+        FMT-SimGen builder.py now saves mesh.npz in mcx_trunk_local_mm frame,
+        so no runtime rebase is needed.
         """
         frame = FrameManifest.load(shared_dir)
+        assert frame.world_frame == "mcx_trunk_local_mm", (
+            f"mesh.npz frame={frame.world_frame}, expected mcx_trunk_local_mm. "
+            f"Regenerate FMT-SimGen shared assets with unified-frame builder."
+        )
         mesh = np.load(Path(shared_dir) / "mesh.npz")
-        nodes_disk = mesh["nodes"].astype(np.float64)
+        nodes = mesh["nodes"].astype(np.float64)
+        assert nodes.max() < 45, (
+            f"nodes.max()={nodes.max():.1f} — mesh.npz may be in wrong frame "
+            f"(expected trunk-local < 45mm)"
+        )
         elements = mesh["elements"]
-        # mesh.npz is in atlas_corner_mm — rebase to world (trunk-local)
-        nodes = nodes_disk - frame.atlas_to_world_offset_mm
         return nodes, elements
 
     # ─── Core transforms ───────────────────────────────────────────────────
