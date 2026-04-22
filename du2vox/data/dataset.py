@@ -48,21 +48,18 @@ class FMTSimGenDataset(Dataset):
         n_nodes = self.nodes.shape[0]
         n_surface_full = len(mesh["surface_node_indices"])
 
-        # System matrix A [S, N] - crop to visible nodes if visible_mask exists
-        A_sp = scipy.sparse.load_npz(shared_dir / "system_matrix.A.npz")
-        visible_mask_path = shared_dir / "visible_mask.npy"
-        if visible_mask_path.exists():
-            self.visible_mask = np.load(visible_mask_path)
-            self.n_surface = int(self.visible_mask.sum())
-            A_full = A_sp.toarray()
-            A_full = A_full[self.visible_mask, :]
-            self.A = torch.tensor(A_full, dtype=torch.float32)
-            print(f"  A cropped to visible: {A_full.shape[0]} x {A_full.shape[1]}")
+        # System matrix A [S, N] - always use full surface (no visible_mask cropping)
+        A_path = shared_dir / "system_matrix.A.npz"
+        A_data = np.load(A_path, allow_pickle=True)
+        # Support both dict format (FMT-SimGen: {'forward_matrix': ...}) and bare sparse format
+        if "forward_matrix" in A_data:
+            A_arr = A_data["forward_matrix"]
         else:
-            self.visible_mask = None
-            self.n_surface = n_surface_full
-            self.A = torch.tensor(A_sp.toarray(), dtype=torch.float32)
-            print(f"  A full surface: {A_sp.shape[0]} x {A_sp.shape[1]}")
+            A_arr = A_data["arr_0"] if "arr_0" in A_data else scipy.sparse.load_npz(A_path).toarray()
+        self.A = torch.tensor(A_arr, dtype=torch.float32)
+        self.n_surface = A_arr.shape[0]
+        self.visible_mask = None
+        print(f"  A: {A_arr.shape[0]} x {A_arr.shape[1]} (full surface, no visible_mask crop)")
 
         # Full-node Laplacians [N, N]
         self.L = load_npz_as_torch_sparse(shared_dir / "graph_laplacian_full.Lap.npz")

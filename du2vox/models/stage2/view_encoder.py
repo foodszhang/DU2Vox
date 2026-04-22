@@ -9,21 +9,23 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from du2vox.utils.frame import get_frame_constants
 
 # ─── Projection constants (from FMT-SimGen view_config + mcx_config) ────────
 CAMERA_DISTANCE_MM = 200.0
 FOV_MM = 80.0
 DETECTOR_RESOLUTION = (256, 256)  # (width, height) in pixels
-VOXEL_SIZE_MM = 0.2
 
-# MCX trunk volume geometry (from default.yaml):
+# MCX trunk volume geometry — derived from frame_manifest.json (U6 audit):
 #   volume_shape: [Z=104, Y=200, X=190] after 2× downsample
 #   voxel_size_mm: 0.2
 #
 # Trunk-local frame (mcx_trunk_local_mm): MCX corner at origin (0,0,0).
-# Physical volume center = (19.0, 20.0, 10.4) in trunk-local mm.
-MCX_HALF_EXTENTS = np.array([19.0, 20.0, 10.4], dtype=np.float32)
-MCX_VOLUME_CENTER_WORLD = np.array([19.0, 20.0, 10.4], dtype=np.float32)  # 体中心，体旋转相机绕此点
+# Physical volume center = half_extents in trunk-local mm.
+_FRAME = get_frame_constants()
+VOXEL_SIZE_MM = _FRAME["voxel_size_mm"]
+MCX_HALF_EXTENTS = _FRAME["mcx_half_extents"]
+MCX_VOLUME_CENTER_WORLD = _FRAME["mcx_volume_center"]
 
 ANGLES = [-90, -60, -30, 0, 30, 60, 90]
 

@@ -1,0 +1,48 @@
+# Pilot: multiview + soft Dice loss
+# Tests whether view features + direct Dice optimization can beat FEM
+
+experiment:
+  name: "pilot_soft_dice_multiview"
+
+data:
+  precomputed_train_dir: precomputed/train/
+  precomputed_val_dir: precomputed/val/
+  samples_dir: /home/foods/pro/FMT-SimGen/data/uniform_1000_v2/samples
+  train_split: /home/foods/pro/FMT-SimGen/data/uniform_1000_v2/splits/train.txt
+  val_split: /home/foods/pro/FMT-SimGen/data/uniform_1000_v2/splits/val.txt
+  n_query_points: 4096
+  roi_padding_mm: 1.0
+
+model:
+  n_freqs: 10
+  hidden_dim: 256
+  n_hidden_layers: 4
+  prior_dim: 8
+  skip_connection: true
+  view_encoder: true
+  view_feat_dim: 32
+  fusion_method: "mean"
+  encoder_base_channels: 32
+  encoder_out_channels: 32
+  view_encoder_lr_scale: 0.1
+
+training:
+  lr: 1.0e-4
+  weight_decay: 1.0e-5
+  batch_size: 4
+  max_epochs: 50
+  grad_clip_norm: 1.0
+  num_workers: 2
+  scheduler:
+    type: "CosineAnnealingLR"
+    T_max: 50
+    eta_min: 1.0e-6
+  early_stopping_patience: 20
+  warmup_epochs: 5
+
+loss:
+  type: "soft_dice"    # NEW: pure soft Dice loss
+
+logging:
+  print_every: 1
+  detail_every: 5

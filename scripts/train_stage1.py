@@ -171,12 +171,12 @@ def train():
 
     train_loader = DataLoader(
         train_set,
-        batch_size=train_cfg["batch_size"],
+        batch_size=train_cfg.get("batch_size", 2),
         shuffle=True,
     )
     val_loader = DataLoader(
         val_set,
-        batch_size=train_cfg["batch_size"],
+        batch_size=train_cfg.get("batch_size", 2),
         shuffle=False,
     )
 
