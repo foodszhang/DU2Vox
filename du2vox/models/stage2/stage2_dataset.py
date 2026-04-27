@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import List, Literal, Optional
+from typing import List, Optional
 
 import numpy as np
 import torch
@@ -53,6 +53,7 @@ class Stage2Dataset(Dataset):
 
         # Load shared mesh — rebased to trunk-local via FrameManifest
         self._nodes, self._elements = FrameManifest.load_mesh_nodes(shared_dir)
+        self._frame = FrameManifest.load(shared_dir)
 
         self.sample_ids = sample_ids
 
@@ -113,13 +114,16 @@ class Stage2Dataset(Dataset):
         bridge = self._get_bridge(sid)
         prior_8d, valid = bridge.get_prior_features(queries, c["coarse_d"])
 
-        # GT: FEM interpolation of gt_nodes
-        gt_nodes = np.load(self.samples_dir / sid / "gt_nodes.npy").astype(np.float32)
-        gt_prior, gt_valid = bridge.get_prior_features(queries, gt_nodes)
-
-        # FEM-interpolated GT values
-        gt_values = (gt_prior[:, :4] * gt_prior[:, 4:8]).sum(axis=-1)  # [N]
-        gt_values[~gt_valid] = 0.0
+        # GT: trilinear lookup from gt_voxels.npy (aligns with precompute path)
+        from scipy.ndimage import map_coordinates
+        gt_voxels = np.load(self.samples_dir / sid / "gt_voxels.npy").astype(np.float32)
+        idx_float = self._frame.world_to_gt_index(queries.astype(np.float64))
+        gt_values = map_coordinates(
+            gt_voxels, idx_float.T, order=1, mode="constant", cval=0.0, prefilter=False,
+        ).astype(np.float32)
+        shape_arr = np.array(gt_voxels.shape)
+        outside = np.any((idx_float < 0) | (idx_float > shape_arr - 1), axis=1)
+        gt_values[outside] = 0.0
 
         return {
             "coords":     torch.from_numpy(queries.astype(np.float32)),
@@ -222,7 +226,9 @@ class Stage2DatasetPrecomputed(Dataset):
             "coords":   torch.from_numpy(coords.astype(np.float32)),
             "prior_8d": torch.from_numpy(data["prior_8d"][chosen].copy()),
             "gt":       torch.from_numpy(data["gt_values"][chosen].copy()),
-            "valid":    torch.ones(self.n_query_points, dtype=torch.bool),
+            # Pre-filtered: chosen points are sampled from valid_mask indices only.
+        # Every returned point is guaranteed to be inside a ROI tet.
+        "valid":    torch.ones(self.n_query_points, dtype=torch.bool),
             "sample_id": sid,
         }
 

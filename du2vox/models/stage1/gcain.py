@@ -77,6 +77,8 @@ class BasicBlock(nn.Module):
         self,
         L: torch.Tensor,
         A: torch.Tensor,
+        LTL: torch.Tensor,
+        ATA: torch.Tensor,
         L0: torch.Tensor,
         L1: torch.Tensor,
         L2: torch.Tensor,
@@ -87,7 +89,7 @@ class BasicBlock(nn.Module):
     ):
         super().__init__()
 
-        self.input_block = InputBlock(L, A)
+        self.input_block = InputBlock(L, A, LTL, ATA)
 
         # GCN sequence: 3 -> 8 -> 16 -> 8 -> feat_dim
         self.gcn_seq = nn.ModuleList([
@@ -156,6 +158,8 @@ class GCAIN_full(nn.Module):
         self,
         L: torch.Tensor,
         A: torch.Tensor,
+        LTL: torch.Tensor,
+        ATA: torch.Tensor,
         L0: torch.Tensor,
         L1: torch.Tensor,
         L2: torch.Tensor,
@@ -168,7 +172,7 @@ class GCAIN_full(nn.Module):
         super().__init__()
         self.blocks = nn.ModuleList([
             BasicBlock(
-                L=L, A=A,
+                L=L, A=A, LTL=LTL, ATA=ATA,
                 L0=L0, L1=L1, L2=L2, L3=L3,
                 knn_idx=knn_idx,
                 sens_w=sens_w,

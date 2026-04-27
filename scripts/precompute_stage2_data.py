@@ -5,11 +5,16 @@ Offline precomputation for Stage 2 training.
 Creates precomputed/*.npz files with regular grids in ROI bbox:
   - grid_coords:  [G, 3] float32 — query point coordinates (mm)
   - prior_8d:    [G, 8] float32 — 8D prior features
-  - gt_values:   [G]    float32 — FEM-interpolated GT values
+  - gt_values:   [G]    float32 — trilinear(gt_voxels) GT values
   - valid_mask:  [G]    bool    — True if point inside ROI tet
   - grid_shape:  [3]    int     — (nx, ny, nz) grid dimensions
-  - bbox_min:    [3]    float32 — ROI bbox min (padded)
-  - bbox_max:    [3]    float32 — ROI bbox max (padded)
+  - bbox_min:    [3]    float32 — ROI bbox min (padded, world frame)
+  - bbox_max:    [3]    float32 — ROI bbox max (padded, world frame)
+
+Per-sample work (cannot share):
+  - ROI bbox + grid construction
+  - prior_8d via FEMBridge (coarse_d varies per sample)
+  - gt_values via map_coordinates (gt_voxels varies per sample)
 
 Usage:
   python scripts/precompute_stage2_data.py \
@@ -71,21 +76,20 @@ def precompute_sample(
     elements: np.ndarray,
     grid_spacing: float,
     roi_padding_mm: float,
-    n_candidates: int = 16,
-    frame_manifest: FrameManifest | None = None,
+    n_candidates: int,
+    frame_manifest: FrameManifest,
 ) -> dict:
-    """Precompute grid data for one sample.
+    """Precompute grid data for one sample."""
+    t_sample = time.perf_counter()
 
-    nodes: trunk-local mm coordinates
-    GT: trilinear lookup from gt_voxels.npy
-    """
-    # Load bridge metadata
+    # ── Load bridge metadata ────────────────────────────────────────────────
     bd = bridge_dir / sid
     coarse_d = np.load(bd / "coarse_d.npy").astype(np.float32)
     roi_tet_indices = np.load(bd / "roi_tet_indices.npy")
     roi_info = json.loads((bd / "roi_info.json").read_text())
 
-    # Build FEMBridge
+    # ── Build FEMBridge (cached per sample — not shared) ───────────────────
+    t_bridge = time.perf_counter()
     bridge = FEMBridge(
         nodes,
         elements,
@@ -93,64 +97,62 @@ def precompute_sample(
         n_candidates=n_candidates,
     )
 
-    # Padded ROI bbox
+    # ── ROI bbox + grid ─────────────────────────────────────────────────────
     bbox = roi_info["roi_bbox_mm"]
     lo = np.array(bbox["min"], dtype=np.float32) - roi_padding_mm
     hi = np.array(bbox["max"], dtype=np.float32) + roi_padding_mm
 
-    # Clamp ROI bbox to MCX bbox (prevent out-of-bounds)
-    if frame_manifest is not None:
-        lo = np.maximum(lo, frame_manifest.mcx_bbox_min.astype(np.float32))
-        hi = np.minimum(hi, frame_manifest.mcx_bbox_max.astype(np.float32))
+    # Clamp to MCX volume
+    lo = np.maximum(lo, frame_manifest.mcx_bbox_min.astype(np.float32))
+    hi = np.minimum(hi, frame_manifest.mcx_bbox_max.astype(np.float32))
 
-    # Build regular grid
     grid_coords, grid_shape = build_grid(lo, hi, grid_spacing)
     n_points = len(grid_coords)
 
-    # Normalize coords to [-1, 1] for PE (done once at precompute time)
     grid_coords_norm = (
         2.0 * (grid_coords - lo) / (hi - lo + 1e-8) - 1.0
     ).astype(np.float32)
 
-    # Prior features for all grid points
+    # ── Prior features ───────────────────────────────────────────────────────
+    t_prior = time.perf_counter()
     prior_8d, valid = bridge.get_prior_features(
         grid_coords.astype(np.float64), coarse_d, K=n_candidates
     )
     prior_8d = prior_8d.astype(np.float32)
     valid = valid.astype(bool)
 
-    # GT from gt_voxels.npy trilinear lookup
+    # ── GT trilinear lookup ────────────────────────────────────────────────
+    t_gt = time.perf_counter()
     gt_voxels = np.load(samples_dir / sid / "gt_voxels.npy").astype(np.float32)
-    if frame_manifest is not None:
-        # world mm → gt_voxels fractional index
-        idx_float = frame_manifest.world_to_gt_index(grid_coords)  # [G, 3]
-    else:
-        raise RuntimeError(
-            "precompute requires FrameManifest"
-        )
+    idx_float = frame_manifest.world_to_gt_index(grid_coords)  # [G, 3]
 
-    # map_coordinates 吃 (3, G)，order=1 = 三线性
     gt_values = map_coordinates(
         gt_voxels,
         idx_float.T,
         order=1, mode="constant", cval=0.0, prefilter=False,
     ).astype(np.float32)
 
-    # 外部点（任一轴 index 在 [0, shape-1] 外）标记 valid=False
     shape_arr = np.array(gt_voxels.shape)
-    outside = np.any(
-        (idx_float < 0) | (idx_float > shape_arr - 1), axis=1
-    )
+    outside = np.any((idx_float < 0) | (idx_float > shape_arr - 1), axis=1)
     valid_gt = ~outside
     valid = valid & valid_gt
     gt_values[~valid_gt] = 0.0
-    # =======================================================================
 
     del bridge
 
+    t_total = time.perf_counter() - t_sample
+    print(
+        f"  [{sid}] grid={n_points}, "
+        f"valid={valid.sum()}/{n_points} ({100*valid.mean():.0f}%), "
+        f"t={t_total:.1f}s "
+        f"(bridge={(time.perf_counter()-t_bridge)*1000:.0f}ms "
+        f"prior={(time.perf_counter()-t_prior)*1000:.0f}ms "
+        f"gt={time.perf_counter()-t_gt:.1f}s)"
+    )
+
     return {
-        "grid_coords": grid_coords,            # raw (mm) — for FEM eval
-        "grid_coords_norm": grid_coords_norm,  # normalized [-1,1] — for training
+        "grid_coords": grid_coords,
+        "grid_coords_norm": grid_coords_norm,
         "prior_8d": prior_8d,
         "gt_values": gt_values,
         "valid_mask": valid,
@@ -180,38 +182,44 @@ def main():
 
     if args.max_samples:
         sample_ids = sample_ids[: args.max_samples]
+        print(f"[Precompute] Limited to {args.max_samples} samples (test mode)")
 
     bridge_dir = Path(cfg["data"].get(f"{args.split}_bridge_dir", cfg["data"].get("bridge_dir", "")))
     shared_dir = Path(cfg["data"]["shared_dir"])
     samples_dir = Path(cfg["data"]["samples_dir"])
     roi_padding = args.roi_padding_mm if args.roi_padding_mm is not None else cfg["data"]["roi_padding_mm"]
 
-    # Load mesh once (shared across all samples) — rebased to trunk-local
+    # ── Load shared assets ONCE ─────────────────────────────────────────────
     print(f"[Precompute] Loading mesh from {shared_dir}...")
     nodes, elements = FrameManifest.load_mesh_nodes(shared_dir)
-    print(f"[Precompute] Mesh: {len(nodes)} nodes, {len(elements)} tets")
+    print(f"  → {len(nodes)} nodes, {len(elements)} tets")
 
-    # Load frame manifest
     frame_manifest = FrameManifest.load(shared_dir)
-    print(f"[Precompute] Frame: {frame_manifest.world_frame}, "
-          f"MCX bbox max={frame_manifest.mcx_bbox_max}")
+    print(f"[Precompute] Frame: {frame_manifest.world_frame}")
+    print(f"  MCX bbox: min={frame_manifest.mcx_bbox_min}, max={frame_manifest.mcx_bbox_max}")
+    print(f"  GT offset: {frame_manifest.gt_offset_world_mm}, spacing={frame_manifest.gt_spacing_mm}mm")
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"[Precompute] Split={args.split}, n_samples={len(sample_ids)}, "
-          f"spacing={args.grid_spacing}mm, padding={roi_padding}mm")
+    n_total = len(sample_ids)
+    print(f"[Precompute] Split={args.split}, {n_total} samples, spacing={args.grid_spacing}mm, padding={roi_padding}mm")
     print(f"[Precompute] Output={output_dir}")
+    print(f"[Precompute] Bridge={bridge_dir}, samples_dir={samples_dir}")
+    print("-" * 80)
 
+    # ── Precompute per sample ───────────────────────────────────────────────
     total_time = 0.0
-    for i, sid in enumerate(sample_ids):
-        t0 = time.perf_counter()
+    done = 0
+    errors = 0
 
+    for i, sid in enumerate(sample_ids):
         out_path = output_dir / f"{sid}.npz"
         if out_path.exists():
-            print(f"  {sid} already exists, skipping")
+            print(f"  [{i+1}/{n_total}] {sid}: already exists, skipping")
             continue
 
+        t0 = time.perf_counter()
         try:
             data = precompute_sample(
                 sid=sid,
@@ -224,23 +232,19 @@ def main():
                 n_candidates=args.n_candidates,
                 frame_manifest=frame_manifest,
             )
-            np.savez(out_path, **data)
+            np.savez_compressed(out_path, **data)
             elapsed = time.perf_counter() - t0
             total_time += elapsed
-
-            # Progress info every 50 samples
-            if (i + 1) % 50 == 0:
-                avg_time = total_time / (i + 1)
-                remaining = len(sample_ids) - (i + 1)
-                eta = avg_time * remaining
-                print(f"  [{i+1}/{len(sample_ids)}] avg={avg_time:.1f}s/sample, ETA={eta/60:.1f}min")
+            done += 1
 
         except Exception as e:
-            print(f"  ERROR {sid}: {e}")
+            errors += 1
+            print(f"  [ERROR] {sid}: {e}")
             raise
 
-    print(f"\n[Precompute] Done. Total time: {total_time:.1f}s, "
-          f"avg: {total_time/max(len(sample_ids),1):.1f}s/sample")
+    print("-" * 80)
+    print(f"[Precompute] Done. processed={done}, errors={errors}, "
+          f"total={total_time:.1f}s, avg={total_time/max(done,1):.2f}s/sample")
 
 
 if __name__ == "__main__":

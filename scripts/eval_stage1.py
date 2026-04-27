@@ -63,8 +63,12 @@ def evaluate(
     sens_w = dataset.sens_w.cuda()
     nodes = dataset.nodes.cuda()
 
+    LTL = torch.matmul(L.t(), L).cuda()
+    ATA = torch.matmul(A.t(), A).cuda()
+
     model = GCAIN_full(
         L=L, A=A,
+        LTL=LTL, ATA=ATA,
         L0=L0, L1=L1, L2=L2, L3=L3,
         knn_idx=knn_idx,
         sens_w=sens_w,

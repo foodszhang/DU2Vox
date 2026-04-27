@@ -128,6 +128,10 @@ def train_step(
         view_feat, visibility = view_encoder(
             proj_imgs, coords_world, coords_vox_norm=coords_vox
         )  # [B, N, view_feat_dim], [B, N, 7]
+        # B4: apply mcx_valid mask to zero out view features for points outside MCX volume
+        if "mcx_valid" in batch:
+            mcx_valid = batch["mcx_valid"].cuda()  # [B, N]
+            view_feat = view_feat * mcx_valid.unsqueeze(-1).float()
         d_hat, fem_interp, residual = model(coords, prior, view_feat)
     else:
         d_hat, fem_interp, residual = model(coords, prior)
@@ -245,6 +249,10 @@ def validate(
                 view_feat, _ = view_encoder(
                     proj_imgs, coords_world, coords_vox_norm=coords_vox
                 )
+                # B4: apply mcx_valid mask
+                if "mcx_valid" in batch:
+                    mcx_valid = batch["mcx_valid"].cuda()
+                    view_feat = view_feat * mcx_valid.unsqueeze(-1).float()
                 d_hat, fem_interp, _ = model(coords, prior, view_feat)
             else:
                 d_hat, fem_interp, _ = model(coords, prior)
@@ -253,10 +261,10 @@ def validate(
             gt_np = gt.numpy()
             valid_np = valid.numpy()
 
-            # Accumulate val_loss in the same loop
+            # Accumulate val_loss in the same loop (clamp to [0,1] per B2)
+            p_all = np.clip(d_hat.numpy(), 0.0, 1.0).flatten()
             v_all = valid_np.flatten()
             g_all = gt_np.flatten()
-            p_all = d_hat.numpy().flatten()
             if v_all.sum() > 0:
                 total_loss += nn.functional.mse_loss(
                     torch.from_numpy(p_all[v_all > 0]),
@@ -285,7 +293,8 @@ def validate(
                     0.5
                 )
 
-                stage2_mse = float(np.mean((p[v_mask] - g[v_mask]) ** 2))
+                p_clipped = np.clip(p, 0.0, 1.0)
+                stage2_mse = float(np.mean((p_clipped[v_mask] - g[v_mask]) ** 2))
                 fem_mse = float(np.mean((f[v_mask] - g[v_mask]) ** 2))
 
                 per_sample_metrics.append({

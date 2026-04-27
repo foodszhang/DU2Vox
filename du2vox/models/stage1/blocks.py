@@ -37,20 +37,22 @@ class InputBlock(nn.Module):
 
     x:  [B, N, 1]
     b:  [B, S, 1]
-    A:  [S, N]
-    L:  [N, N]
+    LTL: [N, N] precomputed as L.t() @ L
+    ATA: [N, N] precomputed as A.t() @ A
+    A:  [S, N] kept for A^T b
 
     Returns: [B, N, 3]
     """
 
-    def __init__(self, L: torch.Tensor, A: torch.Tensor):
+    def __init__(self, L: torch.Tensor, A: torch.Tensor, LTL: torch.Tensor, ATA: torch.Tensor):
         super().__init__()
-        self.register_buffer("L", L)
+        self.register_buffer("LTL", LTL)
+        self.register_buffer("ATA", ATA)
         self.register_buffer("A", A)
 
     def forward(self, x: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
-        LTLx = torch.matmul(torch.matmul(self.L.t(), self.L), x)
-        ATAx = torch.matmul(torch.matmul(self.A.t(), self.A), x)
+        LTLx = torch.matmul(self.LTL, x)
+        ATAx = torch.matmul(self.ATA, x)
         ATb = torch.matmul(self.A.t(), b)
         return torch.cat([x, LTLx, ATAx - ATb], dim=-1)
 

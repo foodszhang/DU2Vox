@@ -17,9 +17,9 @@ data:
   train_bridge_dir: output/bridge_train/
   val_bridge_dir: output/bridge_val/
   shared_dir: /home/foods/pro/FMT-SimGen/output/shared
-  samples_dir: /home/foods/pro/FMT-SimGen/data/uniform_1000_v2/samples
-  train_split: /home/foods/pro/FMT-SimGen/data/uniform_1000_v2/splits/train.txt
-  val_split: /home/foods/pro/FMT-SimGen/data/uniform_1000_v2/splits/val.txt
+  samples_dir: /home/foods/pro/FMT-SimGen/data/uniform_trunk_v2_roi38_multi/samples
+  train_split: /home/foods/pro/FMT-SimGen/data/uniform_trunk_v2_roi38_multi/splits/train.txt
+  val_split: /home/foods/pro/FMT-SimGen/data/uniform_trunk_v2_roi38_multi/splits/val.txt
 
   n_query_points: 4096        # random query points per sample per epoch (training)
   roi_padding_mm: 1.0

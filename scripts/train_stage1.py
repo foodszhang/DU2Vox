@@ -147,7 +147,7 @@ def train():
     samples_dir = Path(data_cfg["samples_dir"])
     splits_dir = Path(data_cfg["splits_dir"])
 
-    # ── Dataset ──
+    # ── Dataset (val reuses train's shared assets to avoid duplication) ──
     train_set = FMTSimGenDataset(
         shared_dir=shared_dir,
         samples_dir=samples_dir,
@@ -159,7 +159,7 @@ def train():
         binarize_threshold=data_cfg.get("binarize_threshold", 0.05),
     )
     val_set = FMTSimGenDataset(
-        shared_dir=shared_dir,
+        shared_dir=None,
         samples_dir=samples_dir,
         split_file=splits_dir / "val.txt",
         normalize_b=data_cfg.get("normalize_b", True),
@@ -167,6 +167,7 @@ def train():
         normalize_gt_mode=data_cfg.get("normalize_gt_mode", "per_sample"),
         binarize_gt=data_cfg.get("binarize_gt", False),
         binarize_threshold=data_cfg.get("binarize_threshold", 0.05),
+        shared=train_set,
     )
 
     train_loader = DataLoader(
@@ -196,12 +197,18 @@ def train():
     sens_w = train_set.sens_w.cuda()
     nodes = train_set.nodes.cuda()
 
+    # Precompute L^T L and A^T A once (avoids repeated dense matmul in InputBlock)
+    LTL = (L.t() @ L).contiguous()
+    ATA = (A.t() @ A).contiguous()
+
     print(f"A GPU memory: {A.element_size() * A.nelement() / 1e6:.1f} MB")
     print(f"L (dense) GPU memory: {L.element_size() * L.nelement() / 1e6:.1f} MB")
+    print(f"LTL GPU memory: {LTL.element_size() * LTL.nelement() / 1e6:.1f} MB")
+    print(f"ATA GPU memory: {ATA.element_size() * ATA.nelement() / 1e6:.1f} MB")
 
     # ── Model ──
     model = GCAIN_full(
-        L=L, A=A,
+        L=L, A=A, LTL=LTL, ATA=ATA,
         L0=L0, L1=L1, L2=L2, L3=L3,
         knn_idx=knn_idx,
         sens_w=sens_w,

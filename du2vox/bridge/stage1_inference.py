@@ -19,8 +19,14 @@ def _load_shared_assets(shared_dir: Path, device: str) -> dict:
     mesh = np.load(shared_dir / "mesh.npz")
     nodes = torch.tensor(mesh["nodes"], dtype=torch.float32).to(device)
 
-    A_sp = scipy.sparse.load_npz(shared_dir / "system_matrix.A.npz")
-    A_full = A_sp.toarray().astype(np.float32)
+    A_sp_dict = np.load(shared_dir / "system_matrix.A.npz", allow_pickle=True)
+    if "forward_matrix" in A_sp_dict:
+        # Legacy format: {forward_matrix: dense ndarray}
+        A_full = A_sp_dict["forward_matrix"].astype(np.float32)
+    else:
+        # Standard scipy sparse format
+        A_sp = scipy.sparse.load_npz(shared_dir / "system_matrix.A.npz")
+        A_full = A_sp.toarray().astype(np.float32)
 
     # Apply visible_mask cropping (same as training dataset)
     visible_mask_path = shared_dir / "visible_mask.npy"
@@ -48,10 +54,15 @@ def _load_shared_assets(shared_dir: Path, device: str) -> dict:
     sens_w = torch.norm(A, dim=0)
     sens_w = sens_w / (sens_w.max() + 1e-8)
 
+    # Precompute LTL = L^T @ L and ATA = A^T @ A for InputBlock
+    LTL = torch.matmul(L.t(), L)
+    ATA = torch.matmul(A.t(), A)
+
     return {
         "nodes": nodes,
         "A": A,
         "L": L, "L0": L0, "L1": L1, "L2": L2, "L3": L3,
+        "LTL": LTL, "ATA": ATA,
         "knn_idx": knn_idx,
         "sens_w": sens_w,
     }
@@ -109,6 +120,7 @@ def run_stage1_inference(
     # Build model
     model = GCAIN_full(
         L=assets["L"], A=assets["A"],
+        LTL=assets["LTL"], ATA=assets["ATA"],
         L0=assets["L0"], L1=assets["L1"], L2=assets["L2"], L3=assets["L3"],
         knn_idx=assets["knn_idx"],
         sens_w=assets["sens_w"],

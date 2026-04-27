@@ -54,7 +54,7 @@ def _barycentric_batch(
         l1, l2, l3 = lam123[0], lam123[1], lam123[2]
         l0 = 1.0 - l1 - l2 - l3
 
-        tol = -1e-8
+        tol = -1e-6
         if l0 >= tol and l1 >= tol and l2 >= tol and l3 >= tol:
             bary[i, 0] = l0
             bary[i, 1] = l1
