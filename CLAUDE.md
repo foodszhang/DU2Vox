@@ -11,6 +11,23 @@ DU2Vox is a two-stage framework for Fluorescence Molecular Tomography (FMT) reco
 
 The **Bridge** (`scripts/bridge_stage1_to_stage2.py`) is the Stage 1→2 connector. **Stage 2** (`scripts/train_stage2.py`) trains a Residual INR that refines FEM-interpolated predictions using learned residual correction.
 
+## Development Commands
+
+```bash
+# Linting
+uv run ruff check .
+uv run ruff check --fix .
+
+# Formatting
+uv run black .
+
+# Run tests
+uv run pytest
+
+# Single test
+uv run pytest tests/test_some_feature.py -v
+```
+
 ## Common Commands
 
 All commands use `uv run` from the project root.
@@ -226,9 +243,9 @@ Mesh node coordinates and all query points are in mm.
 
 - `AdaptiveThreshold` uses `sigmoid(k * (|u| − λ))` (k=10) instead of hard sign/softplus — gradients always flow, never zeroed
 - `_barycentric_batch` (numba njit, NOT parallel=True): LinAlgError on degenerate tet → `inside=False`. **Never use `parallel=True`** in numba 0.65 — causes object-mode fallback and wrong results; use `numba.prange` (works in non-parallel njit)
-- `numba.boolean` not valid in numba 0.65 — use `np.bool_`
+- `numba.boolean` not valid in numba 0.65 — use `np.bool_` (in `bridge/fem_bridging.py` `_barycentric_batch` return type)
 - `FMTSimGenDataset` handles backward compatibility: if `visible_mask.npy` is absent, uses full `[S=7465]` surface nodes; if present, crops to `[V=6226]`
-- `Stage1Inference._load_shared_assets`: must apply `visible_mask` cropping to `A` matrix when `visible_mask.npy` exists — checkpoint and inference A shape must match
+- `Stage1Inference._load_shared_assets`: must apply `visible_mask` cropping to `A` matrix when `visible_mask.npy` exists — checkpoint and inference A shape must match; the Bridge config (`--split_file`) must use the same dataset split that was used during Stage 1 training to ensure `visible_mask` presence/absence is consistent
 - Checkpoints: `runs/{exp}/checkpoints/{best,latest,epoch_NNN}.pth` (Stage 1); `checkpoints/stage2/{exp}/best.pth` (Stage 2); config is copied to `runs/{exp}/config.yaml` at training start
 - Stage 2 val uses `stage2_dice_05` for best model selection and early stopping (not `val_loss`)
 - `FEMBridge._roi_set` membership check is dead code — KDTree is already built on active tets only, the check always passes

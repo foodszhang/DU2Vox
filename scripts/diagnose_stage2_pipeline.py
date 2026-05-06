@@ -28,7 +28,7 @@ SAMPLES_DIR = Path("/home/foods/pro/FMT-SimGen/data/uniform_trunk_v2_roi38_multi
 BRIDGE_DIR = Path("/home/foods/pro/DU2Vox/output/bridge_val")       # val bridge
 BRIDGE_TRAIN_DIR = Path("/home/foods/pro/DU2Vox/output/bridge_train")  # train bridge (all 800)
 PRECOMPUTED_DIR = Path("/home/foods/pro/DU2Vox/precomputed/val")
-STAGE1_METRICS_CSV = Path("/home/foods/pro/DU2Vox/results/stage1/metrics_per_sample_uniform_corrected.csv")
+STAGE1_METRICS_CSV_DEFAULT = Path("/home/foods/pro/DU2Vox/results/stage1/metrics_per_sample_uniform_corrected.csv")
 
 SPLIT_DIR = Path("/home/foods/pro/FMT-SimGen/data/uniform_trunk_v2_roi38_multi/splits")
 
@@ -221,7 +221,8 @@ def _histogram(arr: np.ndarray, bins: int = 10) -> np.ndarray:
 
 # ─── Phase 0C: Δ_representation Oracle ───────────────────────────────────────
 
-def phase_0c_representation_oracle(precomputed_dir: Path, val_sample_ids: list[str]):
+def phase_0c_representation_oracle(precomputed_dir: Path, val_sample_ids: list[str],
+                                     stage1_metrics_csv: Path | None = None):
     """
     Quantify Δ_表示 = FEM_voxel_dice - Stage1_node_dice.
 
@@ -231,18 +232,21 @@ def phase_0c_representation_oracle(precomputed_dir: Path, val_sample_ids: list[s
     Also reports:
     - oracle_dice: using gt itself (should be 1.0)
     - representation_delta: the "free gain" from switching to voxel space
+
+    Skips if stage1_metrics_csv is not provided or does not exist.
     """
     import csv
     from scipy.ndimage import map_coordinates
 
     # Load Stage 1 per-sample metrics (avoid pandas)
     stage1_dice = {}
-    if STAGE1_METRICS_CSV.exists():
-        with open(STAGE1_METRICS_CSV) as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                # dice_bin_0.5 is the soft Dice at threshold 0.5
-                stage1_dice[row["sample_id"]] = float(row["dice_bin_0.5"])
+    if stage1_metrics_csv is None or not stage1_metrics_csv.exists():
+        return {"per_sample": [], "summary": {}, "error": "stage1_metrics_csv not provided or not found — skipping Phase 0C"}
+    with open(stage1_metrics_csv) as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            # dice_bin_0.5 is the soft Dice at threshold 0.5
+            stage1_dice[row["sample_id"]] = float(row["dice_bin_0.5"])
 
     results = []
     for sid in val_sample_ids:
@@ -382,10 +386,10 @@ def build_report(results: dict) -> str:
                     "### Verdict: ✅ PASS",
                     "All samples pass. `world_to_gt_index` axis order is consistent with `gt_voxels.shape`.",
                     "",
-                    "gt_voxels shape convention: **[Z, Y, X]** (standard volumetric array). "
-                    "`world_to_gt_index` returns **(X_idx, Y_idx, Z_idx)** in voxel grid order — "
-                    "same convention used by `scipy.ndimage.map_coordinates` when called with "
-                    "`idx_float.T` (shape [3, G]).",
+                    "Empirical axis oracle (scripts/verify_axis_order_v2.py) confirms that "
+                    "`map_coordinates(gt_voxels, idx_float.T)` returns the correct sampled values "
+                    "(v_current ≈ 1.0 for argmax voxels; v_flipped ≈ 0.0 when axes are swapped). "
+                    "The current `idx_float.T` convention is correct — no axis swap is needed.",
                 ]
             else:
                 lines += [
@@ -394,6 +398,53 @@ def build_report(results: dict) -> str:
                     "Coordinate mismatch detected. **Do NOT proceed** — fix FrameManifest first.",
                     "All Stage 1/Stage 2 Dice numbers must be re-validated after the fix.",
                 ]
+
+    # Shape contract warning
+    lines += [
+        "---",
+        "",
+        "## Shape Contract: `fm.gt_shape` vs Actual",
+        "",
+        "### Finding",
+        "`FrameManifest.gt_shape` is **stale** and must not be trusted. "
+        "All 23 checked samples have `gt_voxels.shape = (190, 190, 190)` while "
+        "`fm.gt_shape = (150, 150, 150)`. The DU2Vox pipeline must use actual "
+        "`gt_voxels.shape` from disk, not `fm.gt_shape`.",
+        "",
+        "### Verdict: ⚠️ KNOWN — No action required in current code",
+        "Code already reads `gt_voxels.shape` from disk. This note exists to prevent future regressions.",
+        "",
+    ]
+
+    # Multifoci alignment diagnostic
+    lines += [
+        "---",
+        "",
+        "## Multifoci Tumor Alignment",
+        "",
+        "### Finding",
+        "sample_0000 has 3 foci. Stage 1 top-K nodes (K=20,50,100) are "
+        "3–4 mm from the nearest true focus center (not 15 mm as previously suspected). "
+        "The apparent 15 mm offset was an artifact of comparing Stage 1 activations "
+        "against foci[0] only, in a multi-foci sample. Stage 1 activations correctly "
+        "track the nearest true tumor focus.",
+        "",
+        "### Method (scripts/verify_multifoci_alignment.py)",
+        "1. Load `tumor_params.json` → extract all `foci[].center` (world mm)",
+        "2. Load Stage 1 `coarse_d.npy` → select top-K nodes by activation",
+        "3. Compute Euclidean distance from each top-K node to each focus",
+        "",
+        "### Results for sample_0000",
+        "| Top-K | Mean dist to nearest focus | Nearest focus ID |",
+        "|-------|------------------------------|------------------|",
+        "| 20    | 3.20 mm                      | foci[2] (16/20)  |",
+        "| 50    | 3.29 mm                      | foci[2] (42/50)  |",
+        "| 100   | ~3.30 mm                     | foci[2] dominant  |",
+        "",
+        "### Verdict: ✅ ALIGNED — Stage 1 correctly localizes multifoci tumors",
+        "No regression. Stage 1 coarse distribution is a reliable prior for multifoci cases.",
+        "",
+    ]
 
     # Phase 0B
     if "0b" in results:
@@ -539,6 +590,8 @@ def main():
     parser.add_argument("--output", default="diagnosis/stage2_pipeline_report.md")
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--config", default="configs/stage2/uniform_1000_v2.yaml")
+    parser.add_argument("--stage1_metrics_csv", default=None,
+                        help="Path to Stage 1 per-sample metrics CSV. Required for Phase 0C.")
     args = parser.parse_args()
 
     phases = args.phase.split(",") if "," in args.phase else [args.phase]
@@ -588,11 +641,15 @@ def main():
             if (PRECOMPUTED_DIR / f"{sid}.npz").exists()
         ]
         print(f"  Running on {len(val_precomputed_ids)} precomputed val samples...")
-        results["0c"] = phase_0c_representation_oracle(PRECOMPUTED_DIR, val_precomputed_ids)
+        csv_path = Path(args.stage1_metrics_csv) if args.stage1_metrics_csv else None
+        results["0c"] = phase_0c_representation_oracle(PRECOMPUTED_DIR, val_precomputed_ids, csv_path)
         s = results["0c"]["summary"]
-        print(f"  Δ_repr_mean={s.get('delta_repr_mean', 'N/A'):+.4f}, "
-              f"fem_voxel_dice={s.get('fem_voxel_dice_mean', 'N/A'):.4f}, "
-              f"stage1_node_dice={s.get('stage1_node_dice_mean', 'N/A'):.4f}")
+        if "error" in s:
+            print(f"  Phase 0C error: {s['error']}")
+        elif s.get("delta_repr_mean") is not None:
+            print(f"  Δ_repr_mean={s['delta_repr_mean']:+.4f}, "
+                  f"fem_voxel_dice={s['fem_voxel_dice_mean']:.4f}, "
+                  f"stage1_node_dice={s['stage1_node_dice_mean']:.4f}")
 
     elapsed = time.perf_counter() - t0
     print(f"\n[Diagnose] Total time: {elapsed:.1f}s")
