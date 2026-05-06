@@ -53,10 +53,9 @@ def project_3d_to_2d(
       4. Normalize to [-1, 1]:  u_ndc = X_rot / (FOV/2),  v_ndc = Y_rot / (FOV/2)
 
     Voxel-space mode (voxel_space=True):
-      Coords are pre-normalized by half-extents MCX_HALF_EXTENTS=(19, 20, 10.4)mm.
-      1. Rotate around Y axis
-      2. Normalize by half-extents (19.0, 20.0, 10.4) — preserves aspect ratio
-      3. Orthographic UV from rotated Y
+      Coords are MCX-volume NDC coordinates from FrameManifest.world_to_mcx_ndc.
+      Convert back to centered mm before applying the same FOV normalization used
+      by FMT-SimGen.
 
     Parameters
     ----------
@@ -65,7 +64,7 @@ def project_3d_to_2d(
     angle_deg : float
         Camera rotation angle in degrees.
     voxel_space : bool
-        If True, use voxel-space normalization (preserves aspect ratio).
+        If True, input is MCX-volume NDC and is converted back to centered mm.
         If False, use world-space with FOV normalization.
 
     Returns
@@ -76,11 +75,12 @@ def project_3d_to_2d(
     half_fov = FOV_MM / 2.0
 
     if voxel_space:
-        # Voxel-space: center by physical volume center, normalize by half-extents
+        # Voxel-space: convert MCX-volume NDC back to centered physical mm.
+        # FMT-SimGen's proj.npz is normalized by detector FOV, not by volume bbox.
         hx, hy, hz = MCX_HALF_EXTENTS
-        x_c = points[..., 0]  # already in voxel space (normalized by hx)
-        y_c = points[..., 1]  # normalized by hy
-        z_c = points[..., 2]  # normalized by hz
+        x_c = points[..., 0] * hx
+        y_c = points[..., 1] * hy
+        z_c = points[..., 2] * hz
     else:
         # World-space: trunk-local mm, MCX corner at (0,0,0).
         # Shift to volume-center frame BEFORE rotating so rotation happens around
@@ -103,13 +103,8 @@ def project_3d_to_2d(
     y_rot = y_c  # orthographic: Y stays Y
 
     # Normalize to [-1, 1]
-    if voxel_space:
-        # Already normalized by half-extents, just clamp
-        u = torch.clamp(x_rot, -1.0, 1.0)
-        v = torch.clamp(y_rot, -1.0, 1.0)
-    else:
-        u = x_rot / half_fov
-        v = y_rot / half_fov
+    u = x_rot / half_fov
+    v = y_rot / half_fov
 
     return torch.stack([u, v], dim=-1)
 
