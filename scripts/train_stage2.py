@@ -62,6 +62,7 @@ def build_dataloader(
                 samples_dir=cfg["data"]["samples_dir"],
                 sample_ids=sample_ids,
                 n_query_points=n_query,
+                shared_dir=cfg["data"].get("shared_dir"),
             )
         else:
             dataset = Stage2DatasetPrecomputed(
@@ -142,8 +143,8 @@ def train_step(
         pred_flat = d_hat.flatten()[valid_mask]
         gt_flat = gt.flatten()[valid_mask]
 
-        # Final prediction = FEM baseline + residual; clamp to [0, 1] for Dice
-        final_pred = torch.clamp(fem_interp.flatten()[valid_mask] + pred_flat, 0.0, 1.0)
+        # d_hat already includes fem_interp + residual, no need to add again
+        final_pred = torch.clamp(pred_flat, 0.0, 1.0)
 
         p = final_pred.clamp(1e-6, 1 - 1e-6)
         eps = 1e-6
@@ -156,30 +157,61 @@ def train_step(
             loss = dice_loss
             loss_components = {"dice": dice_loss.detach(), "bce": torch.tensor(0.0), "sparse": torch.tensor(0.0), "focal_tv": torch.tensor(0.0)}
         else:
-            # gisc-style loss: weighted BCE + sparse + Focal Tversky on final_pred
-            pos_weight = 150.0
-            lambda_tv = 0.3
-            sparse_w = 0.01
-            alpha_tv = 0.6
-            beta_tv = 0.4
-            gamma_tv = 1.33
-
+            # loss_type: "focal" | "mse" | "asym_tversky" | "focal_v3"
             g = (gt_flat >= 0.5).float()
+            p_t = p.clamp(eps, 1 - eps)
 
-            w_bce = g * (pos_weight - 1) + 1
-            bce_loss = torch.nn.functional.binary_cross_entropy(p, g, weight=w_bce)
-            sparse_loss = sparse_w * (p * (1 - g)).mean()
-
-            TP = (p * g).sum(); FP = (p * (1 - g)).sum(); FN = ((1 - p) * g).sum()
-            TI = (TP + eps) / (TP + alpha_tv * FP + beta_tv * FN + eps)
-            focal_tv_loss = torch.clamp(1 - TI, 0, 1) ** gamma_tv
-
-            loss = bce_loss + sparse_loss + lambda_tv * focal_tv_loss
-            loss_components = {
-                "bce": bce_loss.detach(),
-                "sparse": sparse_loss.detach(),
-                "focal_tv": focal_tv_loss.detach(),
-            }
+            if loss_type == "mse":
+                # Pure MSE on residual targets — baseline to test residual learning
+                target = torch.clamp(gt_flat, 0.0, 1.0)
+                mse_loss = ((p_t - target) ** 2).mean()
+                loss = mse_loss
+                loss_components = {
+                    "dice": mse_loss.detach(), "focal": torch.tensor(0.0),
+                    "bce": torch.tensor(0.0), "sparse": torch.tensor(0.0), "focal_tv": torch.tensor(0.0),
+                }
+            elif loss_type == "asym_tversky":
+                # Asymmetric Tversky: alpha=0.3 (FN penalty) < beta=0.7 (FP penalty)
+                # This penalizes missing tumor more than false positives
+                alpha, beta = 0.3, 0.7
+                tp = (p_t * g).sum()
+                fn = ((1 - p_t) * g).sum()
+                fp = (p_t * (1 - g)).sum()
+                tversky = 1 - tp / (tp + alpha * fn + beta * fp + eps)
+                # Combine with light MSE for smooth gradients
+                mse_term = ((p_t - gt_flat) ** 2).mean() * 0.1
+                loss = tversky + mse_term
+                loss_components = {
+                    "dice": tversky.detach(), "focal": mse_term.detach(),
+                    "bce": torch.tensor(0.0), "sparse": torch.tensor(0.0), "focal_tv": torch.tensor(0.0),
+                }
+            elif loss_type == "focal_v3":
+                # Focal loss v3: gamma=1.5 + lighter sparse + residual L2 reg
+                pt = torch.where(g > 0.5, p_t, 1 - p_t)
+                focal_weight = (1 - pt) ** 1.5
+                bce_raw = -torch.log(pt.clamp(eps, 1 - eps))
+                focal_loss = (focal_weight * bce_raw).mean()
+                sparse_loss = 0.002 * (p_t * (1 - g)).mean()
+                res_l2_loss = 0.01 * (residual.flatten()[valid_mask] ** 2).mean()
+                loss = focal_loss + sparse_loss + res_l2_loss
+                loss_components = {
+                    "dice": torch.tensor(0.0), "focal": focal_loss.detach(),
+                    "bce": torch.tensor(0.0), "sparse": sparse_loss.detach(),
+                    "focal_tv": res_l2_loss.detach(),
+                }
+            else:
+                # Original focal loss (loss_type == "focal"): gamma=2.0
+                pt = torch.where(g > 0.5, p_t, 1 - p_t)
+                focal_weight = (1 - pt) ** 2.0
+                bce_raw = -torch.log(pt.clamp(eps, 1 - eps))
+                focal_loss = (focal_weight * bce_raw).mean()
+                sparse_loss = 0.01 * (p_t * (1 - g)).mean()
+                loss = focal_loss + sparse_loss
+                loss_components = {
+                    "dice": torch.tensor(0.0), "focal": focal_loss.detach(),
+                    "bce": torch.tensor(0.0), "sparse": sparse_loss.detach(),
+                    "focal_tv": torch.tensor(0.0),
+                }
     else:
         loss = torch.tensor(0.0, device=coords.device)
 
@@ -205,9 +237,11 @@ def train_step(
         "fem_baseline_loss": fem_loss.item(),
         "residual_norm": residual_norm.item(),
         "valid_count": int(valid_mask.sum()),
-        "bce": loss_components["bce"].item() if valid_mask.sum() > 0 else 0.0,
-        "sparse": loss_components["sparse"].item() if valid_mask.sum() > 0 else 0.0,
-        "focal_tv": loss_components["focal_tv"].item() if valid_mask.sum() > 0 else 0.0,
+        "bce": loss_components.get("bce", torch.tensor(0.0)).item() if valid_mask.sum() > 0 else 0.0,
+        "dice": loss_components.get("dice", torch.tensor(0.0)).item() if valid_mask.sum() > 0 else 0.0,
+        "sparse": loss_components.get("sparse", torch.tensor(0.0)).item() if valid_mask.sum() > 0 else 0.0,
+        "focal_tv": loss_components.get("focal_tv", torch.tensor(0.0)).item() if valid_mask.sum() > 0 else 0.0,
+        "focal": loss_components.get("focal", torch.tensor(0.0)).item() if valid_mask.sum() > 0 else 0.0,
     }
 
 
