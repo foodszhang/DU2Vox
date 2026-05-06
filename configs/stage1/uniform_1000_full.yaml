@@ -1,0 +1,49 @@
+# DU2Vox Stage 1 — Uniform source experiment (1000 samples, 800 train / 200 val)
+# Full surface nodes (no visible_mask filtering)
+
+experiment:
+  name: "gcain_uniform_1000_full"
+
+data:
+  shared_dir: /home/foods/pro/FMT-SimGen/output/shared
+  samples_dir: /home/foods/pro/FMT-SimGen/data/uniform_1000/samples
+  splits_dir: /home/foods/pro/FMT-SimGen/data/uniform_1000/splits
+  manifest_path: /home/foods/pro/FMT-SimGen/data/uniform_1000/dataset_manifest.json
+  normalize_b: true
+  normalize_gt: false
+  binarize_gt: true
+  binarize_threshold: 0.05
+
+model:
+  name: GCAIN_full
+  feat_dim: 6
+  num_layer: 6
+  k_neighbors: 32
+
+training:
+  batch_size: 2
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  max_epochs: 300
+  grad_clip_norm: 1.0
+  activation: "leaky_relu"
+  leaky_relu_slope: 0.01
+  scheduler:
+    type: "CosineAnnealingWarmRestarts"
+    T_0: 50
+    T_mult: 2
+    eta_min: 1.0e-6
+  early_stopping: null
+
+loss:
+  type: "uniform"
+  tversky_weight: 0.7
+  tversky_alpha: 0.1
+  tversky_beta: 0.9
+  mse_weight: 0.3
+
+logging:
+  print_every: 1
+  detail_every: 10
+  milestone_every: 50
+  diag_epochs: 3

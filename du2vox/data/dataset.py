@@ -11,9 +11,13 @@ from torch.utils.data import Dataset
 
 
 def load_npz_as_torch_sparse(path: Path) -> torch.Tensor:
-    """Load a sparse .npz file and return as dense torch tensor."""
+    """Load a sparse .npz file and return as sparse COO torch tensor."""
     mat = scipy.sparse.load_npz(path)
-    return torch.tensor(mat.toarray(), dtype=torch.float32)
+    mat_coo = mat.tocoo()
+    indices = torch.tensor(np.vstack([mat_coo.row, mat_coo.col]), dtype=torch.long)
+    values = torch.tensor(mat_coo.data, dtype=torch.float32)
+    size = mat_coo.shape
+    return torch.sparse_coo_tensor(indices, values, size).coalesce()
 
 
 class FMTSimGenDataset(Dataset):
@@ -133,6 +137,7 @@ class FMTSimGenDataset(Dataset):
             A_arr = A_data["forward_matrix"]
         else:
             A_arr = A_data["arr_0"] if "arr_0" in A_data else scipy.sparse.load_npz(A_path).toarray()
+        # A is 100% dense - store as dense float32 tensor directly
         self.A = torch.tensor(A_arr, dtype=torch.float32)
         self.n_surface = A_arr.shape[0]
         self.visible_mask = None

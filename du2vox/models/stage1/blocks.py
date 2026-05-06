@@ -23,11 +23,23 @@ class GCNBlock(nn.Module):
         self.act = nn.LeakyReLU()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x_w = torch.matmul(x, self.weight)
+        # x: [B, N, in_dim]
+        B = x.shape[0]
+        x_w = torch.matmul(x, self.weight)  # [B, N, out_dim]
         if self.L.is_sparse:
-            out = torch.sparse.mm(self.L, x_w)
+            # Sparse mm doesn't support batch - process per sample
+            out_list = []
+            for i in range(B):
+                xi_w = x_w[i]  # [N, out_dim]
+                outi = torch.sparse.mm(self.L, xi_w)  # [N, out_dim]
+                out_list.append(outi)
+            out = torch.stack(out_list, dim=0)  # [B, N, out_dim]
         else:
-            out = torch.matmul(self.L, x_w)
+            # L is dense [N, N]: out[i] = L @ x_w[i] for each sample
+            out_list = []
+            for i in range(B):
+                out_list.append(torch.matmul(self.L, x_w[i]))  # [N, out_dim]
+            out = torch.stack(out_list, dim=0)  # [B, N, out_dim]
         out = out + self.bias
         return self.act(out)
 
@@ -37,23 +49,41 @@ class InputBlock(nn.Module):
 
     x:  [B, N, 1]
     b:  [B, S, 1]
-    LTL: [N, N] precomputed as L.t() @ L
-    ATA: [N, N] precomputed as A.t() @ A
-    A:  [S, N] kept for A^T b
+    L:  [N, N] sparse Laplacian
+    A:  [S, N] sparse forward matrix
 
     Returns: [B, N, 3]
+    Uses L.T @ (L @ x) and A.T @ (A @ x) to avoid dense intermediate storage.
     """
 
-    def __init__(self, L: torch.Tensor, A: torch.Tensor, LTL: torch.Tensor, ATA: torch.Tensor):
+    def __init__(self, L: torch.Tensor, A: torch.Tensor, LTL=None, ATA=None):
         super().__init__()
-        self.register_buffer("LTL", LTL)
-        self.register_buffer("ATA", ATA)
-        self.register_buffer("A", A)
+        self.L = L
+        self.A = A
 
     def forward(self, x: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
-        LTLx = torch.matmul(self.LTL, x)
-        ATAx = torch.matmul(self.ATA, x)
-        ATb = torch.matmul(self.A.t(), b)
+        # x: [B, N, 1], b: [B, S, 1]
+        B, N, C = x.shape
+
+        # L.t() @ (L @ x) - L is sparse, process per sample
+        LTLx_list = []
+        for i in range(B):
+            xi = x[i].squeeze(-1)  # [N]
+            Lxi = torch.sparse.mm(self.L, xi.unsqueeze(-1)).squeeze(-1)  # [N]
+            LTLxi = torch.sparse.mm(self.L.t(), Lxi.unsqueeze(-1)).squeeze(-1)  # [N]
+            LTLx_list.append(LTLxi)
+        LTLx = torch.stack(LTLx_list, dim=0).unsqueeze(-1)  # [B, N, 1]
+
+        # A.t() @ (A @ x) - A is dense
+        # x: [B, N] -> A @ x: [B, S]
+        x_b = x.squeeze(-1)  # [B, N]
+        Ax = torch.mm(x_b, self.A.t())  # [B, S]
+        ATAx = torch.mm(Ax, self.A.t().transpose(0, 1)).unsqueeze(-1)  # [B, N, 1]
+
+        # ATb: A.t() @ b: [N, S] @ [B, S] = [N, B] -> [B, N]
+        b_b = b.squeeze(-1)  # [B, S]
+        ATb = torch.mm(b_b, self.A.t().transpose(0, 1)).unsqueeze(-1)  # [B, N, 1]
+
         return torch.cat([x, LTLx, ATAx - ATb], dim=-1)
 
 

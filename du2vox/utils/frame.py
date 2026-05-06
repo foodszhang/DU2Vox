@@ -86,9 +86,9 @@ def get_frame_constants(shared_dir: Optional[str | Path] = None) -> dict:
     m = json.load(open(manifest_path))
     fc = m.get("frame_contract", {})
     if fc:
-        voxel_size_mm = fc["voxel_size_mm"]
-        trunk_size = fc["trunk_size_mm"]           # [38, 40, 20.8]
-        grid_shape_xyz = tuple(fc["trunk_grid_shape_xyz"])  # (190, 200, 104)
+        voxel_size_mm = fc.get("voxel_size_mm") or m["mcx_volume"]["voxel_size_mm"]
+        trunk_size = fc.get("trunk_size_mm") or fc["volume_extents_mm"]
+        grid_shape_xyz = tuple(fc.get("trunk_grid_shape_xyz") or fc["grid_shape_xyz"])
         half_extents = [s / 2.0 for s in trunk_size]       # [19, 20, 10.4]
     else:
         # Legacy v1 layout (derived from config YAML — less trustworthy)
@@ -133,9 +133,20 @@ class FrameManifest:
         assert m["world_frame"] == "mcx_trunk_local_mm", (
             f"Unknown frame: {m['world_frame']} (expected mcx_trunk_local_mm)"
         )
+        # v1: atlas_to_world_offset_mm at top level; v2: in frame_contract
+        if "atlas_to_world_offset_mm" in m:
+            atlas_offset = np.array(m["atlas_to_world_offset_mm"])
+        elif "frame_contract" in m:
+            # v2: derive from volume_center_world_mm (center of trunk-local volume)
+            center = np.array(m["frame_contract"]["volume_center_world_mm"])
+            # The trunk volume spans [-19,19] in X, [0,40] in Y, [-10.4,10.4] in Z
+            # center is the center point, offset = center (since atlas origin = world origin)
+            atlas_offset = center.astype(np.float64)
+        else:
+            atlas_offset = np.zeros(3, dtype=np.float64)
         return cls(
             world_frame=m["world_frame"],
-            atlas_to_world_offset_mm=np.array(m["atlas_to_world_offset_mm"]),
+            atlas_to_world_offset_mm=atlas_offset,
             mcx_bbox_min=np.array(m["mcx_volume"]["bbox_world_mm"]["min"]),
             mcx_bbox_max=np.array(m["mcx_volume"]["bbox_world_mm"]["max"]),
             mcx_voxel_size_mm=m["mcx_volume"]["voxel_size_mm"],
