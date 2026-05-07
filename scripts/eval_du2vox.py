@@ -50,11 +50,39 @@ def compute_dice(pred, target, threshold=0.5):
     return float(2 * intersection / (pred_bin.sum() + target_bin.sum() + 1e-8))
 
 
+def fem_interp_from_prior(prior_8d):
+    """Convert FEM prior features [d_v0..d_v3, lambda0..lambda3] to scalar values."""
+    return (prior_8d[:, :4] * prior_8d[:, 4:8]).sum(axis=1)
+
+
+def resolve_bridge_dir(data_cfg, split):
+    """Resolve bridge output dir from config, falling back to legacy 20k paths."""
+    return Path(
+        data_cfg.get(f"{split}_bridge_dir")
+        or data_cfg.get("bridge_dir")
+        or f"output/bridge_20k_{split}"
+    )
+
+
+def resolve_precomputed_dir(data_cfg, split):
+    """Resolve precomputed grid dir from config, falling back to legacy 20k paths."""
+    return Path(
+        data_cfg.get(f"precomputed_{split}_dir")
+        or data_cfg.get("precomputed_dir")
+        or f"precomputed/{split}_20k"
+    )
+
+
+def get_device():
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 # ─── Stage 1 ──────────────────────────────────────────────────────────────────
 
 def eval_stage1(cfg, checkpoint_path, split="val", voxel_mode=False, output=None):
     data_cfg = cfg["data"]
     model_cfg = cfg["model"]
+    device = get_device()
 
     shared_dir = Path(data_cfg["shared_dir"])
     samples_dir = Path(data_cfg["samples_dir"])
@@ -70,13 +98,20 @@ def eval_stage1(cfg, checkpoint_path, split="val", voxel_mode=False, output=None
 
     # Load Stage 1 model
     dataset = FMTSimGenDataset(
-        shared_dir=shared_dir, samples_dir=samples_dir, split_file=split_file,
+        shared_dir=shared_dir,
+        samples_dir=samples_dir,
+        split_file=split_file,
+        normalize_b=data_cfg.get("normalize_b", True),
+        normalize_gt=data_cfg.get("normalize_gt", True),
+        normalize_gt_mode=data_cfg.get("normalize_gt_mode", "per_sample"),
+        binarize_gt=data_cfg.get("binarize_gt", False),
+        binarize_threshold=data_cfg.get("binarize_threshold", 0.05),
     )
-    nodes = dataset.nodes.cuda()
-    A, L = dataset.A.cuda(), dataset.L.cuda()
-    L0, L1, L2, L3 = dataset.L0.cuda(), dataset.L1.cuda(), dataset.L2.cuda(), dataset.L3.cuda()
-    knn_idx, sens_w = dataset.knn_idx.cuda(), dataset.sens_w.cuda()
-    LTL, ATA = torch.matmul(L.t(), L).cuda(), torch.matmul(A.t(), A).cuda()
+    nodes = dataset.nodes.to(device)
+    A, L = dataset.A.to(device), dataset.L.to(device)
+    L0, L1, L2, L3 = dataset.L0.to(device), dataset.L1.to(device), dataset.L2.to(device), dataset.L3.to(device)
+    knn_idx, sens_w = dataset.knn_idx.to(device), dataset.sens_w.to(device)
+    LTL, ATA = torch.matmul(L.t(), L).to(device), torch.matmul(A.t(), A).to(device)
 
     model = GCAIN_full(
         L=L, A=A, LTL=LTL, ATA=ATA,
@@ -84,17 +119,23 @@ def eval_stage1(cfg, checkpoint_path, split="val", voxel_mode=False, output=None
         knn_idx=knn_idx, sens_w=sens_w,
         num_layer=model_cfg["num_layer"],
         feat_dim=model_cfg["feat_dim"],
-    ).cuda()
+    ).to(device)
 
-    ckpt = torch.load(checkpoint_path, map_location="cuda")
+    ckpt = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(ckpt.get("model_state_dict", ckpt))
     model.eval()
 
-    # Frame for voxel mode
-    frame = FrameManifest.load(shared_dir)
-    _nodes, _elements = frame.load_mesh_nodes(shared_dir)
-    nodes_np = _nodes.astype(np.float64)
-    elements = _elements
+    if voxel_mode:
+        bridge_dir = resolve_bridge_dir(data_cfg, split)
+        precomputed_dir = resolve_precomputed_dir(data_cfg, split)
+        _nodes, _elements = FrameManifest.load_mesh_nodes(shared_dir)
+        nodes_np = _nodes.astype(np.float64)
+        elements = _elements
+    else:
+        bridge_dir = None
+        precomputed_dir = None
+        nodes_np = None
+        elements = None
 
     per_sample_mesh = []
     per_sample_voxel = []
@@ -104,23 +145,28 @@ def eval_stage1(cfg, checkpoint_path, split="val", voxel_mode=False, output=None
             print(f"  [{idx}/{len(sample_ids)}]")
 
         # ── Mesh Dice ──────────────────────────────────────────────────
-        b = dataset.b_list[idx].float().unsqueeze(0).cuda()
-        gt_mesh = dataset.gt_list[idx].float().unsqueeze(0).cuda()
-        X0 = torch.zeros(1, nodes.shape[0], 1, device="cuda")
+        b = dataset.b_list[idx].float().unsqueeze(0).to(device)
+        gt_mesh = dataset.gt_list[idx].float().unsqueeze(0).to(device)
+        X0 = torch.zeros(1, nodes.shape[0], 1, device=device)
         with torch.no_grad():
             pred_mesh = model(X0, b)
         mesh_metrics = evaluate_batch(pred_mesh, gt_mesh, nodes)
         mesh_dice = mesh_metrics["dice"]
 
-        # ── Voxel Dice ─────────────────────────────────────────────────
-        coarse_d = np.load(f"output/bridge_20k_{split}/{sid}/coarse_d.npy").flatten().astype(np.float64)
-        roi_tet_indices = np.load(f"output/bridge_20k_{split}/{sid}/roi_tet_indices.npy")
-        bridge = FEMBridge(nodes_np, elements, roi_tet_indices)
+        per_sample_mesh.append({"sample_id": sid, "mesh_dice": float(mesh_dice)})
 
-        npz_path = Path(f"precomputed/{split}_20k/{sid}.npz")
-        if not npz_path.exists():
-            per_sample_mesh.append({"sample_id": sid, "mesh_dice": float(mesh_dice)})
+        if not voxel_mode:
             continue
+
+        # ── Voxel Dice ─────────────────────────────────────────────────
+        bridge_sample_dir = bridge_dir / sid
+        npz_path = precomputed_dir / f"{sid}.npz"
+        if not bridge_sample_dir.exists() or not npz_path.exists():
+            continue
+
+        coarse_d = np.load(bridge_sample_dir / "coarse_d.npy").flatten().astype(np.float64)
+        roi_tet_indices = np.load(bridge_sample_dir / "roi_tet_indices.npy")
+        bridge = FEMBridge(nodes_np, elements, roi_tet_indices)
 
         npz = dict(np.load(npz_path))
         coords_grid = npz["grid_coords"]
@@ -129,15 +175,13 @@ def eval_stage1(cfg, checkpoint_path, split="val", voxel_mode=False, output=None
 
         v_mask = valid_mask > 0
         if v_mask.sum() == 0:
-            per_sample_mesh.append({"sample_id": sid, "mesh_dice": float(mesh_dice)})
             continue
 
         coords_valid = coords_grid[v_mask]
-        coarse_interp, _ = bridge.get_prior_features(coords_valid, coarse_d)
-        coarse_scalar = coarse_interp[:, 0].flatten()  # d_v0..d_v3 are equal
+        coarse_prior, _ = bridge.get_prior_features(coords_valid, coarse_d)
+        coarse_scalar = fem_interp_from_prior(coarse_prior)
         voxel_dice = compute_dice(coarse_scalar, gt_values[v_mask], 0.5)
 
-        per_sample_mesh.append({"sample_id": sid, "mesh_dice": float(mesh_dice)})
         per_sample_voxel.append({
             "sample_id": sid,
             "voxel_dice": float(voxel_dice),
@@ -226,9 +270,10 @@ def eval_stage1(cfg, checkpoint_path, split="val", voxel_mode=False, output=None
 
 # ─── Stage 2 ──────────────────────────────────────────────────────────────────
 
-def eval_stage2(cfg, checkpoint_path, split="val", multiview=False, output=None):
+def eval_stage2(cfg, checkpoint_path, split="val", multiview=False, output=None, batch_points=8192):
     data_cfg = cfg["data"]
     model_cfg = cfg["model"]
+    device = get_device()
 
     shared_dir = Path(data_cfg["shared_dir"])
     samples_dir = Path(data_cfg["samples_dir"])
@@ -253,9 +298,9 @@ def eval_stage2(cfg, checkpoint_path, split="val", multiview=False, output=None)
         prior_dim=model_cfg["prior_dim"],
         skip_connection=model_cfg.get("skip_connection", True),
         view_feat_dim=view_feat_dim,
-    ).cuda()
+    ).to(device)
 
-    state = torch.load(checkpoint_path, map_location="cuda")
+    state = torch.load(checkpoint_path, map_location=device)
     if multiview and "residual_inr" in state:
         inr.load_state_dict(state["residual_inr"])
     elif "residual_inr" in state:
@@ -270,18 +315,20 @@ def eval_stage2(cfg, checkpoint_path, split="val", multiview=False, output=None)
             fusion_method=model_cfg.get("fusion_method", "attn"),
             encoder_out_channels=model_cfg.get("encoder_out_channels", 32),
             encoder_base_channels=model_cfg.get("encoder_base_channels", 32),
-        ).cuda()
+        ).to(device)
         if "view_encoder" in state:
             view_encoder.load_state_dict(state["view_encoder"])
         view_encoder.eval()
         print(f"  Multiview loaded: view_feat_dim={view_feat_dim}, in_dim={inr.in_dim}")
 
     inr.eval()
+    if multiview:
+        view_encoder.eval()
 
     # Dataset
+    precomputed_dir = resolve_precomputed_dir(data_cfg, split)
     if multiview:
         from du2vox.models.stage2.stage2_dataset import Stage2DatasetPrecomputedMultiview
-        precomputed_dir = data_cfg[f"precomputed_{split}_dir"]
         s2_dataset = Stage2DatasetPrecomputedMultiview(
             precomputed_dir=precomputed_dir,
             samples_dir=samples_dir,
@@ -292,13 +339,17 @@ def eval_stage2(cfg, checkpoint_path, split="val", multiview=False, output=None)
         )
     else:
         from du2vox.models.stage2.stage2_dataset import Stage2DatasetPrecomputed
-        precomputed_dir = data_cfg[f"precomputed_{split}_dir"]
         s2_dataset = Stage2DatasetPrecomputed(
             precomputed_dir=precomputed_dir,
             sample_ids=sample_ids,
             n_query_points=4096,
             cache_size=32,
         )
+
+    bridge_dir = resolve_bridge_dir(data_cfg, split)
+    _nodes, _elements = FrameManifest.load_mesh_nodes(shared_dir)
+    nodes_np = _nodes.astype(np.float64)
+    elements = _elements
 
     per_sample = []
 
@@ -307,13 +358,12 @@ def eval_stage2(cfg, checkpoint_path, split="val", multiview=False, output=None)
             print(f"  [{idx}/{len(sample_ids)}]")
 
         # FEM baseline from bridge output
-        coarse_d = np.load(f"output/bridge_20k_{split}/{sid}/coarse_d.npy").flatten().astype(np.float64)
-        roi_tet_indices = np.load(f"output/bridge_20k_{split}/{sid}/roi_tet_indices.npy")
-
-        frame = FrameManifest.load(shared_dir)
-        _nodes, _elements = frame.load_mesh_nodes(shared_dir)
-        nodes_np = _nodes.astype(np.float64)
-        elements = _elements
+        bridge_sample_dir = bridge_dir / sid
+        if not bridge_sample_dir.exists():
+            print(f"  {sid}: missing bridge output at {bridge_sample_dir}, skipping")
+            continue
+        coarse_d = np.load(bridge_sample_dir / "coarse_d.npy").flatten().astype(np.float64)
+        roi_tet_indices = np.load(bridge_sample_dir / "roi_tet_indices.npy")
         bridge = FEMBridge(nodes_np, elements, roi_tet_indices)
 
         data = s2_dataset._load_npz(sid)
@@ -323,16 +373,17 @@ def eval_stage2(cfg, checkpoint_path, split="val", multiview=False, output=None)
         prior_8d = data["prior_8d"][v_mask].copy()
         gt_values = data["gt_values"][v_mask].copy()
 
-        coords_t = torch.from_numpy(coords_norm).float().unsqueeze(0).cuda()
-        prior_t = torch.from_numpy(prior_8d).float().unsqueeze(0).cuda()
+        if len(coords_norm) == 0:
+            continue
 
         # FEM interp baseline
         coords_world = data["grid_coords"][v_mask].copy()
         fem_interp, _ = bridge.get_prior_features(coords_world, coarse_d)
-        fem_scalar = fem_interp[:, 0].flatten().astype(np.float64)
+        fem_scalar = fem_interp_from_prior(fem_interp).astype(np.float64)
         fem_dice = compute_dice(fem_scalar, gt_values, 0.5)
 
         # Stage 2 prediction
+        preds = []
         if multiview:
             MCX_ANGLES = [-90, -60, -30, 0, 30, 60, 90]
             proj_path = samples_dir / sid / "proj.npz"
@@ -343,20 +394,47 @@ def eval_stage2(cfg, checkpoint_path, split="val", multiview=False, output=None)
                 )
             else:
                 proj_imgs = np.zeros((7, 256, 256), dtype=np.float32)
-            proj_t = torch.from_numpy(proj_imgs).float().unsqueeze(1).cuda().unsqueeze(0)
-            coords_world_t = torch.from_numpy(coords_world).float().unsqueeze(0).cuda()
-
-            with torch.no_grad():
-                view_feat, _ = view_encoder(proj_t, coords_world_t, None)
-            view_feat = view_feat.squeeze(0)
-
-            with torch.no_grad():
-                d_hat, _, _ = inr(coords_t, prior_t, view_feat.unsqueeze(0))
+            proj_t = torch.from_numpy(proj_imgs).float().unsqueeze(1).to(device).unsqueeze(0)
+            if "mcx_valid" in data:
+                mcx_valid_all = data["mcx_valid"][v_mask].astype(bool)
+            else:
+                frame = FrameManifest.load(shared_dir)
+                lo, hi = frame.mcx_bbox_min, frame.mcx_bbox_max
+                mcx_valid_all = (
+                    (coords_world[:, 0] >= lo[0]) & (coords_world[:, 0] <= hi[0]) &
+                    (coords_world[:, 1] >= lo[1]) & (coords_world[:, 1] <= hi[1]) &
+                    (coords_world[:, 2] >= lo[2]) & (coords_world[:, 2] <= hi[2])
+                )
         else:
-            with torch.no_grad():
-                d_hat, _, _ = inr(coords_t, prior_t)
+            proj_t = None
+            mcx_valid_all = None
 
-        d_hat = d_hat.squeeze(0).cpu().numpy()
+        with torch.no_grad():
+            for start in range(0, len(coords_norm), batch_points):
+                end = min(start + batch_points, len(coords_norm))
+                coords_chunk = torch.from_numpy(
+                    coords_norm[start:end]
+                ).float().unsqueeze(0).to(device)
+                prior_chunk = torch.from_numpy(
+                    prior_8d[start:end]
+                ).float().unsqueeze(0).to(device)
+
+                if multiview:
+                    coords_world_chunk = torch.from_numpy(
+                        coords_world[start:end]
+                    ).float().unsqueeze(0).to(device)
+                    view_feat, _ = view_encoder(proj_t, coords_world_chunk, None)
+                    mcx_valid_chunk = torch.from_numpy(
+                        mcx_valid_all[start:end]
+                    ).to(device).view(1, -1, 1).float()
+                    view_feat = view_feat * mcx_valid_chunk
+                    pred_chunk, _, _ = inr(coords_chunk, prior_chunk, view_feat)
+                else:
+                    pred_chunk, _, _ = inr(coords_chunk, prior_chunk)
+
+                preds.append(pred_chunk.squeeze(0).cpu().numpy())
+
+        d_hat = np.concatenate(preds, axis=0)
         s2_dice = compute_dice(d_hat, gt_values, 0.5)
 
         per_sample.append({
@@ -459,6 +537,7 @@ def main():
     p2.add_argument("--split", default="val")
     p2.add_argument("--multiview", action="store_true")
     p2.add_argument("--output", type=str, default=None)
+    p2.add_argument("--batch_points", type=int, default=8192)
 
     args = parser.parse_args()
 
@@ -468,7 +547,14 @@ def main():
     if args.cmd == "stage1":
         eval_stage1(cfg, args.checkpoint, args.split, voxel_mode=args.voxel, output=args.output)
     elif args.cmd == "stage2":
-        eval_stage2(cfg, args.checkpoint, args.split, multiview=args.multiview, output=args.output)
+        eval_stage2(
+            cfg,
+            args.checkpoint,
+            args.split,
+            multiview=args.multiview,
+            output=args.output,
+            batch_points=args.batch_points,
+        )
 
 
 if __name__ == "__main__":

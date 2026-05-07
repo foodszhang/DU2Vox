@@ -1,0 +1,47 @@
+# DU2Vox Stage 2 — DE-only mode with 20k mesh
+# Residual INR: PE(q_norm) + 8D prior + MSE loss
+# No MCX multiview — pure coordinate-based INR
+
+experiment:
+  name: "de_only_20k"
+
+data:
+  precomputed_train_dir: precomputed/train_20k/
+  precomputed_val_dir: precomputed/val_20k/
+
+  samples_dir: /home/foods/pro/FMT-SimGen/data/uniform_1000_20k/samples
+  shared_dir: /home/foods/pro/FMT-SimGen/output/shared_mesh_20k
+  train_split: /home/foods/pro/FMT-SimGen/data/uniform_1000_20k/splits/train.txt
+  val_split: /home/foods/pro/FMT-SimGen/data/uniform_1000_20k/splits/val.txt
+
+  n_query_points: 4096
+  roi_padding_mm: 1.0
+
+model:
+  n_freqs: 10
+  hidden_dim: 256
+  n_hidden_layers: 4
+  prior_dim: 8
+  skip_connection: true
+  view_encoder: false
+
+training:
+  lr: 1.0e-4
+  weight_decay: 1.0e-5
+  batch_size: 8
+  max_epochs: 30
+  grad_clip_norm: 1.0
+  num_workers: 2
+  scheduler:
+    type: "CosineAnnealingLR"
+    T_max: 30
+    eta_min: 1.0e-6
+  early_stopping_patience: 10
+  warmup_epochs: 2
+
+loss:
+  type: "mse"
+
+logging:
+  print_every: 1
+  detail_every: 5
