@@ -1,0 +1,68 @@
+{
+  "overall": {
+    "n_samples": 200,
+    "stage1_voxel_dice": 0.5961530854779076,
+    "de_only_dice": 0.6081602367410129,
+    "de_only_delta": 0.012007151263105378,
+    "multiview_dice": 0.6557187137633447,
+    "multiview_delta": 0.05956562828543703
+  },
+  "by_foci": {
+    "1": {
+      "n_samples": 66,
+      "stage1_voxel_dice": 0.6595717269903272,
+      "de_only_dice": 0.6715398476917422,
+      "de_only_delta": 0.011968120701414956,
+      "multiview_dice": 0.7476145488559643,
+      "multiview_delta": 0.08804282186563714
+    },
+    "2": {
+      "n_samples": 73,
+      "stage1_voxel_dice": 0.5648075053031459,
+      "de_only_dice": 0.5973922100164881,
+      "de_only_delta": 0.03258470471334211,
+      "multiview_dice": 0.6320873590708322,
+      "multiview_delta": 0.06727985376768637
+    },
+    "3": {
+      "n_samples": 61,
+      "stage1_voxel_dice": 0.5650481184768897,
+      "de_only_dice": 0.5524719027761309,
+      "de_only_delta": -0.012576215700758774,
+      "multiview_dice": 0.5845705789508937,
+      "multiview_delta": 0.019522460474004112
+    }
+  },
+  "representative_samples": [
+    {
+      "sample_id": "sample_0546",
+      "num_foci": 1,
+      "depth_tier": "medium",
+      "stage1_voxel_dice": 0.3771831123720086,
+      "de_only_dice": 0.49707024820561124,
+      "de_only_delta": 0.11988713583360266,
+      "multiview_dice": 0.6827364554629445,
+      "multiview_delta": 0.3055533430909359
+    },
+    {
+      "sample_id": "sample_0830",
+      "num_foci": 2,
+      "depth_tier": "deep",
+      "stage1_voxel_dice": 0.39108335753674767,
+      "de_only_dice": 0.5125245044646999,
+      "de_only_delta": 0.12144114692795221,
+      "multiview_dice": 0.6812019054586274,
+      "multiview_delta": 0.2901185479218797
+    },
+    {
+      "sample_id": "sample_0141",
+      "num_foci": 3,
+      "depth_tier": "shallow",
+      "stage1_voxel_dice": 0.3611695906431059,
+      "de_only_dice": 0.4754392255285224,
+      "de_only_delta": 0.11426963488541653,
+      "multiview_dice": 0.513640451683308,
+      "multiview_delta": 0.15247086104020208
+    }
+  ]
+}

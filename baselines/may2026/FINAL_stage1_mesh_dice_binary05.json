@@ -1,0 +1,807 @@
+{
+  "stage1_mesh_dice": 0.846181604117155,
+  "stage1_voxel_dice": null,
+  "per_sample_mesh": {
+    "sample_0003": {
+      "sample_id": "sample_0003",
+      "mesh_dice": 0.4047187268733978
+    },
+    "sample_0006": {
+      "sample_id": "sample_0006",
+      "mesh_dice": 0.8393282294273376
+    },
+    "sample_0011": {
+      "sample_id": "sample_0011",
+      "mesh_dice": 0.6547789573669434
+    },
+    "sample_0025": {
+      "sample_id": "sample_0025",
+      "mesh_dice": 1.0961178541183472
+    },
+    "sample_0027": {
+      "sample_id": "sample_0027",
+      "mesh_dice": 0.8704403042793274
+    },
+    "sample_0030": {
+      "sample_id": "sample_0030",
+      "mesh_dice": 0.5436051487922668
+    },
+    "sample_0032": {
+      "sample_id": "sample_0032",
+      "mesh_dice": 0.9992799758911133
+    },
+    "sample_0044": {
+      "sample_id": "sample_0044",
+      "mesh_dice": 0.6957491636276245
+    },
+    "sample_0046": {
+      "sample_id": "sample_0046",
+      "mesh_dice": 1.1081078052520752
+    },
+    "sample_0048": {
+      "sample_id": "sample_0048",
+      "mesh_dice": 0.7864609360694885
+    },
+    "sample_0057": {
+      "sample_id": "sample_0057",
+      "mesh_dice": 0.7388740181922913
+    },
+    "sample_0065": {
+      "sample_id": "sample_0065",
+      "mesh_dice": 1.1087499856948853
+    },
+    "sample_0067": {
+      "sample_id": "sample_0067",
+      "mesh_dice": 0.5812138915061951
+    },
+    "sample_0071": {
+      "sample_id": "sample_0071",
+      "mesh_dice": 1.0538631677627563
+    },
+    "sample_0073": {
+      "sample_id": "sample_0073",
+      "mesh_dice": 0.974627673625946
+    },
+    "sample_0080": {
+      "sample_id": "sample_0080",
+      "mesh_dice": 1.011791467666626
+    },
+    "sample_0081": {
+      "sample_id": "sample_0081",
+      "mesh_dice": 0.8155408501625061
+    },
+    "sample_0089": {
+      "sample_id": "sample_0089",
+      "mesh_dice": 0.7466396689414978
+    },
+    "sample_0093": {
+      "sample_id": "sample_0093",
+      "mesh_dice": 0.8860141038894653
+    },
+    "sample_0094": {
+      "sample_id": "sample_0094",
+      "mesh_dice": 1.0472134351730347
+    },
+    "sample_0095": {
+      "sample_id": "sample_0095",
+      "mesh_dice": 1.0284013748168945
+    },
+    "sample_0099": {
+      "sample_id": "sample_0099",
+      "mesh_dice": 0.7819521427154541
+    },
+    "sample_0103": {
+      "sample_id": "sample_0103",
+      "mesh_dice": 0.7384572625160217
+    },
+    "sample_0104": {
+      "sample_id": "sample_0104",
+      "mesh_dice": 0.962329089641571
+    },
+    "sample_0112": {
+      "sample_id": "sample_0112",
+      "mesh_dice": 0.9605493545532227
+    },
+    "sample_0114": {
+      "sample_id": "sample_0114",
+      "mesh_dice": 0.6959761381149292
+    },
+    "sample_0117": {
+      "sample_id": "sample_0117",
+      "mesh_dice": 1.0970478057861328
+    },
+    "sample_0127": {
+      "sample_id": "sample_0127",
+      "mesh_dice": 0.7762948274612427
+    },
+    "sample_0141": {
+      "sample_id": "sample_0141",
+      "mesh_dice": 0.4792479872703552
+    },
+    "sample_0142": {
+      "sample_id": "sample_0142",
+      "mesh_dice": 0.8030780553817749
+    },
+    "sample_0146": {
+      "sample_id": "sample_0146",
+      "mesh_dice": 0.9997298121452332
+    },
+    "sample_0156": {
+      "sample_id": "sample_0156",
+      "mesh_dice": 1.03098464012146
+    },
+    "sample_0159": {
+      "sample_id": "sample_0159",
+      "mesh_dice": 0.8562362194061279
+    },
+    "sample_0161": {
+      "sample_id": "sample_0161",
+      "mesh_dice": 1.1081396341323853
+    },
+    "sample_0163": {
+      "sample_id": "sample_0163",
+      "mesh_dice": 0.6741085052490234
+    },
+    "sample_0166": {
+      "sample_id": "sample_0166",
+      "mesh_dice": 0.7197979092597961
+    },
+    "sample_0167": {
+      "sample_id": "sample_0167",
+      "mesh_dice": 0.8196765184402466
+    },
+    "sample_0175": {
+      "sample_id": "sample_0175",
+      "mesh_dice": 0.30771926045417786
+    },
+    "sample_0196": {
+      "sample_id": "sample_0196",
+      "mesh_dice": 0.5567572712898254
+    },
+    "sample_0203": {
+      "sample_id": "sample_0203",
+      "mesh_dice": 1.0005136728286743
+    },
+    "sample_0214": {
+      "sample_id": "sample_0214",
+      "mesh_dice": 0.4653383791446686
+    },
+    "sample_0216": {
+      "sample_id": "sample_0216",
+      "mesh_dice": 0.5667126178741455
+    },
+    "sample_0217": {
+      "sample_id": "sample_0217",
+      "mesh_dice": 0.911575436592102
+    },
+    "sample_0220": {
+      "sample_id": "sample_0220",
+      "mesh_dice": 0.8110922574996948
+    },
+    "sample_0223": {
+      "sample_id": "sample_0223",
+      "mesh_dice": 0.8088599443435669
+    },
+    "sample_0224": {
+      "sample_id": "sample_0224",
+      "mesh_dice": 0.5551398992538452
+    },
+    "sample_0225": {
+      "sample_id": "sample_0225",
+      "mesh_dice": 1.0399774312973022
+    },
+    "sample_0228": {
+      "sample_id": "sample_0228",
+      "mesh_dice": 1.1565719842910767
+    },
+    "sample_0233": {
+      "sample_id": "sample_0233",
+      "mesh_dice": 0.8103513121604919
+    },
+    "sample_0234": {
+      "sample_id": "sample_0234",
+      "mesh_dice": 0.721883237361908
+    },
+    "sample_0238": {
+      "sample_id": "sample_0238",
+      "mesh_dice": 1.130283236503601
+    },
+    "sample_0250": {
+      "sample_id": "sample_0250",
+      "mesh_dice": 0.652689516544342
+    },
+    "sample_0252": {
+      "sample_id": "sample_0252",
+      "mesh_dice": 1.0943634510040283
+    },
+    "sample_0257": {
+      "sample_id": "sample_0257",
+      "mesh_dice": 1.1769286394119263
+    },
+    "sample_0269": {
+      "sample_id": "sample_0269",
+      "mesh_dice": 0.6824562549591064
+    },
+    "sample_0270": {
+      "sample_id": "sample_0270",
+      "mesh_dice": 0.7136754989624023
+    },
+    "sample_0271": {
+      "sample_id": "sample_0271",
+      "mesh_dice": 0.710391640663147
+    },
+    "sample_0273": {
+      "sample_id": "sample_0273",
+      "mesh_dice": 0.799830973148346
+    },
+    "sample_0274": {
+      "sample_id": "sample_0274",
+      "mesh_dice": 0.7170383334159851
+    },
+    "sample_0276": {
+      "sample_id": "sample_0276",
+      "mesh_dice": 0.6221160292625427
+    },
+    "sample_0281": {
+      "sample_id": "sample_0281",
+      "mesh_dice": 1.0407328605651855
+    },
+    "sample_0284": {
+      "sample_id": "sample_0284",
+      "mesh_dice": 0.7117141485214233
+    },
+    "sample_0296": {
+      "sample_id": "sample_0296",
+      "mesh_dice": 1.1392182111740112
+    },
+    "sample_0300": {
+      "sample_id": "sample_0300",
+      "mesh_dice": 0.9622676968574524
+    },
+    "sample_0322": {
+      "sample_id": "sample_0322",
+      "mesh_dice": 0.6667737364768982
+    },
+    "sample_0323": {
+      "sample_id": "sample_0323",
+      "mesh_dice": 1.0457404851913452
+    },
+    "sample_0332": {
+      "sample_id": "sample_0332",
+      "mesh_dice": 1.0694575309753418
+    },
+    "sample_0344": {
+      "sample_id": "sample_0344",
+      "mesh_dice": 0.8601588606834412
+    },
+    "sample_0348": {
+      "sample_id": "sample_0348",
+      "mesh_dice": 0.7977643013000488
+    },
+    "sample_0352": {
+      "sample_id": "sample_0352",
+      "mesh_dice": 0.7996008396148682
+    },
+    "sample_0363": {
+      "sample_id": "sample_0363",
+      "mesh_dice": 0.754851222038269
+    },
+    "sample_0367": {
+      "sample_id": "sample_0367",
+      "mesh_dice": 0.8549783229827881
+    },
+    "sample_0370": {
+      "sample_id": "sample_0370",
+      "mesh_dice": 1.0109999179840088
+    },
+    "sample_0373": {
+      "sample_id": "sample_0373",
+      "mesh_dice": 0.6136317253112793
+    },
+    "sample_0379": {
+      "sample_id": "sample_0379",
+      "mesh_dice": 1.1343181133270264
+    },
+    "sample_0387": {
+      "sample_id": "sample_0387",
+      "mesh_dice": 1.0938063859939575
+    },
+    "sample_0388": {
+      "sample_id": "sample_0388",
+      "mesh_dice": 0.9032562971115112
+    },
+    "sample_0389": {
+      "sample_id": "sample_0389",
+      "mesh_dice": 0.9243627190589905
+    },
+    "sample_0390": {
+      "sample_id": "sample_0390",
+      "mesh_dice": 0.9454929828643799
+    },
+    "sample_0394": {
+      "sample_id": "sample_0394",
+      "mesh_dice": 0.8625764846801758
+    },
+    "sample_0405": {
+      "sample_id": "sample_0405",
+      "mesh_dice": 0.9754425287246704
+    },
+    "sample_0408": {
+      "sample_id": "sample_0408",
+      "mesh_dice": 0.7466485500335693
+    },
+    "sample_0410": {
+      "sample_id": "sample_0410",
+      "mesh_dice": 0.9790436029434204
+    },
+    "sample_0429": {
+      "sample_id": "sample_0429",
+      "mesh_dice": 1.011608362197876
+    },
+    "sample_0432": {
+      "sample_id": "sample_0432",
+      "mesh_dice": 0.8203870058059692
+    },
+    "sample_0438": {
+      "sample_id": "sample_0438",
+      "mesh_dice": 0.7673898339271545
+    },
+    "sample_0445": {
+      "sample_id": "sample_0445",
+      "mesh_dice": 1.0784111022949219
+    },
+    "sample_0459": {
+      "sample_id": "sample_0459",
+      "mesh_dice": 0.7689141035079956
+    },
+    "sample_0464": {
+      "sample_id": "sample_0464",
+      "mesh_dice": 0.5984544157981873
+    },
+    "sample_0469": {
+      "sample_id": "sample_0469",
+      "mesh_dice": 0.8316984176635742
+    },
+    "sample_0470": {
+      "sample_id": "sample_0470",
+      "mesh_dice": 0.7984618544578552
+    },
+    "sample_0473": {
+      "sample_id": "sample_0473",
+      "mesh_dice": 0.36846813559532166
+    },
+    "sample_0479": {
+      "sample_id": "sample_0479",
+      "mesh_dice": 0.7042171359062195
+    },
+    "sample_0505": {
+      "sample_id": "sample_0505",
+      "mesh_dice": 1.035305142402649
+    },
+    "sample_0511": {
+      "sample_id": "sample_0511",
+      "mesh_dice": 0.9345308542251587
+    },
+    "sample_0517": {
+      "sample_id": "sample_0517",
+      "mesh_dice": 0.7690669894218445
+    },
+    "sample_0521": {
+      "sample_id": "sample_0521",
+      "mesh_dice": 0.841302752494812
+    },
+    "sample_0541": {
+      "sample_id": "sample_0541",
+      "mesh_dice": 0.7257505059242249
+    },
+    "sample_0546": {
+      "sample_id": "sample_0546",
+      "mesh_dice": 0.5462560057640076
+    },
+    "sample_0549": {
+      "sample_id": "sample_0549",
+      "mesh_dice": 0.7230198383331299
+    },
+    "sample_0551": {
+      "sample_id": "sample_0551",
+      "mesh_dice": 0.7043898701667786
+    },
+    "sample_0558": {
+      "sample_id": "sample_0558",
+      "mesh_dice": 0.9925324320793152
+    },
+    "sample_0565": {
+      "sample_id": "sample_0565",
+      "mesh_dice": 0.9969983100891113
+    },
+    "sample_0566": {
+      "sample_id": "sample_0566",
+      "mesh_dice": 0.8272509574890137
+    },
+    "sample_0570": {
+      "sample_id": "sample_0570",
+      "mesh_dice": 0.9071398973464966
+    },
+    "sample_0574": {
+      "sample_id": "sample_0574",
+      "mesh_dice": 0.5839579105377197
+    },
+    "sample_0580": {
+      "sample_id": "sample_0580",
+      "mesh_dice": 0.8849480748176575
+    },
+    "sample_0591": {
+      "sample_id": "sample_0591",
+      "mesh_dice": 0.6762546300888062
+    },
+    "sample_0597": {
+      "sample_id": "sample_0597",
+      "mesh_dice": 0.9448659420013428
+    },
+    "sample_0598": {
+      "sample_id": "sample_0598",
+      "mesh_dice": 0.9914434552192688
+    },
+    "sample_0603": {
+      "sample_id": "sample_0603",
+      "mesh_dice": 0.819230318069458
+    },
+    "sample_0604": {
+      "sample_id": "sample_0604",
+      "mesh_dice": 0.7264277935028076
+    },
+    "sample_0610": {
+      "sample_id": "sample_0610",
+      "mesh_dice": 0.5382356643676758
+    },
+    "sample_0616": {
+      "sample_id": "sample_0616",
+      "mesh_dice": 0.9940049052238464
+    },
+    "sample_0618": {
+      "sample_id": "sample_0618",
+      "mesh_dice": 0.6085783243179321
+    },
+    "sample_0623": {
+      "sample_id": "sample_0623",
+      "mesh_dice": 0.5549980401992798
+    },
+    "sample_0633": {
+      "sample_id": "sample_0633",
+      "mesh_dice": 1.124968409538269
+    },
+    "sample_0642": {
+      "sample_id": "sample_0642",
+      "mesh_dice": 0.9324105978012085
+    },
+    "sample_0643": {
+      "sample_id": "sample_0643",
+      "mesh_dice": 0.7607448101043701
+    },
+    "sample_0650": {
+      "sample_id": "sample_0650",
+      "mesh_dice": 1.0618244409561157
+    },
+    "sample_0654": {
+      "sample_id": "sample_0654",
+      "mesh_dice": 0.5198508501052856
+    },
+    "sample_0655": {
+      "sample_id": "sample_0655",
+      "mesh_dice": 1.1125640869140625
+    },
+    "sample_0656": {
+      "sample_id": "sample_0656",
+      "mesh_dice": 0.7617536783218384
+    },
+    "sample_0658": {
+      "sample_id": "sample_0658",
+      "mesh_dice": 1.1284096240997314
+    },
+    "sample_0663": {
+      "sample_id": "sample_0663",
+      "mesh_dice": 1.12086820602417
+    },
+    "sample_0665": {
+      "sample_id": "sample_0665",
+      "mesh_dice": 0.8458925485610962
+    },
+    "sample_0671": {
+      "sample_id": "sample_0671",
+      "mesh_dice": 1.1767933368682861
+    },
+    "sample_0677": {
+      "sample_id": "sample_0677",
+      "mesh_dice": 0.791926920413971
+    },
+    "sample_0686": {
+      "sample_id": "sample_0686",
+      "mesh_dice": 1.2439340353012085
+    },
+    "sample_0692": {
+      "sample_id": "sample_0692",
+      "mesh_dice": 0.5186238288879395
+    },
+    "sample_0696": {
+      "sample_id": "sample_0696",
+      "mesh_dice": 1.0181654691696167
+    },
+    "sample_0698": {
+      "sample_id": "sample_0698",
+      "mesh_dice": 0.7664742469787598
+    },
+    "sample_0699": {
+      "sample_id": "sample_0699",
+      "mesh_dice": 0.6538342833518982
+    },
+    "sample_0701": {
+      "sample_id": "sample_0701",
+      "mesh_dice": 0.9263821244239807
+    },
+    "sample_0704": {
+      "sample_id": "sample_0704",
+      "mesh_dice": 1.0325195789337158
+    },
+    "sample_0714": {
+      "sample_id": "sample_0714",
+      "mesh_dice": 0.7569515109062195
+    },
+    "sample_0718": {
+      "sample_id": "sample_0718",
+      "mesh_dice": 0.5970426201820374
+    },
+    "sample_0721": {
+      "sample_id": "sample_0721",
+      "mesh_dice": 1.1212146282196045
+    },
+    "sample_0733": {
+      "sample_id": "sample_0733",
+      "mesh_dice": 1.0114973783493042
+    },
+    "sample_0735": {
+      "sample_id": "sample_0735",
+      "mesh_dice": 0.6593747735023499
+    },
+    "sample_0736": {
+      "sample_id": "sample_0736",
+      "mesh_dice": 0.9687667489051819
+    },
+    "sample_0738": {
+      "sample_id": "sample_0738",
+      "mesh_dice": 1.018621563911438
+    },
+    "sample_0739": {
+      "sample_id": "sample_0739",
+      "mesh_dice": 0.5184305310249329
+    },
+    "sample_0746": {
+      "sample_id": "sample_0746",
+      "mesh_dice": 1.18040931224823
+    },
+    "sample_0747": {
+      "sample_id": "sample_0747",
+      "mesh_dice": 0.8960499167442322
+    },
+    "sample_0754": {
+      "sample_id": "sample_0754",
+      "mesh_dice": 0.9096102118492126
+    },
+    "sample_0758": {
+      "sample_id": "sample_0758",
+      "mesh_dice": 1.014369249343872
+    },
+    "sample_0759": {
+      "sample_id": "sample_0759",
+      "mesh_dice": 1.084081768989563
+    },
+    "sample_0762": {
+      "sample_id": "sample_0762",
+      "mesh_dice": 0.8201651573181152
+    },
+    "sample_0764": {
+      "sample_id": "sample_0764",
+      "mesh_dice": 0.5979431867599487
+    },
+    "sample_0768": {
+      "sample_id": "sample_0768",
+      "mesh_dice": 0.6968782544136047
+    },
+    "sample_0773": {
+      "sample_id": "sample_0773",
+      "mesh_dice": 0.5180044174194336
+    },
+    "sample_0777": {
+      "sample_id": "sample_0777",
+      "mesh_dice": 0.7034172415733337
+    },
+    "sample_0781": {
+      "sample_id": "sample_0781",
+      "mesh_dice": 0.7996857166290283
+    },
+    "sample_0786": {
+      "sample_id": "sample_0786",
+      "mesh_dice": 0.7640359401702881
+    },
+    "sample_0787": {
+      "sample_id": "sample_0787",
+      "mesh_dice": 0.9148837327957153
+    },
+    "sample_0791": {
+      "sample_id": "sample_0791",
+      "mesh_dice": 0.7904831767082214
+    },
+    "sample_0794": {
+      "sample_id": "sample_0794",
+      "mesh_dice": 0.6935408115386963
+    },
+    "sample_0811": {
+      "sample_id": "sample_0811",
+      "mesh_dice": 0.7542057037353516
+    },
+    "sample_0824": {
+      "sample_id": "sample_0824",
+      "mesh_dice": 1.1029372215270996
+    },
+    "sample_0825": {
+      "sample_id": "sample_0825",
+      "mesh_dice": 1.0659092664718628
+    },
+    "sample_0826": {
+      "sample_id": "sample_0826",
+      "mesh_dice": 0.9234001636505127
+    },
+    "sample_0828": {
+      "sample_id": "sample_0828",
+      "mesh_dice": 1.133259892463684
+    },
+    "sample_0830": {
+      "sample_id": "sample_0830",
+      "mesh_dice": 0.739802360534668
+    },
+    "sample_0841": {
+      "sample_id": "sample_0841",
+      "mesh_dice": 0.6963706612586975
+    },
+    "sample_0849": {
+      "sample_id": "sample_0849",
+      "mesh_dice": 0.652081310749054
+    },
+    "sample_0854": {
+      "sample_id": "sample_0854",
+      "mesh_dice": 0.3885941207408905
+    },
+    "sample_0863": {
+      "sample_id": "sample_0863",
+      "mesh_dice": 0.6761127710342407
+    },
+    "sample_0867": {
+      "sample_id": "sample_0867",
+      "mesh_dice": 0.4424334466457367
+    },
+    "sample_0875": {
+      "sample_id": "sample_0875",
+      "mesh_dice": 1.0299298763275146
+    },
+    "sample_0881": {
+      "sample_id": "sample_0881",
+      "mesh_dice": 0.995210587978363
+    },
+    "sample_0882": {
+      "sample_id": "sample_0882",
+      "mesh_dice": 0.7588139772415161
+    },
+    "sample_0887": {
+      "sample_id": "sample_0887",
+      "mesh_dice": 1.0983226299285889
+    },
+    "sample_0890": {
+      "sample_id": "sample_0890",
+      "mesh_dice": 0.5750674605369568
+    },
+    "sample_0899": {
+      "sample_id": "sample_0899",
+      "mesh_dice": 0.8521238565444946
+    },
+    "sample_0906": {
+      "sample_id": "sample_0906",
+      "mesh_dice": 0.7328703999519348
+    },
+    "sample_0907": {
+      "sample_id": "sample_0907",
+      "mesh_dice": 0.7557749152183533
+    },
+    "sample_0908": {
+      "sample_id": "sample_0908",
+      "mesh_dice": 0.6860719919204712
+    },
+    "sample_0913": {
+      "sample_id": "sample_0913",
+      "mesh_dice": 1.115945816040039
+    },
+    "sample_0925": {
+      "sample_id": "sample_0925",
+      "mesh_dice": 1.143436074256897
+    },
+    "sample_0930": {
+      "sample_id": "sample_0930",
+      "mesh_dice": 0.4668239653110504
+    },
+    "sample_0931": {
+      "sample_id": "sample_0931",
+      "mesh_dice": 0.9758421778678894
+    },
+    "sample_0936": {
+      "sample_id": "sample_0936",
+      "mesh_dice": 0.9022964835166931
+    },
+    "sample_0947": {
+      "sample_id": "sample_0947",
+      "mesh_dice": 0.8134280443191528
+    },
+    "sample_0954": {
+      "sample_id": "sample_0954",
+      "mesh_dice": 0.9791154861450195
+    },
+    "sample_0955": {
+      "sample_id": "sample_0955",
+      "mesh_dice": 0.8000399470329285
+    },
+    "sample_0956": {
+      "sample_id": "sample_0956",
+      "mesh_dice": 0.6485105752944946
+    },
+    "sample_0958": {
+      "sample_id": "sample_0958",
+      "mesh_dice": 1.0961244106292725
+    },
+    "sample_0963": {
+      "sample_id": "sample_0963",
+      "mesh_dice": 0.8798264861106873
+    },
+    "sample_0964": {
+      "sample_id": "sample_0964",
+      "mesh_dice": 0.7755659222602844
+    },
+    "sample_0970": {
+      "sample_id": "sample_0970",
+      "mesh_dice": 0.9099045991897583
+    },
+    "sample_0974": {
+      "sample_id": "sample_0974",
+      "mesh_dice": 1.0615794658660889
+    },
+    "sample_0978": {
+      "sample_id": "sample_0978",
+      "mesh_dice": 1.1203986406326294
+    },
+    "sample_0982": {
+      "sample_id": "sample_0982",
+      "mesh_dice": 0.7157632112503052
+    },
+    "sample_0983": {
+      "sample_id": "sample_0983",
+      "mesh_dice": 1.0356712341308594
+    },
+    "sample_0986": {
+      "sample_id": "sample_0986",
+      "mesh_dice": 1.1609634160995483
+    },
+    "sample_0990": {
+      "sample_id": "sample_0990",
+      "mesh_dice": 1.084892988204956
+    },
+    "sample_0992": {
+      "sample_id": "sample_0992",
+      "mesh_dice": 0.7816597819328308
+    },
+    "sample_0994": {
+      "sample_id": "sample_0994",
+      "mesh_dice": 0.9955005049705505
+    },
+    "sample_0998": {
+      "sample_id": "sample_0998",
+      "mesh_dice": 0.7056146264076233
+    }
+  },
+  "per_sample_voxel": {}
+}

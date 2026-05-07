@@ -1,0 +1,1808 @@
+{
+  "stage1_mesh_dice": 0.8461816023290157,
+  "stage1_voxel_dice": 0.5961530854779076,
+  "per_sample_mesh": {
+    "sample_0003": {
+      "sample_id": "sample_0003",
+      "mesh_dice": 0.4047185778617859
+    },
+    "sample_0006": {
+      "sample_id": "sample_0006",
+      "mesh_dice": 0.8393285274505615
+    },
+    "sample_0011": {
+      "sample_id": "sample_0011",
+      "mesh_dice": 0.6547788381576538
+    },
+    "sample_0025": {
+      "sample_id": "sample_0025",
+      "mesh_dice": 1.0961178541183472
+    },
+    "sample_0027": {
+      "sample_id": "sample_0027",
+      "mesh_dice": 0.8704397678375244
+    },
+    "sample_0030": {
+      "sample_id": "sample_0030",
+      "mesh_dice": 0.5436049103736877
+    },
+    "sample_0032": {
+      "sample_id": "sample_0032",
+      "mesh_dice": 0.9992802143096924
+    },
+    "sample_0044": {
+      "sample_id": "sample_0044",
+      "mesh_dice": 0.695748507976532
+    },
+    "sample_0046": {
+      "sample_id": "sample_0046",
+      "mesh_dice": 1.108107566833496
+    },
+    "sample_0048": {
+      "sample_id": "sample_0048",
+      "mesh_dice": 0.7864609956741333
+    },
+    "sample_0057": {
+      "sample_id": "sample_0057",
+      "mesh_dice": 0.7388724088668823
+    },
+    "sample_0065": {
+      "sample_id": "sample_0065",
+      "mesh_dice": 1.1087499856948853
+    },
+    "sample_0067": {
+      "sample_id": "sample_0067",
+      "mesh_dice": 0.5812138915061951
+    },
+    "sample_0071": {
+      "sample_id": "sample_0071",
+      "mesh_dice": 1.0538631677627563
+    },
+    "sample_0073": {
+      "sample_id": "sample_0073",
+      "mesh_dice": 0.9746280312538147
+    },
+    "sample_0080": {
+      "sample_id": "sample_0080",
+      "mesh_dice": 1.0117915868759155
+    },
+    "sample_0081": {
+      "sample_id": "sample_0081",
+      "mesh_dice": 0.8155409693717957
+    },
+    "sample_0089": {
+      "sample_id": "sample_0089",
+      "mesh_dice": 0.746639609336853
+    },
+    "sample_0093": {
+      "sample_id": "sample_0093",
+      "mesh_dice": 0.8860142827033997
+    },
+    "sample_0094": {
+      "sample_id": "sample_0094",
+      "mesh_dice": 1.0472133159637451
+    },
+    "sample_0095": {
+      "sample_id": "sample_0095",
+      "mesh_dice": 1.0284018516540527
+    },
+    "sample_0099": {
+      "sample_id": "sample_0099",
+      "mesh_dice": 0.781951904296875
+    },
+    "sample_0103": {
+      "sample_id": "sample_0103",
+      "mesh_dice": 0.7384572625160217
+    },
+    "sample_0104": {
+      "sample_id": "sample_0104",
+      "mesh_dice": 0.9623292684555054
+    },
+    "sample_0112": {
+      "sample_id": "sample_0112",
+      "mesh_dice": 0.960548996925354
+    },
+    "sample_0114": {
+      "sample_id": "sample_0114",
+      "mesh_dice": 0.695976197719574
+    },
+    "sample_0117": {
+      "sample_id": "sample_0117",
+      "mesh_dice": 1.097048044204712
+    },
+    "sample_0127": {
+      "sample_id": "sample_0127",
+      "mesh_dice": 0.7762947082519531
+    },
+    "sample_0141": {
+      "sample_id": "sample_0141",
+      "mesh_dice": 0.4792480766773224
+    },
+    "sample_0142": {
+      "sample_id": "sample_0142",
+      "mesh_dice": 0.8030781745910645
+    },
+    "sample_0146": {
+      "sample_id": "sample_0146",
+      "mesh_dice": 0.9997298121452332
+    },
+    "sample_0156": {
+      "sample_id": "sample_0156",
+      "mesh_dice": 1.0309845209121704
+    },
+    "sample_0159": {
+      "sample_id": "sample_0159",
+      "mesh_dice": 0.8562359809875488
+    },
+    "sample_0161": {
+      "sample_id": "sample_0161",
+      "mesh_dice": 1.1081401109695435
+    },
+    "sample_0163": {
+      "sample_id": "sample_0163",
+      "mesh_dice": 0.6741085052490234
+    },
+    "sample_0166": {
+      "sample_id": "sample_0166",
+      "mesh_dice": 0.7197980880737305
+    },
+    "sample_0167": {
+      "sample_id": "sample_0167",
+      "mesh_dice": 0.8196766376495361
+    },
+    "sample_0175": {
+      "sample_id": "sample_0175",
+      "mesh_dice": 0.30771908164024353
+    },
+    "sample_0196": {
+      "sample_id": "sample_0196",
+      "mesh_dice": 0.5567570924758911
+    },
+    "sample_0203": {
+      "sample_id": "sample_0203",
+      "mesh_dice": 1.0005135536193848
+    },
+    "sample_0214": {
+      "sample_id": "sample_0214",
+      "mesh_dice": 0.46533873677253723
+    },
+    "sample_0216": {
+      "sample_id": "sample_0216",
+      "mesh_dice": 0.5667126774787903
+    },
+    "sample_0217": {
+      "sample_id": "sample_0217",
+      "mesh_dice": 0.9115755558013916
+    },
+    "sample_0220": {
+      "sample_id": "sample_0220",
+      "mesh_dice": 0.8110925555229187
+    },
+    "sample_0223": {
+      "sample_id": "sample_0223",
+      "mesh_dice": 0.808859646320343
+    },
+    "sample_0224": {
+      "sample_id": "sample_0224",
+      "mesh_dice": 0.5551402568817139
+    },
+    "sample_0225": {
+      "sample_id": "sample_0225",
+      "mesh_dice": 1.0399771928787231
+    },
+    "sample_0228": {
+      "sample_id": "sample_0228",
+      "mesh_dice": 1.156571865081787
+    },
+    "sample_0233": {
+      "sample_id": "sample_0233",
+      "mesh_dice": 0.8103513121604919
+    },
+    "sample_0234": {
+      "sample_id": "sample_0234",
+      "mesh_dice": 0.721882700920105
+    },
+    "sample_0238": {
+      "sample_id": "sample_0238",
+      "mesh_dice": 1.130283236503601
+    },
+    "sample_0250": {
+      "sample_id": "sample_0250",
+      "mesh_dice": 0.6526893973350525
+    },
+    "sample_0252": {
+      "sample_id": "sample_0252",
+      "mesh_dice": 1.0943636894226074
+    },
+    "sample_0257": {
+      "sample_id": "sample_0257",
+      "mesh_dice": 1.1769291162490845
+    },
+    "sample_0269": {
+      "sample_id": "sample_0269",
+      "mesh_dice": 0.6824560761451721
+    },
+    "sample_0270": {
+      "sample_id": "sample_0270",
+      "mesh_dice": 0.7136756777763367
+    },
+    "sample_0271": {
+      "sample_id": "sample_0271",
+      "mesh_dice": 0.7103909850120544
+    },
+    "sample_0273": {
+      "sample_id": "sample_0273",
+      "mesh_dice": 0.7998306751251221
+    },
+    "sample_0274": {
+      "sample_id": "sample_0274",
+      "mesh_dice": 0.7170382738113403
+    },
+    "sample_0276": {
+      "sample_id": "sample_0276",
+      "mesh_dice": 0.6221155524253845
+    },
+    "sample_0281": {
+      "sample_id": "sample_0281",
+      "mesh_dice": 1.0407326221466064
+    },
+    "sample_0284": {
+      "sample_id": "sample_0284",
+      "mesh_dice": 0.7117139101028442
+    },
+    "sample_0296": {
+      "sample_id": "sample_0296",
+      "mesh_dice": 1.1392185688018799
+    },
+    "sample_0300": {
+      "sample_id": "sample_0300",
+      "mesh_dice": 0.9622675776481628
+    },
+    "sample_0322": {
+      "sample_id": "sample_0322",
+      "mesh_dice": 0.666773796081543
+    },
+    "sample_0323": {
+      "sample_id": "sample_0323",
+      "mesh_dice": 1.045739769935608
+    },
+    "sample_0332": {
+      "sample_id": "sample_0332",
+      "mesh_dice": 1.0694574117660522
+    },
+    "sample_0344": {
+      "sample_id": "sample_0344",
+      "mesh_dice": 0.8601586818695068
+    },
+    "sample_0348": {
+      "sample_id": "sample_0348",
+      "mesh_dice": 0.7977647185325623
+    },
+    "sample_0352": {
+      "sample_id": "sample_0352",
+      "mesh_dice": 0.799601137638092
+    },
+    "sample_0363": {
+      "sample_id": "sample_0363",
+      "mesh_dice": 0.754851222038269
+    },
+    "sample_0367": {
+      "sample_id": "sample_0367",
+      "mesh_dice": 0.8549784421920776
+    },
+    "sample_0370": {
+      "sample_id": "sample_0370",
+      "mesh_dice": 1.0109997987747192
+    },
+    "sample_0373": {
+      "sample_id": "sample_0373",
+      "mesh_dice": 0.6136316061019897
+    },
+    "sample_0379": {
+      "sample_id": "sample_0379",
+      "mesh_dice": 1.1343183517456055
+    },
+    "sample_0387": {
+      "sample_id": "sample_0387",
+      "mesh_dice": 1.0938059091567993
+    },
+    "sample_0388": {
+      "sample_id": "sample_0388",
+      "mesh_dice": 0.9032561779022217
+    },
+    "sample_0389": {
+      "sample_id": "sample_0389",
+      "mesh_dice": 0.9243624210357666
+    },
+    "sample_0390": {
+      "sample_id": "sample_0390",
+      "mesh_dice": 0.9454931020736694
+    },
+    "sample_0394": {
+      "sample_id": "sample_0394",
+      "mesh_dice": 0.8625768423080444
+    },
+    "sample_0405": {
+      "sample_id": "sample_0405",
+      "mesh_dice": 0.9754424095153809
+    },
+    "sample_0408": {
+      "sample_id": "sample_0408",
+      "mesh_dice": 0.7466487884521484
+    },
+    "sample_0410": {
+      "sample_id": "sample_0410",
+      "mesh_dice": 0.9790434241294861
+    },
+    "sample_0429": {
+      "sample_id": "sample_0429",
+      "mesh_dice": 1.0116082429885864
+    },
+    "sample_0432": {
+      "sample_id": "sample_0432",
+      "mesh_dice": 0.8203862309455872
+    },
+    "sample_0438": {
+      "sample_id": "sample_0438",
+      "mesh_dice": 0.7673895955085754
+    },
+    "sample_0445": {
+      "sample_id": "sample_0445",
+      "mesh_dice": 1.0784109830856323
+    },
+    "sample_0459": {
+      "sample_id": "sample_0459",
+      "mesh_dice": 0.7689138054847717
+    },
+    "sample_0464": {
+      "sample_id": "sample_0464",
+      "mesh_dice": 0.5984542369842529
+    },
+    "sample_0469": {
+      "sample_id": "sample_0469",
+      "mesh_dice": 0.8316983580589294
+    },
+    "sample_0470": {
+      "sample_id": "sample_0470",
+      "mesh_dice": 0.7984614372253418
+    },
+    "sample_0473": {
+      "sample_id": "sample_0473",
+      "mesh_dice": 0.36846816539764404
+    },
+    "sample_0479": {
+      "sample_id": "sample_0479",
+      "mesh_dice": 0.7042173147201538
+    },
+    "sample_0505": {
+      "sample_id": "sample_0505",
+      "mesh_dice": 1.035305142402649
+    },
+    "sample_0511": {
+      "sample_id": "sample_0511",
+      "mesh_dice": 0.9345309138298035
+    },
+    "sample_0517": {
+      "sample_id": "sample_0517",
+      "mesh_dice": 0.7690683603286743
+    },
+    "sample_0521": {
+      "sample_id": "sample_0521",
+      "mesh_dice": 0.8413026332855225
+    },
+    "sample_0541": {
+      "sample_id": "sample_0541",
+      "mesh_dice": 0.7257495522499084
+    },
+    "sample_0546": {
+      "sample_id": "sample_0546",
+      "mesh_dice": 0.5462554097175598
+    },
+    "sample_0549": {
+      "sample_id": "sample_0549",
+      "mesh_dice": 0.7230202555656433
+    },
+    "sample_0551": {
+      "sample_id": "sample_0551",
+      "mesh_dice": 0.7043898701667786
+    },
+    "sample_0558": {
+      "sample_id": "sample_0558",
+      "mesh_dice": 0.99253249168396
+    },
+    "sample_0565": {
+      "sample_id": "sample_0565",
+      "mesh_dice": 0.9969986081123352
+    },
+    "sample_0566": {
+      "sample_id": "sample_0566",
+      "mesh_dice": 0.827251136302948
+    },
+    "sample_0570": {
+      "sample_id": "sample_0570",
+      "mesh_dice": 0.9071402549743652
+    },
+    "sample_0574": {
+      "sample_id": "sample_0574",
+      "mesh_dice": 0.5839577317237854
+    },
+    "sample_0580": {
+      "sample_id": "sample_0580",
+      "mesh_dice": 0.8849474191665649
+    },
+    "sample_0591": {
+      "sample_id": "sample_0591",
+      "mesh_dice": 0.6762548089027405
+    },
+    "sample_0597": {
+      "sample_id": "sample_0597",
+      "mesh_dice": 0.9448654055595398
+    },
+    "sample_0598": {
+      "sample_id": "sample_0598",
+      "mesh_dice": 0.9914436936378479
+    },
+    "sample_0603": {
+      "sample_id": "sample_0603",
+      "mesh_dice": 0.8192305564880371
+    },
+    "sample_0604": {
+      "sample_id": "sample_0604",
+      "mesh_dice": 0.7264280915260315
+    },
+    "sample_0610": {
+      "sample_id": "sample_0610",
+      "mesh_dice": 0.5382355451583862
+    },
+    "sample_0616": {
+      "sample_id": "sample_0616",
+      "mesh_dice": 0.9940047264099121
+    },
+    "sample_0618": {
+      "sample_id": "sample_0618",
+      "mesh_dice": 0.6085777878761292
+    },
+    "sample_0623": {
+      "sample_id": "sample_0623",
+      "mesh_dice": 0.554997980594635
+    },
+    "sample_0633": {
+      "sample_id": "sample_0633",
+      "mesh_dice": 1.124968409538269
+    },
+    "sample_0642": {
+      "sample_id": "sample_0642",
+      "mesh_dice": 0.932410478591919
+    },
+    "sample_0643": {
+      "sample_id": "sample_0643",
+      "mesh_dice": 0.7607452273368835
+    },
+    "sample_0650": {
+      "sample_id": "sample_0650",
+      "mesh_dice": 1.0618243217468262
+    },
+    "sample_0654": {
+      "sample_id": "sample_0654",
+      "mesh_dice": 0.5198507905006409
+    },
+    "sample_0655": {
+      "sample_id": "sample_0655",
+      "mesh_dice": 1.112564206123352
+    },
+    "sample_0656": {
+      "sample_id": "sample_0656",
+      "mesh_dice": 0.7617536783218384
+    },
+    "sample_0658": {
+      "sample_id": "sample_0658",
+      "mesh_dice": 1.1284096240997314
+    },
+    "sample_0663": {
+      "sample_id": "sample_0663",
+      "mesh_dice": 1.1208685636520386
+    },
+    "sample_0665": {
+      "sample_id": "sample_0665",
+      "mesh_dice": 0.8458927273750305
+    },
+    "sample_0671": {
+      "sample_id": "sample_0671",
+      "mesh_dice": 1.1767933368682861
+    },
+    "sample_0677": {
+      "sample_id": "sample_0677",
+      "mesh_dice": 0.7919274568557739
+    },
+    "sample_0686": {
+      "sample_id": "sample_0686",
+      "mesh_dice": 1.243934154510498
+    },
+    "sample_0692": {
+      "sample_id": "sample_0692",
+      "mesh_dice": 0.5186237096786499
+    },
+    "sample_0696": {
+      "sample_id": "sample_0696",
+      "mesh_dice": 1.0181658267974854
+    },
+    "sample_0698": {
+      "sample_id": "sample_0698",
+      "mesh_dice": 0.7664743065834045
+    },
+    "sample_0699": {
+      "sample_id": "sample_0699",
+      "mesh_dice": 0.6538337469100952
+    },
+    "sample_0701": {
+      "sample_id": "sample_0701",
+      "mesh_dice": 0.9263823628425598
+    },
+    "sample_0704": {
+      "sample_id": "sample_0704",
+      "mesh_dice": 1.0325195789337158
+    },
+    "sample_0714": {
+      "sample_id": "sample_0714",
+      "mesh_dice": 0.7569514513015747
+    },
+    "sample_0718": {
+      "sample_id": "sample_0718",
+      "mesh_dice": 0.5970420241355896
+    },
+    "sample_0721": {
+      "sample_id": "sample_0721",
+      "mesh_dice": 1.121214509010315
+    },
+    "sample_0733": {
+      "sample_id": "sample_0733",
+      "mesh_dice": 1.011497974395752
+    },
+    "sample_0735": {
+      "sample_id": "sample_0735",
+      "mesh_dice": 0.6593748331069946
+    },
+    "sample_0736": {
+      "sample_id": "sample_0736",
+      "mesh_dice": 0.9687673449516296
+    },
+    "sample_0738": {
+      "sample_id": "sample_0738",
+      "mesh_dice": 1.018621563911438
+    },
+    "sample_0739": {
+      "sample_id": "sample_0739",
+      "mesh_dice": 0.5184314250946045
+    },
+    "sample_0746": {
+      "sample_id": "sample_0746",
+      "mesh_dice": 1.1804091930389404
+    },
+    "sample_0747": {
+      "sample_id": "sample_0747",
+      "mesh_dice": 0.8960497379302979
+    },
+    "sample_0754": {
+      "sample_id": "sample_0754",
+      "mesh_dice": 0.9096097946166992
+    },
+    "sample_0758": {
+      "sample_id": "sample_0758",
+      "mesh_dice": 1.0143693685531616
+    },
+    "sample_0759": {
+      "sample_id": "sample_0759",
+      "mesh_dice": 1.084082841873169
+    },
+    "sample_0762": {
+      "sample_id": "sample_0762",
+      "mesh_dice": 0.8201650381088257
+    },
+    "sample_0764": {
+      "sample_id": "sample_0764",
+      "mesh_dice": 0.5979435443878174
+    },
+    "sample_0768": {
+      "sample_id": "sample_0768",
+      "mesh_dice": 0.6968784928321838
+    },
+    "sample_0773": {
+      "sample_id": "sample_0773",
+      "mesh_dice": 0.5180041193962097
+    },
+    "sample_0777": {
+      "sample_id": "sample_0777",
+      "mesh_dice": 0.7034171223640442
+    },
+    "sample_0781": {
+      "sample_id": "sample_0781",
+      "mesh_dice": 0.7996857762336731
+    },
+    "sample_0786": {
+      "sample_id": "sample_0786",
+      "mesh_dice": 0.7640364170074463
+    },
+    "sample_0787": {
+      "sample_id": "sample_0787",
+      "mesh_dice": 0.9148841500282288
+    },
+    "sample_0791": {
+      "sample_id": "sample_0791",
+      "mesh_dice": 0.7904831767082214
+    },
+    "sample_0794": {
+      "sample_id": "sample_0794",
+      "mesh_dice": 0.6935408115386963
+    },
+    "sample_0811": {
+      "sample_id": "sample_0811",
+      "mesh_dice": 0.7542057633399963
+    },
+    "sample_0824": {
+      "sample_id": "sample_0824",
+      "mesh_dice": 1.1029369831085205
+    },
+    "sample_0825": {
+      "sample_id": "sample_0825",
+      "mesh_dice": 1.0659091472625732
+    },
+    "sample_0826": {
+      "sample_id": "sample_0826",
+      "mesh_dice": 0.9234001040458679
+    },
+    "sample_0828": {
+      "sample_id": "sample_0828",
+      "mesh_dice": 1.1332595348358154
+    },
+    "sample_0830": {
+      "sample_id": "sample_0830",
+      "mesh_dice": 0.7398024797439575
+    },
+    "sample_0841": {
+      "sample_id": "sample_0841",
+      "mesh_dice": 0.6963704824447632
+    },
+    "sample_0849": {
+      "sample_id": "sample_0849",
+      "mesh_dice": 0.6520811319351196
+    },
+    "sample_0854": {
+      "sample_id": "sample_0854",
+      "mesh_dice": 0.3885941803455353
+    },
+    "sample_0863": {
+      "sample_id": "sample_0863",
+      "mesh_dice": 0.6761125922203064
+    },
+    "sample_0867": {
+      "sample_id": "sample_0867",
+      "mesh_dice": 0.44243332743644714
+    },
+    "sample_0875": {
+      "sample_id": "sample_0875",
+      "mesh_dice": 1.0299298763275146
+    },
+    "sample_0881": {
+      "sample_id": "sample_0881",
+      "mesh_dice": 0.9952107071876526
+    },
+    "sample_0882": {
+      "sample_id": "sample_0882",
+      "mesh_dice": 0.7588139772415161
+    },
+    "sample_0887": {
+      "sample_id": "sample_0887",
+      "mesh_dice": 1.0983223915100098
+    },
+    "sample_0890": {
+      "sample_id": "sample_0890",
+      "mesh_dice": 0.5750674605369568
+    },
+    "sample_0899": {
+      "sample_id": "sample_0899",
+      "mesh_dice": 0.8521237969398499
+    },
+    "sample_0906": {
+      "sample_id": "sample_0906",
+      "mesh_dice": 0.7328712344169617
+    },
+    "sample_0907": {
+      "sample_id": "sample_0907",
+      "mesh_dice": 0.7557753324508667
+    },
+    "sample_0908": {
+      "sample_id": "sample_0908",
+      "mesh_dice": 0.6860722899436951
+    },
+    "sample_0913": {
+      "sample_id": "sample_0913",
+      "mesh_dice": 1.1159454584121704
+    },
+    "sample_0925": {
+      "sample_id": "sample_0925",
+      "mesh_dice": 1.1434359550476074
+    },
+    "sample_0930": {
+      "sample_id": "sample_0930",
+      "mesh_dice": 0.4668237566947937
+    },
+    "sample_0931": {
+      "sample_id": "sample_0931",
+      "mesh_dice": 0.9758424162864685
+    },
+    "sample_0936": {
+      "sample_id": "sample_0936",
+      "mesh_dice": 0.9022966027259827
+    },
+    "sample_0947": {
+      "sample_id": "sample_0947",
+      "mesh_dice": 0.8134283423423767
+    },
+    "sample_0954": {
+      "sample_id": "sample_0954",
+      "mesh_dice": 0.9791150689125061
+    },
+    "sample_0955": {
+      "sample_id": "sample_0955",
+      "mesh_dice": 0.8000404238700867
+    },
+    "sample_0956": {
+      "sample_id": "sample_0956",
+      "mesh_dice": 0.6485104560852051
+    },
+    "sample_0958": {
+      "sample_id": "sample_0958",
+      "mesh_dice": 1.0961244106292725
+    },
+    "sample_0963": {
+      "sample_id": "sample_0963",
+      "mesh_dice": 0.8798264861106873
+    },
+    "sample_0964": {
+      "sample_id": "sample_0964",
+      "mesh_dice": 0.7755657434463501
+    },
+    "sample_0970": {
+      "sample_id": "sample_0970",
+      "mesh_dice": 0.9099048376083374
+    },
+    "sample_0974": {
+      "sample_id": "sample_0974",
+      "mesh_dice": 1.0615795850753784
+    },
+    "sample_0978": {
+      "sample_id": "sample_0978",
+      "mesh_dice": 1.1203986406326294
+    },
+    "sample_0982": {
+      "sample_id": "sample_0982",
+      "mesh_dice": 0.7157639265060425
+    },
+    "sample_0983": {
+      "sample_id": "sample_0983",
+      "mesh_dice": 1.0356714725494385
+    },
+    "sample_0986": {
+      "sample_id": "sample_0986",
+      "mesh_dice": 1.1609632968902588
+    },
+    "sample_0990": {
+      "sample_id": "sample_0990",
+      "mesh_dice": 1.0848926305770874
+    },
+    "sample_0992": {
+      "sample_id": "sample_0992",
+      "mesh_dice": 0.781660258769989
+    },
+    "sample_0994": {
+      "sample_id": "sample_0994",
+      "mesh_dice": 0.9955012202262878
+    },
+    "sample_0998": {
+      "sample_id": "sample_0998",
+      "mesh_dice": 0.7056139707565308
+    }
+  },
+  "per_sample_voxel": {
+    "sample_0003": {
+      "sample_id": "sample_0003",
+      "voxel_dice": 0.3545132836843847,
+      "dice": 0.3545132836843847
+    },
+    "sample_0006": {
+      "sample_id": "sample_0006",
+      "voxel_dice": 0.5705470313537604,
+      "dice": 0.5705470313537604
+    },
+    "sample_0011": {
+      "sample_id": "sample_0011",
+      "voxel_dice": 0.5203532199003658,
+      "dice": 0.5203532199003658
+    },
+    "sample_0025": {
+      "sample_id": "sample_0025",
+      "voxel_dice": 0.7561436672956868,
+      "dice": 0.7561436672956868
+    },
+    "sample_0027": {
+      "sample_id": "sample_0027",
+      "voxel_dice": 0.6294989414251027,
+      "dice": 0.6294989414251027
+    },
+    "sample_0030": {
+      "sample_id": "sample_0030",
+      "voxel_dice": 0.3863764157760572,
+      "dice": 0.3863764157760572
+    },
+    "sample_0032": {
+      "sample_id": "sample_0032",
+      "voxel_dice": 0.6555528903806002,
+      "dice": 0.6555528903806002
+    },
+    "sample_0044": {
+      "sample_id": "sample_0044",
+      "voxel_dice": 0.42834905228419706,
+      "dice": 0.42834905228419706
+    },
+    "sample_0046": {
+      "sample_id": "sample_0046",
+      "voxel_dice": 0.7918781725877747,
+      "dice": 0.7918781725877747
+    },
+    "sample_0048": {
+      "sample_id": "sample_0048",
+      "voxel_dice": 0.5170039347944653,
+      "dice": 0.5170039347944653
+    },
+    "sample_0057": {
+      "sample_id": "sample_0057",
+      "voxel_dice": 0.5903795565571304,
+      "dice": 0.5903795565571304
+    },
+    "sample_0065": {
+      "sample_id": "sample_0065",
+      "voxel_dice": 0.7477816212953109,
+      "dice": 0.7477816212953109
+    },
+    "sample_0067": {
+      "sample_id": "sample_0067",
+      "voxel_dice": 0.385388011003528,
+      "dice": 0.385388011003528
+    },
+    "sample_0071": {
+      "sample_id": "sample_0071",
+      "voxel_dice": 0.7507542353205491,
+      "dice": 0.7507542353205491
+    },
+    "sample_0073": {
+      "sample_id": "sample_0073",
+      "voxel_dice": 0.6760089011844133,
+      "dice": 0.6760089011844133
+    },
+    "sample_0080": {
+      "sample_id": "sample_0080",
+      "voxel_dice": 0.6983431226433783,
+      "dice": 0.6983431226433783
+    },
+    "sample_0081": {
+      "sample_id": "sample_0081",
+      "voxel_dice": 0.5445107708275729,
+      "dice": 0.5445107708275729
+    },
+    "sample_0089": {
+      "sample_id": "sample_0089",
+      "voxel_dice": 0.5357939063654499,
+      "dice": 0.5357939063654499
+    },
+    "sample_0093": {
+      "sample_id": "sample_0093",
+      "voxel_dice": 0.6088930155779382,
+      "dice": 0.6088930155779382
+    },
+    "sample_0094": {
+      "sample_id": "sample_0094",
+      "voxel_dice": 0.7223847019114483,
+      "dice": 0.7223847019114483
+    },
+    "sample_0095": {
+      "sample_id": "sample_0095",
+      "voxel_dice": 0.6611891891887126,
+      "dice": 0.6611891891887126
+    },
+    "sample_0099": {
+      "sample_id": "sample_0099",
+      "voxel_dice": 0.5275109170302132,
+      "dice": 0.5275109170302132
+    },
+    "sample_0103": {
+      "sample_id": "sample_0103",
+      "voxel_dice": 0.627928994082097,
+      "dice": 0.627928994082097
+    },
+    "sample_0104": {
+      "sample_id": "sample_0104",
+      "voxel_dice": 0.7277970767511779,
+      "dice": 0.7277970767511779
+    },
+    "sample_0112": {
+      "sample_id": "sample_0112",
+      "voxel_dice": 0.6416468096368535,
+      "dice": 0.6416468096368535
+    },
+    "sample_0114": {
+      "sample_id": "sample_0114",
+      "voxel_dice": 0.5557701859922977,
+      "dice": 0.5557701859922977
+    },
+    "sample_0117": {
+      "sample_id": "sample_0117",
+      "voxel_dice": 0.7608695652163703,
+      "dice": 0.7608695652163703
+    },
+    "sample_0127": {
+      "sample_id": "sample_0127",
+      "voxel_dice": 0.5570308157842543,
+      "dice": 0.5570308157842543
+    },
+    "sample_0141": {
+      "sample_id": "sample_0141",
+      "voxel_dice": 0.3611695906431059,
+      "dice": 0.3611695906431059
+    },
+    "sample_0142": {
+      "sample_id": "sample_0142",
+      "voxel_dice": 0.5699242326951522,
+      "dice": 0.5699242326951522
+    },
+    "sample_0146": {
+      "sample_id": "sample_0146",
+      "voxel_dice": 0.6708520179365511,
+      "dice": 0.6708520179365511
+    },
+    "sample_0156": {
+      "sample_id": "sample_0156",
+      "voxel_dice": 0.7345306122442983,
+      "dice": 0.7345306122442983
+    },
+    "sample_0159": {
+      "sample_id": "sample_0159",
+      "voxel_dice": 0.5967889071331902,
+      "dice": 0.5967889071331902
+    },
+    "sample_0161": {
+      "sample_id": "sample_0161",
+      "voxel_dice": 0.7446632467305235,
+      "dice": 0.7446632467305235
+    },
+    "sample_0163": {
+      "sample_id": "sample_0163",
+      "voxel_dice": 0.5496239903441883,
+      "dice": 0.5496239903441883
+    },
+    "sample_0166": {
+      "sample_id": "sample_0166",
+      "voxel_dice": 0.4006655574039928,
+      "dice": 0.4006655574039928
+    },
+    "sample_0167": {
+      "sample_id": "sample_0167",
+      "voxel_dice": 0.5683863433395834,
+      "dice": 0.5683863433395834
+    },
+    "sample_0175": {
+      "sample_id": "sample_0175",
+      "voxel_dice": 0.19404750172455204,
+      "dice": 0.19404750172455204
+    },
+    "sample_0196": {
+      "sample_id": "sample_0196",
+      "voxel_dice": 0.4720754716978163,
+      "dice": 0.4720754716978163
+    },
+    "sample_0203": {
+      "sample_id": "sample_0203",
+      "voxel_dice": 0.7026121902204432,
+      "dice": 0.7026121902204432
+    },
+    "sample_0214": {
+      "sample_id": "sample_0214",
+      "voxel_dice": 0.40059655038231057,
+      "dice": 0.40059655038231057
+    },
+    "sample_0216": {
+      "sample_id": "sample_0216",
+      "voxel_dice": 0.372026414193355,
+      "dice": 0.372026414193355
+    },
+    "sample_0217": {
+      "sample_id": "sample_0217",
+      "voxel_dice": 0.6169908644580094,
+      "dice": 0.6169908644580094
+    },
+    "sample_0220": {
+      "sample_id": "sample_0220",
+      "voxel_dice": 0.5851327758884635,
+      "dice": 0.5851327758884635
+    },
+    "sample_0223": {
+      "sample_id": "sample_0223",
+      "voxel_dice": 0.5486747134102331,
+      "dice": 0.5486747134102331
+    },
+    "sample_0224": {
+      "sample_id": "sample_0224",
+      "voxel_dice": 0.43664312422079526,
+      "dice": 0.43664312422079526
+    },
+    "sample_0225": {
+      "sample_id": "sample_0225",
+      "voxel_dice": 0.6240084611313097,
+      "dice": 0.6240084611313097
+    },
+    "sample_0228": {
+      "sample_id": "sample_0228",
+      "voxel_dice": 0.6723063223500976,
+      "dice": 0.6723063223500976
+    },
+    "sample_0233": {
+      "sample_id": "sample_0233",
+      "voxel_dice": 0.6217278741966528,
+      "dice": 0.6217278741966528
+    },
+    "sample_0234": {
+      "sample_id": "sample_0234",
+      "voxel_dice": 0.5466367069844879,
+      "dice": 0.5466367069844879
+    },
+    "sample_0238": {
+      "sample_id": "sample_0238",
+      "voxel_dice": 0.8003688335629318,
+      "dice": 0.8003688335629318
+    },
+    "sample_0250": {
+      "sample_id": "sample_0250",
+      "voxel_dice": 0.47246165083979913,
+      "dice": 0.47246165083979913
+    },
+    "sample_0252": {
+      "sample_id": "sample_0252",
+      "voxel_dice": 0.8085275951368629,
+      "dice": 0.8085275951368629
+    },
+    "sample_0257": {
+      "sample_id": "sample_0257",
+      "voxel_dice": 0.7631450232325977,
+      "dice": 0.7631450232325977
+    },
+    "sample_0269": {
+      "sample_id": "sample_0269",
+      "voxel_dice": 0.5282339383459174,
+      "dice": 0.5282339383459174
+    },
+    "sample_0270": {
+      "sample_id": "sample_0270",
+      "voxel_dice": 0.47039137305896583,
+      "dice": 0.47039137305896583
+    },
+    "sample_0271": {
+      "sample_id": "sample_0271",
+      "voxel_dice": 0.5104220678206881,
+      "dice": 0.5104220678206881
+    },
+    "sample_0273": {
+      "sample_id": "sample_0273",
+      "voxel_dice": 0.5905398948871566,
+      "dice": 0.5905398948871566
+    },
+    "sample_0274": {
+      "sample_id": "sample_0274",
+      "voxel_dice": 0.5287970096875972,
+      "dice": 0.5287970096875972
+    },
+    "sample_0276": {
+      "sample_id": "sample_0276",
+      "voxel_dice": 0.45992188952926355,
+      "dice": 0.45992188952926355
+    },
+    "sample_0281": {
+      "sample_id": "sample_0281",
+      "voxel_dice": 0.7798754379128261,
+      "dice": 0.7798754379128261
+    },
+    "sample_0284": {
+      "sample_id": "sample_0284",
+      "voxel_dice": 0.5590046499930137,
+      "dice": 0.5590046499930137
+    },
+    "sample_0296": {
+      "sample_id": "sample_0296",
+      "voxel_dice": 0.7411425072165679,
+      "dice": 0.7411425072165679
+    },
+    "sample_0300": {
+      "sample_id": "sample_0300",
+      "voxel_dice": 0.7475592747554062,
+      "dice": 0.7475592747554062
+    },
+    "sample_0322": {
+      "sample_id": "sample_0322",
+      "voxel_dice": 0.4790209790206569,
+      "dice": 0.4790209790206569
+    },
+    "sample_0323": {
+      "sample_id": "sample_0323",
+      "voxel_dice": 0.6458701196776084,
+      "dice": 0.6458701196776084
+    },
+    "sample_0332": {
+      "sample_id": "sample_0332",
+      "voxel_dice": 0.7239174332506596,
+      "dice": 0.7239174332506596
+    },
+    "sample_0344": {
+      "sample_id": "sample_0344",
+      "voxel_dice": 0.5199271056172095,
+      "dice": 0.5199271056172095
+    },
+    "sample_0348": {
+      "sample_id": "sample_0348",
+      "voxel_dice": 0.6118028313145046,
+      "dice": 0.6118028313145046
+    },
+    "sample_0352": {
+      "sample_id": "sample_0352",
+      "voxel_dice": 0.4908531273590273,
+      "dice": 0.4908531273590273
+    },
+    "sample_0363": {
+      "sample_id": "sample_0363",
+      "voxel_dice": 0.5813124728373913,
+      "dice": 0.5813124728373913
+    },
+    "sample_0367": {
+      "sample_id": "sample_0367",
+      "voxel_dice": 0.6538267621249835,
+      "dice": 0.6538267621249835
+    },
+    "sample_0370": {
+      "sample_id": "sample_0370",
+      "voxel_dice": 0.666348083723279,
+      "dice": 0.666348083723279
+    },
+    "sample_0373": {
+      "sample_id": "sample_0373",
+      "voxel_dice": 0.4480384657409594,
+      "dice": 0.4480384657409594
+    },
+    "sample_0379": {
+      "sample_id": "sample_0379",
+      "voxel_dice": 0.7842933298650575,
+      "dice": 0.7842933298650575
+    },
+    "sample_0387": {
+      "sample_id": "sample_0387",
+      "voxel_dice": 0.7156452226869313,
+      "dice": 0.7156452226869313
+    },
+    "sample_0388": {
+      "sample_id": "sample_0388",
+      "voxel_dice": 0.5292732166882078,
+      "dice": 0.5292732166882078
+    },
+    "sample_0389": {
+      "sample_id": "sample_0389",
+      "voxel_dice": 0.6842673025602201,
+      "dice": 0.6842673025602201
+    },
+    "sample_0390": {
+      "sample_id": "sample_0390",
+      "voxel_dice": 0.6551592841722869,
+      "dice": 0.6551592841722869
+    },
+    "sample_0394": {
+      "sample_id": "sample_0394",
+      "voxel_dice": 0.6616983722292001,
+      "dice": 0.6616983722292001
+    },
+    "sample_0405": {
+      "sample_id": "sample_0405",
+      "voxel_dice": 0.669490367535634,
+      "dice": 0.669490367535634
+    },
+    "sample_0408": {
+      "sample_id": "sample_0408",
+      "voxel_dice": 0.5481758652942406,
+      "dice": 0.5481758652942406
+    },
+    "sample_0410": {
+      "sample_id": "sample_0410",
+      "voxel_dice": 0.7189126048627812,
+      "dice": 0.7189126048627812
+    },
+    "sample_0429": {
+      "sample_id": "sample_0429",
+      "voxel_dice": 0.6396396396392795,
+      "dice": 0.6396396396392795
+    },
+    "sample_0432": {
+      "sample_id": "sample_0432",
+      "voxel_dice": 0.5773020313823412,
+      "dice": 0.5773020313823412
+    },
+    "sample_0438": {
+      "sample_id": "sample_0438",
+      "voxel_dice": 0.6272097298821756,
+      "dice": 0.6272097298821756
+    },
+    "sample_0445": {
+      "sample_id": "sample_0445",
+      "voxel_dice": 0.7429692609539006,
+      "dice": 0.7429692609539006
+    },
+    "sample_0459": {
+      "sample_id": "sample_0459",
+      "voxel_dice": 0.4806739983275576,
+      "dice": 0.4806739983275576
+    },
+    "sample_0464": {
+      "sample_id": "sample_0464",
+      "voxel_dice": 0.42092585622851264,
+      "dice": 0.42092585622851264
+    },
+    "sample_0469": {
+      "sample_id": "sample_0469",
+      "voxel_dice": 0.706690923791483,
+      "dice": 0.706690923791483
+    },
+    "sample_0470": {
+      "sample_id": "sample_0470",
+      "voxel_dice": 0.6019636460126031,
+      "dice": 0.6019636460126031
+    },
+    "sample_0473": {
+      "sample_id": "sample_0473",
+      "voxel_dice": 0.29449084850961044,
+      "dice": 0.29449084850961044
+    },
+    "sample_0479": {
+      "sample_id": "sample_0479",
+      "voxel_dice": 0.5295141406812693,
+      "dice": 0.5295141406812693
+    },
+    "sample_0505": {
+      "sample_id": "sample_0505",
+      "voxel_dice": 0.7255170316296187,
+      "dice": 0.7255170316296187
+    },
+    "sample_0511": {
+      "sample_id": "sample_0511",
+      "voxel_dice": 0.6735554981480465,
+      "dice": 0.6735554981480465
+    },
+    "sample_0517": {
+      "sample_id": "sample_0517",
+      "voxel_dice": 0.6038278570631664,
+      "dice": 0.6038278570631664
+    },
+    "sample_0521": {
+      "sample_id": "sample_0521",
+      "voxel_dice": 0.6709373905206591,
+      "dice": 0.6709373905206591
+    },
+    "sample_0541": {
+      "sample_id": "sample_0541",
+      "voxel_dice": 0.4952780692546594,
+      "dice": 0.4952780692546594
+    },
+    "sample_0546": {
+      "sample_id": "sample_0546",
+      "voxel_dice": 0.3771831123720086,
+      "dice": 0.3771831123720086
+    },
+    "sample_0549": {
+      "sample_id": "sample_0549",
+      "voxel_dice": 0.6242902645060129,
+      "dice": 0.6242902645060129
+    },
+    "sample_0551": {
+      "sample_id": "sample_0551",
+      "voxel_dice": 0.454733789102727,
+      "dice": 0.454733789102727
+    },
+    "sample_0558": {
+      "sample_id": "sample_0558",
+      "voxel_dice": 0.7155526992283319,
+      "dice": 0.7155526992283319
+    },
+    "sample_0565": {
+      "sample_id": "sample_0565",
+      "voxel_dice": 0.7234098189182693,
+      "dice": 0.7234098189182693
+    },
+    "sample_0566": {
+      "sample_id": "sample_0566",
+      "voxel_dice": 0.545300069513752,
+      "dice": 0.545300069513752
+    },
+    "sample_0570": {
+      "sample_id": "sample_0570",
+      "voxel_dice": 0.5908712310506489,
+      "dice": 0.5908712310506489
+    },
+    "sample_0574": {
+      "sample_id": "sample_0574",
+      "voxel_dice": 0.3929181549927062,
+      "dice": 0.3929181549927062
+    },
+    "sample_0580": {
+      "sample_id": "sample_0580",
+      "voxel_dice": 0.6557846506295419,
+      "dice": 0.6557846506295419
+    },
+    "sample_0591": {
+      "sample_id": "sample_0591",
+      "voxel_dice": 0.5482836060310007,
+      "dice": 0.5482836060310007
+    },
+    "sample_0597": {
+      "sample_id": "sample_0597",
+      "voxel_dice": 0.6746957242078158,
+      "dice": 0.6746957242078158
+    },
+    "sample_0598": {
+      "sample_id": "sample_0598",
+      "voxel_dice": 0.6023987327442832,
+      "dice": 0.6023987327442832
+    },
+    "sample_0603": {
+      "sample_id": "sample_0603",
+      "voxel_dice": 0.6308379585755919,
+      "dice": 0.6308379585755919
+    },
+    "sample_0604": {
+      "sample_id": "sample_0604",
+      "voxel_dice": 0.5594496365521983,
+      "dice": 0.5594496365521983
+    },
+    "sample_0610": {
+      "sample_id": "sample_0610",
+      "voxel_dice": 0.3990514905146348,
+      "dice": 0.3990514905146348
+    },
+    "sample_0616": {
+      "sample_id": "sample_0616",
+      "voxel_dice": 0.6477224046827821,
+      "dice": 0.6477224046827821
+    },
+    "sample_0618": {
+      "sample_id": "sample_0618",
+      "voxel_dice": 0.42939030745151807,
+      "dice": 0.42939030745151807
+    },
+    "sample_0623": {
+      "sample_id": "sample_0623",
+      "voxel_dice": 0.46376359190444627,
+      "dice": 0.46376359190444627
+    },
+    "sample_0633": {
+      "sample_id": "sample_0633",
+      "voxel_dice": 0.7410459054979476,
+      "dice": 0.7410459054979476
+    },
+    "sample_0642": {
+      "sample_id": "sample_0642",
+      "voxel_dice": 0.6650846726343812,
+      "dice": 0.6650846726343812
+    },
+    "sample_0643": {
+      "sample_id": "sample_0643",
+      "voxel_dice": 0.5553270259149756,
+      "dice": 0.5553270259149756
+    },
+    "sample_0650": {
+      "sample_id": "sample_0650",
+      "voxel_dice": 0.701196006720667,
+      "dice": 0.701196006720667
+    },
+    "sample_0654": {
+      "sample_id": "sample_0654",
+      "voxel_dice": 0.3673036093416309,
+      "dice": 0.3673036093416309
+    },
+    "sample_0655": {
+      "sample_id": "sample_0655",
+      "voxel_dice": 0.696650982562003,
+      "dice": 0.696650982562003
+    },
+    "sample_0656": {
+      "sample_id": "sample_0656",
+      "voxel_dice": 0.4890419122025498,
+      "dice": 0.4890419122025498
+    },
+    "sample_0658": {
+      "sample_id": "sample_0658",
+      "voxel_dice": 0.7326767499107761,
+      "dice": 0.7326767499107761
+    },
+    "sample_0663": {
+      "sample_id": "sample_0663",
+      "voxel_dice": 0.7913272339882299,
+      "dice": 0.7913272339882299
+    },
+    "sample_0665": {
+      "sample_id": "sample_0665",
+      "voxel_dice": 0.5785737687012239,
+      "dice": 0.5785737687012239
+    },
+    "sample_0671": {
+      "sample_id": "sample_0671",
+      "voxel_dice": 0.8192109777006069,
+      "dice": 0.8192109777006069
+    },
+    "sample_0677": {
+      "sample_id": "sample_0677",
+      "voxel_dice": 0.5711937538520846,
+      "dice": 0.5711937538520846
+    },
+    "sample_0686": {
+      "sample_id": "sample_0686",
+      "voxel_dice": 0.8305905130675832,
+      "dice": 0.8305905130675832
+    },
+    "sample_0692": {
+      "sample_id": "sample_0692",
+      "voxel_dice": 0.4109747626763076,
+      "dice": 0.4109747626763076
+    },
+    "sample_0696": {
+      "sample_id": "sample_0696",
+      "voxel_dice": 0.7179086135619284,
+      "dice": 0.7179086135619284
+    },
+    "sample_0698": {
+      "sample_id": "sample_0698",
+      "voxel_dice": 0.5674803194197386,
+      "dice": 0.5674803194197386
+    },
+    "sample_0699": {
+      "sample_id": "sample_0699",
+      "voxel_dice": 0.46762033636142697,
+      "dice": 0.46762033636142697
+    },
+    "sample_0701": {
+      "sample_id": "sample_0701",
+      "voxel_dice": 0.6383897199073193,
+      "dice": 0.6383897199073193
+    },
+    "sample_0704": {
+      "sample_id": "sample_0704",
+      "voxel_dice": 0.6400945423284915,
+      "dice": 0.6400945423284915
+    },
+    "sample_0714": {
+      "sample_id": "sample_0714",
+      "voxel_dice": 0.5108833969590041,
+      "dice": 0.5108833969590041
+    },
+    "sample_0718": {
+      "sample_id": "sample_0718",
+      "voxel_dice": 0.4693735403775682,
+      "dice": 0.4693735403775682
+    },
+    "sample_0721": {
+      "sample_id": "sample_0721",
+      "voxel_dice": 0.7614942528730422,
+      "dice": 0.7614942528730422
+    },
+    "sample_0733": {
+      "sample_id": "sample_0733",
+      "voxel_dice": 0.6994895065221787,
+      "dice": 0.6994895065221787
+    },
+    "sample_0735": {
+      "sample_id": "sample_0735",
+      "voxel_dice": 0.4391485750651021,
+      "dice": 0.4391485750651021
+    },
+    "sample_0736": {
+      "sample_id": "sample_0736",
+      "voxel_dice": 0.5589007256443009,
+      "dice": 0.5589007256443009
+    },
+    "sample_0738": {
+      "sample_id": "sample_0738",
+      "voxel_dice": 0.7450056539759281,
+      "dice": 0.7450056539759281
+    },
+    "sample_0739": {
+      "sample_id": "sample_0739",
+      "voxel_dice": 0.41918154526748364,
+      "dice": 0.41918154526748364
+    },
+    "sample_0746": {
+      "sample_id": "sample_0746",
+      "voxel_dice": 0.8073059360721377,
+      "dice": 0.8073059360721377
+    },
+    "sample_0747": {
+      "sample_id": "sample_0747",
+      "voxel_dice": 0.4818725353002393,
+      "dice": 0.4818725353002393
+    },
+    "sample_0754": {
+      "sample_id": "sample_0754",
+      "voxel_dice": 0.5655857434993031,
+      "dice": 0.5655857434993031
+    },
+    "sample_0758": {
+      "sample_id": "sample_0758",
+      "voxel_dice": 0.6856779728328813,
+      "dice": 0.6856779728328813
+    },
+    "sample_0759": {
+      "sample_id": "sample_0759",
+      "voxel_dice": 0.6142205140516284,
+      "dice": 0.6142205140516284
+    },
+    "sample_0762": {
+      "sample_id": "sample_0762",
+      "voxel_dice": 0.6564204263753407,
+      "dice": 0.6564204263753407
+    },
+    "sample_0764": {
+      "sample_id": "sample_0764",
+      "voxel_dice": 0.45683093718731693,
+      "dice": 0.45683093718731693
+    },
+    "sample_0768": {
+      "sample_id": "sample_0768",
+      "voxel_dice": 0.5281028938903356,
+      "dice": 0.5281028938903356
+    },
+    "sample_0773": {
+      "sample_id": "sample_0773",
+      "voxel_dice": 0.3509467989177331,
+      "dice": 0.3509467989177331
+    },
+    "sample_0777": {
+      "sample_id": "sample_0777",
+      "voxel_dice": 0.4430279931656965,
+      "dice": 0.4430279931656965
+    },
+    "sample_0781": {
+      "sample_id": "sample_0781",
+      "voxel_dice": 0.5549936788870944,
+      "dice": 0.5549936788870944
+    },
+    "sample_0786": {
+      "sample_id": "sample_0786",
+      "voxel_dice": 0.6214536611722362,
+      "dice": 0.6214536611722362
+    },
+    "sample_0787": {
+      "sample_id": "sample_0787",
+      "voxel_dice": 0.6548717514597012,
+      "dice": 0.6548717514597012
+    },
+    "sample_0791": {
+      "sample_id": "sample_0791",
+      "voxel_dice": 0.6169801098981371,
+      "dice": 0.6169801098981371
+    },
+    "sample_0794": {
+      "sample_id": "sample_0794",
+      "voxel_dice": 0.5096071733555618,
+      "dice": 0.5096071733555618
+    },
+    "sample_0811": {
+      "sample_id": "sample_0811",
+      "voxel_dice": 0.49557835160904173,
+      "dice": 0.49557835160904173
+    },
+    "sample_0824": {
+      "sample_id": "sample_0824",
+      "voxel_dice": 0.7673654390926148,
+      "dice": 0.7673654390926148
+    },
+    "sample_0825": {
+      "sample_id": "sample_0825",
+      "voxel_dice": 0.7719691311914713,
+      "dice": 0.7719691311914713
+    },
+    "sample_0826": {
+      "sample_id": "sample_0826",
+      "voxel_dice": 0.6769379688628886,
+      "dice": 0.6769379688628886
+    },
+    "sample_0828": {
+      "sample_id": "sample_0828",
+      "voxel_dice": 0.7655388606628845,
+      "dice": 0.7655388606628845
+    },
+    "sample_0830": {
+      "sample_id": "sample_0830",
+      "voxel_dice": 0.39108335753674767,
+      "dice": 0.39108335753674767
+    },
+    "sample_0841": {
+      "sample_id": "sample_0841",
+      "voxel_dice": 0.4964212946029484,
+      "dice": 0.4964212946029484
+    },
+    "sample_0849": {
+      "sample_id": "sample_0849",
+      "voxel_dice": 0.4821605006032691,
+      "dice": 0.4821605006032691
+    },
+    "sample_0854": {
+      "sample_id": "sample_0854",
+      "voxel_dice": 0.31742558913336183,
+      "dice": 0.31742558913336183
+    },
+    "sample_0863": {
+      "sample_id": "sample_0863",
+      "voxel_dice": 0.47021200994851325,
+      "dice": 0.47021200994851325
+    },
+    "sample_0867": {
+      "sample_id": "sample_0867",
+      "voxel_dice": 0.3891712094609727,
+      "dice": 0.3891712094609727
+    },
+    "sample_0875": {
+      "sample_id": "sample_0875",
+      "voxel_dice": 0.5948573621586353,
+      "dice": 0.5948573621586353
+    },
+    "sample_0881": {
+      "sample_id": "sample_0881",
+      "voxel_dice": 0.7219844144432861,
+      "dice": 0.7219844144432861
+    },
+    "sample_0882": {
+      "sample_id": "sample_0882",
+      "voxel_dice": 0.7480916030520754,
+      "dice": 0.7480916030520754
+    },
+    "sample_0887": {
+      "sample_id": "sample_0887",
+      "voxel_dice": 0.7206493380996032,
+      "dice": 0.7206493380996032
+    },
+    "sample_0890": {
+      "sample_id": "sample_0890",
+      "voxel_dice": 0.45426488935553594,
+      "dice": 0.45426488935553594
+    },
+    "sample_0899": {
+      "sample_id": "sample_0899",
+      "voxel_dice": 0.6215291485717716,
+      "dice": 0.6215291485717716
+    },
+    "sample_0906": {
+      "sample_id": "sample_0906",
+      "voxel_dice": 0.5854782436965403,
+      "dice": 0.5854782436965403
+    },
+    "sample_0907": {
+      "sample_id": "sample_0907",
+      "voxel_dice": 0.6254855416483461,
+      "dice": 0.6254855416483461
+    },
+    "sample_0908": {
+      "sample_id": "sample_0908",
+      "voxel_dice": 0.43070659452486704,
+      "dice": 0.43070659452486704
+    },
+    "sample_0913": {
+      "sample_id": "sample_0913",
+      "voxel_dice": 0.7234906139008386,
+      "dice": 0.7234906139008386
+    },
+    "sample_0925": {
+      "sample_id": "sample_0925",
+      "voxel_dice": 0.747978747977884,
+      "dice": 0.747978747977884
+    },
+    "sample_0930": {
+      "sample_id": "sample_0930",
+      "voxel_dice": 0.5942857142831021,
+      "dice": 0.5942857142831021
+    },
+    "sample_0931": {
+      "sample_id": "sample_0931",
+      "voxel_dice": 0.6520574628677445,
+      "dice": 0.6520574628677445
+    },
+    "sample_0936": {
+      "sample_id": "sample_0936",
+      "voxel_dice": 0.688867745003938,
+      "dice": 0.688867745003938
+    },
+    "sample_0947": {
+      "sample_id": "sample_0947",
+      "voxel_dice": 0.6445521182747614,
+      "dice": 0.6445521182747614
+    },
+    "sample_0954": {
+      "sample_id": "sample_0954",
+      "voxel_dice": 0.757975244036673,
+      "dice": 0.757975244036673
+    },
+    "sample_0955": {
+      "sample_id": "sample_0955",
+      "voxel_dice": 0.5512614846138608,
+      "dice": 0.5512614846138608
+    },
+    "sample_0956": {
+      "sample_id": "sample_0956",
+      "voxel_dice": 0.512969367588616,
+      "dice": 0.512969367588616
+    },
+    "sample_0958": {
+      "sample_id": "sample_0958",
+      "voxel_dice": 0.7917012448116355,
+      "dice": 0.7917012448116355
+    },
+    "sample_0963": {
+      "sample_id": "sample_0963",
+      "voxel_dice": 0.6341760997758867,
+      "dice": 0.6341760997758867
+    },
+    "sample_0964": {
+      "sample_id": "sample_0964",
+      "voxel_dice": 0.5928858645217489,
+      "dice": 0.5928858645217489
+    },
+    "sample_0970": {
+      "sample_id": "sample_0970",
+      "voxel_dice": 0.5433010306102574,
+      "dice": 0.5433010306102574
+    },
+    "sample_0974": {
+      "sample_id": "sample_0974",
+      "voxel_dice": 0.7042468101307329,
+      "dice": 0.7042468101307329
+    },
+    "sample_0978": {
+      "sample_id": "sample_0978",
+      "voxel_dice": 0.6427165354320166,
+      "dice": 0.6427165354320166
+    },
+    "sample_0982": {
+      "sample_id": "sample_0982",
+      "voxel_dice": 0.5275882911661103,
+      "dice": 0.5275882911661103
+    },
+    "sample_0983": {
+      "sample_id": "sample_0983",
+      "voxel_dice": 0.7803643724683192,
+      "dice": 0.7803643724683192
+    },
+    "sample_0986": {
+      "sample_id": "sample_0986",
+      "voxel_dice": 0.7940332759600757,
+      "dice": 0.7940332759600757
+    },
+    "sample_0990": {
+      "sample_id": "sample_0990",
+      "voxel_dice": 0.7112634671883337,
+      "dice": 0.7112634671883337
+    },
+    "sample_0992": {
+      "sample_id": "sample_0992",
+      "voxel_dice": 0.5522840441648059,
+      "dice": 0.5522840441648059
+    },
+    "sample_0994": {
+      "sample_id": "sample_0994",
+      "voxel_dice": 0.6923951901196844,
+      "dice": 0.6923951901196844
+    },
+    "sample_0998": {
+      "sample_id": "sample_0998",
+      "voxel_dice": 0.4356060606055106,
+      "dice": 0.4356060606055106
+    }
+  }
+}
