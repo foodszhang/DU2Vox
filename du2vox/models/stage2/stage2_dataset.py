@@ -155,11 +155,13 @@ class Stage2DatasetPrecomputed(Dataset):
         sample_ids: List[str],
         n_query_points: int = 4096,
         cache_size: int = 32,
+        deterministic: bool = False,
     ):
         self.precomputed_dir = Path(precomputed_dir)
         self.sample_ids = sample_ids
         self.n_query_points = n_query_points
         self._cache_size = cache_size
+        self.deterministic = deterministic
 
         # LRU cache: sid -> loaded npz arrays
         self._npz_cache: dict[str, dict] = {}
@@ -206,11 +208,19 @@ class Stage2DatasetPrecomputed(Dataset):
                 "sample_id": sid,
             }
 
-        # Sample n_query_points from valid indices
-        if n_valid >= self.n_query_points:
-            chosen = np.random.choice(valid_indices, self.n_query_points, replace=False)
+        # Sample n_query_points from valid indices.
+        # Validation should be deterministic so FemDice / Stage2Dice are comparable across epochs.
+        if self.deterministic:
+            if n_valid >= self.n_query_points:
+                chosen = valid_indices[: self.n_query_points]
+            else:
+                reps = int(np.ceil(self.n_query_points / max(n_valid, 1)))
+                chosen = np.tile(valid_indices, reps)[: self.n_query_points]
         else:
-            chosen = np.random.choice(valid_indices, self.n_query_points, replace=True)
+            if n_valid >= self.n_query_points:
+                chosen = np.random.choice(valid_indices, self.n_query_points, replace=False)
+            else:
+                chosen = np.random.choice(valid_indices, self.n_query_points, replace=True)
 
         # Use pre-normalized coords if available, otherwise normalize on the fly
         if "grid_coords_norm" in data:
@@ -268,12 +278,14 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
         n_query_points: int = 4096,
         cache_size: int = 16,
         shared_dir: str | None = None,
+        deterministic: bool = False,
     ):
         super().__init__(
             precomputed_dir=precomputed_dir,
             sample_ids=sample_ids,
             n_query_points=n_query_points,
             cache_size=cache_size,
+            deterministic=deterministic,
         )
         self.samples_dir = Path(samples_dir)
         # Load frame manifest for MCX coordinate transform
@@ -298,11 +310,19 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
                 "sample_id":     sid,
             }
 
-        # Sample n_query_points from valid indices
-        if n_valid >= self.n_query_points:
-            chosen = np.random.choice(valid_indices, self.n_query_points, replace=False)
+        # Sample n_query_points from valid indices.
+        # Validation should be deterministic so FemDice / Stage2Dice are comparable across epochs.
+        if self.deterministic:
+            if n_valid >= self.n_query_points:
+                chosen = valid_indices[: self.n_query_points]
+            else:
+                reps = int(np.ceil(self.n_query_points / max(n_valid, 1)))
+                chosen = np.tile(valid_indices, reps)[: self.n_query_points]
         else:
-            chosen = np.random.choice(valid_indices, self.n_query_points, replace=True)
+            if n_valid >= self.n_query_points:
+                chosen = np.random.choice(valid_indices, self.n_query_points, replace=False)
+            else:
+                chosen = np.random.choice(valid_indices, self.n_query_points, replace=True)
 
         # Normalized coords for INR input
         if "grid_coords_norm" in data:

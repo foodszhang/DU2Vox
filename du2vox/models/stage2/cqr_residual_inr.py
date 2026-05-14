@@ -49,6 +49,7 @@ class CQRResidualINR(nn.Module):
         prior_dim: int = 13,
         skip_connection: bool = True,
         view_feat_dim: int = 0,
+        residual_scale: float = 0.1,
     ):
         super().__init__()
         if prior_dim < 8:
@@ -57,6 +58,7 @@ class CQRResidualINR(nn.Module):
         self.pe = PositionalEncoding(n_freqs=n_freqs, include_input=True)
         self.prior_dim = prior_dim
         self.view_feat_dim = view_feat_dim
+        self.residual_scale = float(residual_scale)
         self.hidden_dim = hidden_dim
         self.n_hidden_layers = n_hidden_layers
         self.skip_connection = skip_connection
@@ -104,7 +106,7 @@ class CQRResidualINR(nn.Module):
             else:
                 x = self.act(layer(x))
 
-        residual = self.out(x).squeeze(-1)
+        residual = self.out(x).squeeze(-1) * self.residual_scale
         fem_interp = (flat_prior[:, :4] * flat_prior[:, 4:8]).sum(dim=-1)
         d_hat = fem_interp + residual
         return d_hat.view(B, N), fem_interp.view(B, N), residual.view(B, N)

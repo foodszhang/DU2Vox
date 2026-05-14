@@ -6,8 +6,8 @@ experiment:
   name: "full_multiview_20k"
 
 data:
-  precomputed_train_dir: precomputed/cqr_v1/train_smoke
-  precomputed_val_dir: precomputed/cqr_v1/val_smoke
+  precomputed_train_dir: precomputed/cqr_v1_1/train_small
+  precomputed_val_dir: precomputed/cqr_v1_1/val_small
   train_bridge_dir: output/bridge_20k_train/
   val_bridge_dir: output/bridge_20k_val/
 
@@ -33,10 +33,10 @@ model:
   fusion_method: "attn"
   encoder_base_channels: 32
   encoder_out_channels: 32
-  view_encoder_lr_scale: 1.0
+  view_encoder_lr_scale: 0.2
 
 training:
-  lr: 1.0e-4
+  lr: 5.0e-5
   weight_decay: 1.0e-5
   batch_size: 8
   max_epochs: 200
@@ -50,7 +50,7 @@ training:
   warmup_epochs: 5
 
 loss:
-  type: "mse"
+  type: "mse_support"
 
 logging:
   print_every: 1
@@ -58,10 +58,10 @@ logging:
 
 cqr:
   ratios:
-    core: 0.25
-    halo: 0.45
-    sentinel: 0.20
-    bg: 0.10
+    core: 0.55
+    halo: 0.35
+    sentinel: 0.03
+    bg: 0.07
   coverage:
     tau_core: 0.50
     tau_weak: 0.08
