@@ -222,15 +222,26 @@ class Stage2DatasetPrecomputed(Dataset):
             bbox_max = data["bbox_max"]
             coords = (2.0 * (raw - bbox_min) / (bbox_max - bbox_min + 1e-8) - 1.0)
 
-        return {
+        item = {
             "coords":   torch.from_numpy(coords.astype(np.float32)),
             "prior_8d": torch.from_numpy(data["prior_8d"][chosen].copy()),
             "gt":       torch.from_numpy(data["gt_values"][chosen].copy()),
             # Pre-filtered: chosen points are sampled from valid_mask indices only.
-        # Every returned point is guaranteed to be inside a ROI tet.
-        "valid":    torch.ones(self.n_query_points, dtype=torch.bool),
+            # Every returned point is guaranteed to be inside a ROI/CQR tet.
+            "valid":    torch.ones(self.n_query_points, dtype=torch.bool),
             "sample_id": sid,
         }
+        if "prior_ext" in data:
+            item["prior_ext"] = torch.from_numpy(data["prior_ext"][chosen].copy().astype(np.float32))
+        if "role" in data:
+            item["role"] = torch.from_numpy(data["role"][chosen].copy().astype(np.int64))
+        if "coverage_score" in data:
+            item["coverage_score"] = torch.from_numpy(data["coverage_score"][chosen].copy().astype(np.float32))
+        if "risk_components" in data:
+            item["risk_components"] = torch.from_numpy(data["risk_components"][chosen].copy().astype(np.float32))
+        if "query_weight" in data:
+            item["query_weight"] = torch.from_numpy(data["query_weight"][chosen].copy().astype(np.float32))
+        return item
 
 
 class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
@@ -334,7 +345,7 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
             # Fallback: zeros if proj.npz not available
             proj_imgs = np.zeros((7, 256, 256), dtype=np.float32)
 
-        return {
+        item = {
             "coords":       torch.from_numpy(coords_norm.astype(np.float32)),
             "prior_8d":    torch.from_numpy(data["prior_8d"][chosen].copy()),
             "gt":          torch.from_numpy(data["gt_values"][chosen].copy()),
@@ -344,3 +355,14 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
             "proj_imgs":   torch.from_numpy(proj_imgs).unsqueeze(1),  # [7, 1, 256, 256]
             "sample_id":   sid,
         }
+        if "prior_ext" in data:
+            item["prior_ext"] = torch.from_numpy(data["prior_ext"][chosen].copy().astype(np.float32))
+        if "role" in data:
+            item["role"] = torch.from_numpy(data["role"][chosen].copy().astype(np.int64))
+        if "coverage_score" in data:
+            item["coverage_score"] = torch.from_numpy(data["coverage_score"][chosen].copy().astype(np.float32))
+        if "risk_components" in data:
+            item["risk_components"] = torch.from_numpy(data["risk_components"][chosen].copy().astype(np.float32))
+        if "query_weight" in data:
+            item["query_weight"] = torch.from_numpy(data["query_weight"][chosen].copy().astype(np.float32))
+        return item

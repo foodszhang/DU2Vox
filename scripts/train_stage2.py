@@ -30,6 +30,7 @@ from torch.utils.data import DataLoader
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from du2vox.models.stage2.residual_inr import ResidualINR
+from du2vox.models.stage2.cqr_residual_inr import CQRResidualINR
 from du2vox.models.stage2.stage2_dataset import (
     Stage2Dataset,
     Stage2DatasetPrecomputed,
@@ -114,7 +115,7 @@ def train_step(
     loss_type: "gisc" (weighted BCE + sparse + Focal Tversky) or "soft_dice" (pure soft Dice).
     """
     coords   = batch["coords"].cuda()      # [B, N, 3] — normalized [-1,1] for INR
-    prior    = batch["prior_8d"].cuda()   # [B, N, 8]
+    prior    = batch.get("prior_ext", batch["prior_8d"]).cuda()
     gt       = batch["gt"].cuda()          # [B, N]
     valid    = batch["valid"].cuda()       # [B, N]
 
@@ -267,7 +268,7 @@ def validate(
     with torch.no_grad():
         for batch in val_loader:
             coords  = batch["coords"].cuda()
-            prior   = batch["prior_8d"].cuda()
+            prior   = batch.get("prior_ext", batch["prior_8d"]).cuda()
             gt      = batch["gt"]
             valid   = batch["valid"]
             sids    = batch["sample_id"]
@@ -392,6 +393,10 @@ def main():
 
     # Build model
     view_encoder_cfg = cfg["model"].get("view_encoder", False)
+    prior_dim = int(cfg["model"].get("prior_dim", 8))
+    model_type = cfg["model"].get("model_type", "")
+    use_cqr_model = (model_type == "cqr_residual_inr") or (prior_dim > 8)
+    ModelCls = CQRResidualINR if use_cqr_model else ResidualINR
 
     if view_encoder_cfg:
         # Multiview mode: ViewEncoderModule + ResidualINR
@@ -404,11 +409,11 @@ def main():
             encoder_base_channels=cfg["model"].get("encoder_base_channels", 32),
         ).cuda()
 
-        model = ResidualINR(
+        model = ModelCls(
             n_freqs=cfg["model"]["n_freqs"],
             hidden_dim=cfg["model"]["hidden_dim"],
             n_hidden_layers=cfg["model"]["n_hidden_layers"],
-            prior_dim=cfg["model"]["prior_dim"],
+            prior_dim=prior_dim,
             skip_connection=cfg["model"]["skip_connection"],
             view_feat_dim=cfg["model"]["view_feat_dim"],
         ).cuda()
@@ -428,11 +433,11 @@ def main():
     else:
         # DE-only mode
         view_encoder = None
-        model = ResidualINR(
+        model = ModelCls(
             n_freqs=cfg["model"]["n_freqs"],
             hidden_dim=cfg["model"]["hidden_dim"],
             n_hidden_layers=cfg["model"]["n_hidden_layers"],
-            prior_dim=cfg["model"]["prior_dim"],
+            prior_dim=prior_dim,
             skip_connection=cfg["model"]["skip_connection"],
         ).cuda()
 
