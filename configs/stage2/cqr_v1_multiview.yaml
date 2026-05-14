@@ -12,7 +12,6 @@ data:
   train_bridge_dir: output/bridge_20k_train/
   val_bridge_dir: output/bridge_20k_val/
 
-
   samples_dir: /home/foods/pro/FMT-SimGen/data/uniform_1000_20k/samples
   shared_dir: /home/foods/pro/FMT-SimGen/output/shared_mesh_20k
   train_split: /home/foods/pro/FMT-SimGen/data/uniform_1000_20k/splits/train.txt
@@ -20,8 +19,12 @@ data:
 
   n_query_points: 4096
   roi_padding_mm: 1.0
+  precomputed_train_dir: precomputed/cqr_v1/train
+  precomputed_val_dir: precomputed/cqr_v1/val
 
 model:
+  model_type: cqr_residual_inr
+  pior_dim: 13
   n_freqs: 10
   hidden_dim: 256
   n_hidden_layers: 4
@@ -49,8 +52,20 @@ training:
   warmup_epochs: 5
 
 loss:
-  type: "focal"
+  type: "mse"
 
 logging:
   print_every: 1
   detail_every: 5
+
+cqr:
+  ratios:
+    core: 0.25
+    halo: 0.45
+    sentinel: 0.20
+    bg: 0.10
+  coverage:
+    tau_core: 0.50
+    tau_weak: 0.08
+    halo_layers: 1
+    sentinel_score_quantile: 0.85
