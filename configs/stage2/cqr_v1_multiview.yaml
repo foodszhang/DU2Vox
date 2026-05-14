@@ -6,9 +6,8 @@ experiment:
   name: "full_multiview_20k"
 
 data:
-  precomputed_train_dir: precomputed/train_20k/
-  precomputed_val_dir: precomputed/val_20k/
-
+  precomputed_train_dir: precomputed/cqr_v1/train_smoke
+  precomputed_val_dir: precomputed/cqr_v1/val_smoke
   train_bridge_dir: output/bridge_20k_train/
   val_bridge_dir: output/bridge_20k_val/
 
@@ -19,16 +18,15 @@ data:
 
   n_query_points: 4096
   roi_padding_mm: 1.0
-  precomputed_train_dir: precomputed/cqr_v1/train
-  precomputed_val_dir: precomputed/cqr_v1/val
+  # precomputed_train_dir: precomputed/cqr_v1/train
+  # precomputed_val_dir: precomputed/cqr_v1/val
 
 model:
   model_type: cqr_residual_inr
-  pior_dim: 13
+  prior_dim: 13
   n_freqs: 10
   hidden_dim: 256
   n_hidden_layers: 4
-  prior_dim: 8
   skip_connection: true
   view_encoder: true
   view_feat_dim: 32
