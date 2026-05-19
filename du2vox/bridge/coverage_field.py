@@ -17,7 +17,11 @@ class QueryRole(IntEnum):
 class CoverageFieldConfig:
     tau_core: float = 0.50
     tau_weak: float = 0.08
+    tau_boundary_low: float = 0.20
+    tau_boundary_high: float = 0.50
+    use_boundary_halo: bool = False
     halo_layers: int = 1
+    max_halo_tets_ratio: float = 0.40
     sentinel_score_quantile: float = 0.85
     eps: float = 1e-8
 
@@ -70,6 +74,19 @@ def _coerce_cfg(cfg: CoverageFieldConfig | dict | None) -> CoverageFieldConfig:
     return CoverageFieldConfig(**{k: v for k, v in cfg.items() if k in allowed})
 
 
+def _limit_mask_by_score(mask: np.ndarray, score: np.ndarray, max_ratio: float) -> np.ndarray:
+    if max_ratio <= 0 or max_ratio >= 1 or not np.any(mask):
+        return mask
+    max_count = max(1, int(round(len(mask) * max_ratio)))
+    idx = np.where(mask)[0]
+    if len(idx) <= max_count:
+        return mask
+    keep = idx[np.argsort(score[idx])[-max_count:]]
+    out = np.zeros_like(mask, dtype=bool)
+    out[keep] = True
+    return out
+
+
 def compute_coverage_field(
     coarse_d: np.ndarray,
     elements: np.ndarray,
@@ -108,6 +125,7 @@ def compute_coverage_field(
         + 0.20 * var_n
         + 0.10 * weak_n
     ).astype(np.float32)
+    boundary_score = (range_n * max_n).astype(np.float32)
 
     role = np.full(len(elements), int(QueryRole.BG), dtype=np.int64)
 
@@ -119,6 +137,15 @@ def compute_coverage_field(
 
     core_halo_mask = _dilate_tet_mask(core_mask, elements, int(cfg.halo_layers))
     halo_mask = core_halo_mask & (~core_mask)
+    if cfg.use_boundary_halo:
+        range_cut = float(np.quantile(tet_range, 0.60))
+        boundary_mask = (
+            (tet_max >= cfg.tau_boundary_low)
+            & (tet_max < cfg.tau_boundary_high)
+            & (tet_range >= range_cut)
+        )
+        halo_mask = (halo_mask | boundary_mask) & (~core_mask)
+        halo_mask = _limit_mask_by_score(halo_mask, boundary_score + coverage_score, cfg.max_halo_tets_ratio)
     non_core_halo = ~(core_mask | halo_mask)
 
     if np.any(non_core_halo):
@@ -140,6 +167,7 @@ def compute_coverage_field(
         "tet_range": tet_range,
         "tet_var": tet_var,
         "coverage_score": coverage_score,
+        "boundary_score": boundary_score,
         "risk_components": risk_components,
         "role": role,
     }

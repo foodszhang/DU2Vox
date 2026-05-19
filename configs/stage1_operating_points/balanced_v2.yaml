@@ -1,0 +1,5 @@
+name: balanced_v2
+tau_active: 0.18
+tau_core: 0.65
+roi_dilation_layers: 0
+min_component_size: 3

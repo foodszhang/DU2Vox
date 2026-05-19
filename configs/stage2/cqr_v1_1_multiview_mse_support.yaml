@@ -1,9 +1,7 @@
-# DU2Vox Stage 2 — Multiview mode with 20k mesh
-# DE + MCX 7-view fusion (ViewEncoderModule)
-# Uses precomputed grid data + FMT-SimGen proj.npz
+# DU2Vox Stage 2 — CQR-v1.1 Multiview + mse_support
 
 experiment:
-  name: "full_multiview_20k"
+  name: "cqr_v1_1_multiview_mse_support"
 
 data:
   precomputed_train_dir: precomputed/cqr_v1_1/train
@@ -18,8 +16,6 @@ data:
 
   n_query_points: 4096
   roi_padding_mm: 1.0
-  # precomputed_train_dir: precomputed/cqr_v1/train
-  # precomputed_val_dir: precomputed/cqr_v1/val
 
 model:
   model_type: cqr_residual_inr

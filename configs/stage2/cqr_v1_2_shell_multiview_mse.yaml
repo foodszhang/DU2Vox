@@ -1,25 +1,19 @@
-# DU2Vox Stage 2 — Multiview mode with 20k mesh
-# DE + MCX 7-view fusion (ViewEncoderModule)
-# Uses precomputed grid data + FMT-SimGen proj.npz
+# DU2Vox Stage 2 — CQR-v1.2 Distance-Shell Sentinel Multiview + MSE
 
 experiment:
-  name: "full_multiview_20k"
+  name: "cqr_v1_2_shell_multiview_mse"
 
 data:
-  precomputed_train_dir: precomputed/cqr_v1_1/train
-  precomputed_val_dir: precomputed/cqr_v1_1/val
+  precomputed_train_dir: precomputed/cqr_v1_2_shell/train
+  precomputed_val_dir: precomputed/cqr_v1_2_shell/val
   train_bridge_dir: output/bridge_20k_train/
   val_bridge_dir: output/bridge_20k_val/
-
   samples_dir: /home/foods/pro/FMT-SimGen/data/uniform_1000_20k/samples
   shared_dir: /home/foods/pro/FMT-SimGen/output/shared_mesh_20k
   train_split: /home/foods/pro/FMT-SimGen/data/uniform_1000_20k/splits/train.txt
   val_split: /home/foods/pro/FMT-SimGen/data/uniform_1000_20k/splits/val.txt
-
   n_query_points: 4096
   roi_padding_mm: 1.0
-  # precomputed_train_dir: precomputed/cqr_v1/train
-  # precomputed_val_dir: precomputed/cqr_v1/val
 
 model:
   model_type: cqr_residual_inr
@@ -50,7 +44,7 @@ training:
   warmup_epochs: 5
 
 loss:
-  type: "mse_support"
+  type: "mse"
 
 logging:
   print_every: 1
@@ -60,10 +54,15 @@ cqr:
   ratios:
     core: 0.55
     halo: 0.35
-    sentinel: 0.03
-    bg: 0.07
+    sentinel: 0.05
+    bg: 0.05
   coverage:
     tau_core: 0.50
     tau_weak: 0.08
     halo_layers: 1
     sentinel_score_quantile: 0.85
+  sentinel:
+    mode: distance_shell
+    shell_min_mm: 0.0
+    shell_max_mm: 8.0
+    max_sentinel_tets_ratio: 0.10

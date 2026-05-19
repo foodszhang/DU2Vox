@@ -1,0 +1,5 @@
+name: high_recall
+tau_active: 0.08
+tau_core: 0.50
+roi_dilation_layers: 1
+min_component_size: 0

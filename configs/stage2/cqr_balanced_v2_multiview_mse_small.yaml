@@ -1,15 +1,20 @@
-# DU2Vox Stage 2 — Multiview mode with 20k mesh
-# DE + MCX 7-view fusion (ViewEncoderModule)
-# Uses precomputed grid data + FMT-SimGen proj.npz
+# DU2Vox Stage 2 — CQR balanced_v2 S1 OP Multiview + MSE small run
 
 experiment:
-  name: "full_multiview_20k"
+  name: "cqr_balanced_v2_small_multiview_mse"
+
+stage1_operating_point:
+  name: balanced_v2
+  tau_active: 0.18
+  tau_core: 0.65
+  roi_dilation_layers: 0
+  min_component_size: 3
 
 data:
-  precomputed_train_dir: precomputed/cqr_v1_1/train
-  precomputed_val_dir: precomputed/cqr_v1_1/val
-  train_bridge_dir: output/bridge_20k_train/
-  val_bridge_dir: output/bridge_20k_val/
+  precomputed_train_dir: precomputed/cqr_balanced_v2/train_small
+  precomputed_val_dir: precomputed/cqr_balanced_v2/val_small
+  train_bridge_dir: output/bridge_20k_train_balanced_v2
+  val_bridge_dir: output/bridge_20k_val_balanced_v2
 
   samples_dir: /home/foods/pro/FMT-SimGen/data/uniform_1000_20k/samples
   shared_dir: /home/foods/pro/FMT-SimGen/output/shared_mesh_20k
@@ -18,8 +23,6 @@ data:
 
   n_query_points: 4096
   roi_padding_mm: 1.0
-  # precomputed_train_dir: precomputed/cqr_v1/train
-  # precomputed_val_dir: precomputed/cqr_v1/val
 
 model:
   model_type: cqr_residual_inr
@@ -50,7 +53,7 @@ training:
   warmup_epochs: 5
 
 loss:
-  type: "mse_support"
+  type: "mse"
 
 logging:
   print_every: 1
@@ -63,7 +66,7 @@ cqr:
     sentinel: 0.03
     bg: 0.07
   coverage:
-    tau_core: 0.50
-    tau_weak: 0.08
+    tau_core: 0.65
+    tau_weak: 0.18
     halo_layers: 1
     sentinel_score_quantile: 0.85

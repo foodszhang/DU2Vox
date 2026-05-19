@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 import numpy as np
+from scipy.spatial import cKDTree
 
 from du2vox.bridge.coverage_field import (
     CoverageFieldConfig,
@@ -27,6 +28,8 @@ class CQRQueryConfig:
         }
     )
     coverage: CoverageFieldConfig = field(default_factory=CoverageFieldConfig)
+    sentinel: dict = field(default_factory=dict)
+    view_evidence: np.ndarray | None = None
     bg_score_quantile_max: float = 0.40
 
 
@@ -51,6 +54,13 @@ def _normalize_ratios(ratios: dict[str, float]) -> dict[str, float]:
     keys = ["core", "halo", "sentinel", "bg"]
     vals = {k: max(0.0, float(ratios.get(k, 0.0))) for k in keys}
     total = sum(vals.values())
+
+    if total > 1.5:
+        print(
+            f"[CQR][WARN] ratios sum to {total:.3f}, expected around 1.0. "
+            f"Did you write 35 instead of 0.35? ratios={vals}"
+        )
+
     if total <= 0:
         return {"core": 0.25, "halo": 0.45, "sentinel": 0.20, "bg": 0.10}
     return {k: vals[k] / total for k in keys}
@@ -118,11 +128,53 @@ class CQRQueryBuilder:
     def _make_pools(self, field: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
         role = field["role"]
         score = field["coverage_score"]
+        sentinel_cfg = self.config.sentinel or {}
         all_tets = np.arange(len(role), dtype=np.int64)
 
         core = np.where(role == int(QueryRole.CORE))[0].astype(np.int64)
         halo = np.where(role == int(QueryRole.HALO))[0].astype(np.int64)
         sentinel = np.where(role == int(QueryRole.SENTINEL))[0].astype(np.int64)
+
+        if sentinel_cfg.get("mode") in {"distance_shell", "view_guided"} and len(core) > 0:
+            centroids = self.nodes[self.elements].mean(axis=1)
+            dist, _ = cKDTree(centroids[core]).query(centroids, k=1)
+            shell_min = float(sentinel_cfg.get("shell_min_mm", 0.0))
+            shell_max = float(sentinel_cfg.get("shell_max_mm", 8.0))
+            non_core_halo = (role != int(QueryRole.CORE)) & (role != int(QueryRole.HALO))
+            shell = (dist >= shell_min) & (dist <= shell_max) & non_core_halo
+            if np.any(shell):
+                risk = field["risk_components"]
+                dist_score = 1.0 / (dist + 1e-8)
+                dist_score = (dist_score - dist_score.min()) / (dist_score.max() - dist_score.min() + 1e-8)
+                if sentinel_cfg.get("mode") == "view_guided":
+                    view_evidence = self.config.view_evidence
+                    if view_evidence is None:
+                        raise ValueError("sentinel mode view_guided requires view_evidence")
+                    view_evidence = np.asarray(view_evidence, dtype=np.float32)
+                    view_n = (view_evidence - view_evidence.min()) / (view_evidence.max() - view_evidence.min() + 1e-8)
+                    uncertainty = risk[:, 2] + risk[:, 3]
+                    uncertainty = (uncertainty - uncertainty.min()) / (uncertainty.max() - uncertainty.min() + 1e-8)
+                    sentinel_score = (
+                        float(sentinel_cfg.get("view_score_weight", 0.50)) * view_n
+                        + float(sentinel_cfg.get("fem_score_weight", 0.20)) * risk[:, 1]
+                        + float(sentinel_cfg.get("uncertainty_weight", 0.20)) * uncertainty
+                        + float(sentinel_cfg.get("distance_weight", 0.10)) * dist_score
+                    )
+                    field["view_evidence"] = view_evidence.astype(np.float32)
+                else:
+                    sentinel_score = (
+                        0.40 * risk[:, 1]
+                        + 0.30 * risk[:, 2]
+                        + 0.20 * risk[:, 3]
+                        + 0.10 * dist_score
+                    )
+                field["sentinel_score"] = sentinel_score.astype(np.float32)
+                shell_idx = np.where(shell)[0].astype(np.int64)
+                max_ratio = float(sentinel_cfg.get("max_sentinel_tets_ratio", 0.10))
+                max_count = max(1, int(round(len(role) * max_ratio)))
+                if len(shell_idx) > max_count:
+                    shell_idx = shell_idx[np.argsort(sentinel_score[shell_idx])[-max_count:]]
+                sentinel = shell_idx.astype(np.int64)
 
         bg_mask = role == int(QueryRole.BG)
         if np.any(bg_mask):
@@ -209,6 +261,8 @@ class CQRQueryBuilder:
         prior_8d, valid_mask = bridge.get_prior_features(points, coarse_d, K=cfg.n_candidates)
 
         coverage_score = field["coverage_score"][tet_ids].astype(np.float32)
+        view_evidence_score = field.get("view_evidence", np.zeros_like(field["coverage_score"]))[tet_ids].astype(np.float32)
+        sentinel_score = field.get("sentinel_score", np.zeros_like(field["coverage_score"]))[tet_ids].astype(np.float32)
         risk_components = field["risk_components"][tet_ids].astype(np.float32)
         query_weight = role_query_weights(role)
         prior_ext = np.concatenate(
@@ -224,6 +278,8 @@ class CQRQueryBuilder:
             "tet_ids": tet_ids,
             "role": role,
             "coverage_score": coverage_score,
+            "view_evidence_score": view_evidence_score,
+            "sentinel_score": sentinel_score,
             "risk_components": risk_components,
             "query_weight": query_weight.astype(np.float32),
             "role_counts": np.bincount(role, minlength=4).astype(np.int64),

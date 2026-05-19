@@ -21,12 +21,63 @@ def _build_node_to_tets(elements: np.ndarray, n_nodes: int) -> list[list[int]]:
     return node_to_tets
 
 
+def _build_active_node_components(active_mask: np.ndarray, elements: np.ndarray) -> list[list[int]]:
+    active_nodes = np.where(active_mask)[0]
+    if len(active_nodes) == 0:
+        return []
+
+    active_set = set(active_nodes.tolist())
+    adjacency: dict[int, set[int]] = {int(node): set() for node in active_nodes}
+    for tet in elements:
+        nodes = [int(node) for node in tet if int(node) in active_set]
+        for i, node in enumerate(nodes):
+            adjacency[node].update(nodes[:i])
+            adjacency[node].update(nodes[i + 1 :])
+
+    components = []
+    seen: set[int] = set()
+    for node in active_nodes:
+        node = int(node)
+        if node in seen:
+            continue
+        stack = [node]
+        seen.add(node)
+        component = []
+        while stack:
+            cur = stack.pop()
+            component.append(cur)
+            for nxt in adjacency[cur]:
+                if nxt not in seen:
+                    seen.add(nxt)
+                    stack.append(nxt)
+        components.append(component)
+    return components
+
+
+def _filter_active_components(
+    active_mask: np.ndarray,
+    elements: np.ndarray,
+    min_component_size: int,
+) -> tuple[np.ndarray, int, int]:
+    if min_component_size <= 0 or not active_mask.any():
+        return active_mask, 0, 0
+
+    components = _build_active_node_components(active_mask, elements)
+    filtered_mask = np.zeros_like(active_mask, dtype=bool)
+    for component in components:
+        if len(component) >= min_component_size:
+            filtered_mask[np.asarray(component, dtype=np.int64)] = True
+    n_filtered = int(active_mask.sum() - filtered_mask.sum())
+    return filtered_mask, len(components), n_filtered
+
+
 def derive_roi(
     coarse_d: np.ndarray,
     nodes: np.ndarray,
     elements: np.ndarray,
     tau: float = 0.5,
     dilate_layers: int = 1,
+    min_component_size: int = 0,
 ) -> dict:
     """
     Derive ROI tetrahedra from a coarse distribution.
@@ -37,6 +88,7 @@ def derive_roi(
         elements: [N_tets, 4] tetrahedral connectivity (node indices).
         tau: Activation threshold for coarse_d.
         dilate_layers: Number of dilation layers to expand the ROI.
+        min_component_size: Drop active-node components smaller than this size.
 
     Returns:
         dict with keys:
@@ -60,6 +112,11 @@ def derive_roi(
 
     # Step 1: active nodes
     active_mask = coarse_d > tau
+    active_mask, n_components, n_filtered = _filter_active_components(
+        active_mask,
+        elements,
+        int(min_component_size),
+    )
     active_node_indices = np.where(active_mask)[0]
     n_active = len(active_node_indices)
 
@@ -69,6 +126,8 @@ def derive_roi(
         active_node_indices = np.argsort(coarse_d)[-k:]
         active_mask = np.zeros(n_nodes, dtype=bool)
         active_mask[active_node_indices] = True
+        n_components = 1
+        n_filtered = 0
         n_active = len(active_node_indices)
         print(f"  [ROI] Warning: no nodes above tau={tau:.2f}, using top-{k} nodes instead")
 
@@ -103,9 +162,14 @@ def derive_roi(
         "roi_tet_indices": roi_tet_indices,
         "roi_bbox_mm": {"min": bbox_min, "max": bbox_max},
         "n_active_nodes": n_active,
+        "n_active_components": n_components,
+        "n_filtered_active_nodes": n_filtered,
         "n_roi_tets": len(roi_tet_indices),
         "activation_ratio": n_active / n_nodes,
         "roi_tet_ratio": len(roi_tet_indices) / n_tets,
+        "tau_active": float(tau),
+        "roi_dilation_layers": int(dilate_layers),
+        "min_component_size": int(min_component_size),
     }
 
 
@@ -117,9 +181,14 @@ def save_roi_results(result: dict, output_dir: Path) -> None:
 
     roi_info = {
         "n_active_nodes": int(result["n_active_nodes"]),
+        "n_active_components": int(result.get("n_active_components", 0)),
+        "n_filtered_active_nodes": int(result.get("n_filtered_active_nodes", 0)),
         "n_roi_tets": int(result["n_roi_tets"]),
         "activation_ratio": float(result["activation_ratio"]),
         "roi_tet_ratio": float(result["roi_tet_ratio"]),
+        "tau_active": float(result.get("tau_active", 0.5)),
+        "roi_dilation_layers": int(result.get("roi_dilation_layers", 1)),
+        "min_component_size": int(result.get("min_component_size", 0)),
         "roi_bbox_mm": {
             "min": [float(v) for v in result["roi_bbox_mm"]["min"]],
             "max": [float(v) for v in result["roi_bbox_mm"]["max"]],

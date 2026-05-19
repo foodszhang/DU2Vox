@@ -1,15 +1,20 @@
-# DU2Vox Stage 2 — Multiview mode with 20k mesh
-# DE + MCX 7-view fusion (ViewEncoderModule)
-# Uses precomputed grid data + FMT-SimGen proj.npz
+# DU2Vox Stage 2 — ROI-only balanced_v2 S1 OP Multiview + MSE
 
 experiment:
-  name: "full_multiview_20k"
+  name: "roi_balanced_v2_multiview_mse"
+
+stage1_operating_point:
+  name: balanced_v2
+  tau_active: 0.18
+  tau_core: 0.65
+  roi_dilation_layers: 0
+  min_component_size: 3
 
 data:
-  precomputed_train_dir: precomputed/cqr_v1_1/train
-  precomputed_val_dir: precomputed/cqr_v1_1/val
-  train_bridge_dir: output/bridge_20k_train/
-  val_bridge_dir: output/bridge_20k_val/
+  precomputed_train_dir: precomputed/roi_balanced_v2/train
+  precomputed_val_dir: precomputed/roi_balanced_v2/val
+  train_bridge_dir: output/bridge_20k_train_balanced_v2
+  val_bridge_dir: output/bridge_20k_val_balanced_v2
 
   samples_dir: /home/foods/pro/FMT-SimGen/data/uniform_1000_20k/samples
   shared_dir: /home/foods/pro/FMT-SimGen/output/shared_mesh_20k
@@ -18,25 +23,22 @@ data:
 
   n_query_points: 4096
   roi_padding_mm: 1.0
-  # precomputed_train_dir: precomputed/cqr_v1/train
-  # precomputed_val_dir: precomputed/cqr_v1/val
 
 model:
-  model_type: cqr_residual_inr
-  prior_dim: 13
   n_freqs: 10
   hidden_dim: 256
   n_hidden_layers: 4
+  prior_dim: 8
   skip_connection: true
   view_encoder: true
   view_feat_dim: 32
   fusion_method: "attn"
   encoder_base_channels: 32
   encoder_out_channels: 32
-  view_encoder_lr_scale: 0.2
+  view_encoder_lr_scale: 1.0
 
 training:
-  lr: 5.0e-5
+  lr: 1.0e-4
   weight_decay: 1.0e-5
   batch_size: 8
   max_epochs: 200
@@ -50,20 +52,8 @@ training:
   warmup_epochs: 5
 
 loss:
-  type: "mse_support"
+  type: "mse"
 
 logging:
   print_every: 1
   detail_every: 5
-
-cqr:
-  ratios:
-    core: 0.55
-    halo: 0.35
-    sentinel: 0.03
-    bg: 0.07
-  coverage:
-    tau_core: 0.50
-    tau_weak: 0.08
-    halo_layers: 1
-    sentinel_score_quantile: 0.85

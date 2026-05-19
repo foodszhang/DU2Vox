@@ -452,18 +452,28 @@ def main():
     precomputed_train = cfg["data"].get("precomputed_train_dir")
     precomputed_val = cfg["data"].get("precomputed_val_dir")
 
-    if precomputed_train:
-        print(f"[Stage2] Mode: precomputed (train={precomputed_train}, val={precomputed_val})")
-    else:
-        print(f"[Stage2] Mode: on-demand (bridge_dir fallback)")
-    print(f"[Stage2] Training: {len(train_ids)} samples, Val: {len(val_ids)} samples")
-
     # Build model
     view_encoder_cfg = cfg["model"].get("view_encoder", False)
     prior_dim = int(cfg["model"].get("prior_dim", 8))
     model_type = cfg["model"].get("model_type", "")
     use_cqr_model = (model_type == "cqr_residual_inr") or (prior_dim > 8)
     ModelCls = CQRResidualINR if use_cqr_model else ResidualINR
+
+    if precomputed_train:
+        print(f"[Stage2] Mode: precomputed (train={precomputed_train}, val={precomputed_val})")
+    else:
+        print("[Stage2] Mode: on-demand (bridge_dir fallback)")
+    print(f"[Stage2] Training: {len(train_ids)} samples, Val: {len(val_ids)} samples")
+    print(
+        f"[Stage2] Model: model_type={model_type or 'residual_inr'}, "
+        f"prior_dim={prior_dim}, use_cqr_model={use_cqr_model}"
+    )
+    print(f"[Stage2] Loss: {cfg['loss']['type']}")
+    print(
+        f"[Stage2] LR: base_lr={cfg['training']['lr']}, "
+        f"view_encoder_lr_scale={cfg['model'].get('view_encoder_lr_scale', 1.0)}"
+    )
+    print(f"[Stage2] Data: train_precomputed={precomputed_train}, val_precomputed={precomputed_val}")
 
     if view_encoder_cfg:
         # Multiview mode: ViewEncoderModule + ResidualINR
@@ -523,6 +533,9 @@ def main():
         T_max=cfg["training"]["scheduler"].get("T_max", max_epochs),
         eta_min=cfg["training"]["scheduler"].get("eta_min", 1e-6),
     )
+    warmup_base_lrs = [pg["lr"] for pg in optimizer.param_groups]
+    for i, lr in enumerate(warmup_base_lrs):
+        print(f"[Stage2] param_group[{i}].lr = {lr:.0e}")
 
     train_loader = build_dataloader(
         cfg,
@@ -571,8 +584,8 @@ def main():
         # Warmup: linear lr ramp
         if epoch <= warmup_epochs:
             lr_scale = epoch / warmup_epochs
-            for pg in optimizer.param_groups:
-                pg["lr"] = cfg["training"]["lr"] * lr_scale
+            for pg, base_lr in zip(optimizer.param_groups, warmup_base_lrs):
+                pg["lr"] = base_lr * lr_scale
         else:
             scheduler.step()
 

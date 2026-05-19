@@ -14,12 +14,14 @@ from scipy.ndimage import map_coordinates
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from du2vox.bridge.cqr_query_builder import CQRQueryBuilder
+from du2vox.bridge.fem_bridging import FEMBridge
+from du2vox.bridge.view_evidence import compute_view_evidence, load_proj_npz
 from du2vox.utils.frame import FrameManifest
 
 
 def load_split(path: str) -> list[str]:
     with open(path) as f:
-        return [l.strip() for l in f if l.strip()]
+        return [line.strip() for line in f if line.strip()]
 
 
 def sample_seed(sid: str) -> int:
@@ -31,6 +33,58 @@ def normalize_coords(points: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.nda
     hi = points.max(axis=0).astype(np.float32)
     coords_norm = (2.0 * (points - lo) / (hi - lo + 1e-8) - 1.0).astype(np.float32)
     return coords_norm, lo, hi
+
+
+def gt_index_to_world(frame: FrameManifest, idx: np.ndarray) -> np.ndarray:
+    return (
+        np.asarray(idx, dtype=np.float64) * frame.gt_spacing_mm
+        + frame.gt_offset_world_mm
+        + frame.gt_spacing_mm / 2
+    ).astype(np.float32)
+
+
+def apply_oracle_sentinel(
+    data: dict[str, np.ndarray],
+    gt_voxels: np.ndarray,
+    frame: FrameManifest,
+    nodes: np.ndarray,
+    elements: np.ndarray,
+    coarse_d: np.ndarray,
+    n_candidates: int,
+    oracle_cfg: dict,
+    seed: int,
+) -> None:
+    if not oracle_cfg.get("enabled", False):
+        return
+    ratio = float(oracle_cfg.get("oracle_sentinel_ratio", 0.05))
+    n_oracle = int(round(len(data["grid_coords"]) * ratio))
+    if n_oracle <= 0:
+        return
+
+    pos_idx = np.argwhere(gt_voxels >= float(oracle_cfg.get("gt_threshold", 0.5)))
+    if len(pos_idx) == 0:
+        return
+    rng = np.random.default_rng(seed + 17)
+    chosen = pos_idx[rng.choice(len(pos_idx), size=n_oracle, replace=len(pos_idx) < n_oracle)]
+    points = gt_index_to_world(frame, chosen)
+
+    replace = np.where(data["role"] == 3)[0]
+    if len(replace) == 0:
+        replace = np.arange(len(data["grid_coords"]))[-n_oracle:]
+    if len(replace) > n_oracle:
+        replace = replace[:n_oracle]
+    points = points[: len(replace)]
+
+    data["grid_coords"][replace] = points
+    data["grid_coords_norm"], data["bbox_min"], data["bbox_max"] = normalize_coords(data["grid_coords"])
+    bridge = FEMBridge(nodes, elements, n_candidates=n_candidates)
+    prior_8d, valid = bridge.get_prior_features(points, coarse_d, K=n_candidates)
+    data["prior_8d"][replace] = prior_8d
+    if "prior_ext" in data:
+        data["prior_ext"][replace, :8] = prior_8d
+    data["gt_values"][replace] = 1.0
+    data["valid_mask"][replace] = valid
+    data["role"][replace] = 3
 
 
 def precompute_one(
@@ -47,6 +101,14 @@ def precompute_one(
     bd = bridge_dir / sid
     coarse_d = np.load(bd / "coarse_d.npy").astype(np.float32)
     roi_tet_indices = np.load(bd / "roi_tet_indices.npy").astype(np.int64)
+    cqr_cfg = dict(cqr_cfg)
+    if cqr_cfg.get("sentinel", {}).get("mode") == "view_guided":
+        proj_path = samples_dir / sid / "proj.npz"
+        if not proj_path.exists():
+            raise FileNotFoundError(f"view_guided sentinel requires {proj_path}")
+        centroids = nodes[elements].mean(axis=1).astype(np.float32)
+        view_score, _ = compute_view_evidence(centroids, load_proj_npz(str(proj_path)))
+        cqr_cfg["view_evidence"] = view_score
 
     builder = CQRQueryBuilder(
         nodes=nodes,
@@ -83,7 +145,7 @@ def precompute_one(
     valid = cqr["valid_mask"].astype(bool) & (~outside_gt)
     gt_values[outside_gt] = 0.0
 
-    return {
+    out = {
         "grid_coords": points,
         "grid_coords_norm": coords_norm,
         "prior_8d": cqr["prior_8d"].astype(np.float32),
@@ -96,10 +158,25 @@ def precompute_one(
         "tet_ids": cqr["tet_ids"].astype(np.int64),
         "role": cqr["role"].astype(np.int64),
         "coverage_score": cqr["coverage_score"].astype(np.float32),
+        "view_evidence_score": cqr["view_evidence_score"].astype(np.float32),
+        "sentinel_score": cqr["sentinel_score"].astype(np.float32),
         "risk_components": cqr["risk_components"].astype(np.float32),
         "query_weight": cqr["query_weight"].astype(np.float32),
         "coverage_role_counts": cqr["role_counts"].astype(np.int64),
     }
+    apply_oracle_sentinel(
+        out,
+        gt_voxels,
+        frame,
+        nodes,
+        elements,
+        coarse_d,
+        n_candidates,
+        cqr_cfg.get("oracle", {}),
+        sample_seed(sid),
+    )
+    out["coverage_role_counts"] = np.bincount(out["role"], minlength=4).astype(np.int64)
+    return out
 
 
 def main() -> None:
@@ -138,6 +215,7 @@ def main() -> None:
 
     cqr_cfg = cfg.get("cqr", {})
 
+    print(f"[CQR] config={cqr_cfg}")
     print(f"[CQR] Loading mesh: {shared_dir}")
     nodes, elements = FrameManifest.load_mesh_nodes(shared_dir)
     frame = FrameManifest.load(shared_dir)
