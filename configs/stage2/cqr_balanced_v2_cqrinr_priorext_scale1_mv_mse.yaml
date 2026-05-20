@@ -1,7 +1,7 @@
-# DU2Vox Stage 2 — CQR balanced_v2 S1 OP Multiview + MSE
+# DU2Vox Stage 2 — CQR query + CQRResidualINR + prior_ext scale1 Multiview + MSE
 
 experiment:
-  name: "cqr_balanced_v2_multiview_mse"
+  name: "cqr_balanced_v2_cqrinr_priorext_scale1_mv_mse"
 
 stage1_operating_point:
   name: balanced_v2

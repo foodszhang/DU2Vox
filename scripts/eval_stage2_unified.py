@@ -152,15 +152,35 @@ def build_model(cfg: dict[str, Any], device: torch.device) -> tuple[torch.nn.Mod
             encoder_base_channels=cfg["model"].get("encoder_base_channels", 32),
         ).to(device)
 
-    model = model_cls(
+    kwargs = dict(
         n_freqs=cfg["model"]["n_freqs"],
         hidden_dim=cfg["model"]["hidden_dim"],
         n_hidden_layers=cfg["model"]["n_hidden_layers"],
         prior_dim=prior_dim,
         skip_connection=cfg["model"]["skip_connection"],
         view_feat_dim=view_feat_dim,
-    ).to(device)
+    )
+    if model_cls is CQRResidualINR:
+        kwargs["residual_scale"] = cfg["model"].get("residual_scale", 1.0)
+    model = model_cls(**kwargs).to(device)
     return model, view_encoder
+
+
+def select_prior(data: dict[str, np.ndarray], cfg: dict[str, Any], valid: np.ndarray) -> np.ndarray:
+    prior_source = cfg["model"].get("prior_source", "prior_ext")
+    prior_dim = int(cfg["model"].get("prior_dim", 8))
+    expected_dim = 8 if prior_source == "prior_8d" else prior_dim
+    if prior_source == "prior_8d":
+        prior = data["prior_8d"]
+    elif prior_source == "prior_ext":
+        prior = data["prior_ext"] if "prior_ext" in data else data["prior_8d"]
+    else:
+        raise ValueError(f"Unknown prior_source: {prior_source}")
+    if prior.shape[-1] != expected_dim:
+        raise ValueError(
+            f"prior_source={prior_source} produced dim={prior.shape[-1]}, expected={expected_dim}"
+        )
+    return prior.astype(np.float32)[valid]
 
 
 def load_checkpoint(
@@ -229,6 +249,7 @@ def mcx_valid_mask(frame: FrameManifest | None, coords_world: np.ndarray) -> np.
 def run_model_on_sample(
     model: torch.nn.Module,
     view_encoder: torch.nn.Module | None,
+    cfg: dict[str, Any],
     data: dict[str, np.ndarray],
     samples_dir: Path | None,
     frame: FrameManifest | None,
@@ -245,8 +266,7 @@ def run_model_on_sample(
 
     coords_norm = normalize_coords(data)[valid]
     coords_world = data["grid_coords"].astype(np.float32)[valid]
-    prior_key = "prior_ext" if "prior_ext" in data else "prior_8d"
-    prior = data[prior_key].astype(np.float32)[valid]
+    prior = select_prior(data, cfg, valid)
 
     if len(coords_norm) == 0:
         return (
@@ -429,6 +449,7 @@ def main() -> None:
             d_hat, fem, residual, valid = run_model_on_sample(
                 model=model,
                 view_encoder=view_encoder,
+                cfg=cfg,
                 data=data,
                 samples_dir=samples_dir,
                 frame=frame,

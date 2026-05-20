@@ -23,6 +23,7 @@ class CoverageFieldConfig:
     halo_layers: int = 1
     max_halo_tets_ratio: float = 0.40
     sentinel_score_quantile: float = 0.85
+    core_from_roi_weak: bool = True
     eps: float = 1e-8
 
 
@@ -130,13 +131,18 @@ def compute_coverage_field(
     role = np.full(len(elements), int(QueryRole.BG), dtype=np.int64)
 
     core_mask = tet_max >= cfg.tau_core
+    support_mask = np.zeros(len(elements), dtype=bool)
     if roi_tet_indices is not None and len(roi_tet_indices) > 0:
         roi_mask = np.zeros(len(elements), dtype=bool)
         roi_mask[np.asarray(roi_tet_indices, dtype=np.int64)] = True
-        core_mask = core_mask | (roi_mask & (tet_max >= cfg.tau_weak))
+        support_mask = roi_mask & (tet_max >= cfg.tau_weak)
+        if cfg.core_from_roi_weak:
+            core_mask = core_mask | support_mask
 
     core_halo_mask = _dilate_tet_mask(core_mask, elements, int(cfg.halo_layers))
     halo_mask = core_halo_mask & (~core_mask)
+    if not cfg.core_from_roi_weak:
+        halo_mask = halo_mask | (support_mask & (~core_mask))
     if cfg.use_boundary_halo:
         range_cut = float(np.quantile(tet_range, 0.60))
         boundary_mask = (

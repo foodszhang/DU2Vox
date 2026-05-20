@@ -1,7 +1,7 @@
-# DU2Vox Stage 2 — CQR balanced_v2 S1 OP Multiview + MSE
+# DU2Vox Stage 2 — CQR balanced_v2 role split prior_ext scale1 Multiview + MSE
 
 experiment:
-  name: "cqr_balanced_v2_multiview_mse"
+  name: "cqr_balanced_v2_rolesplit_priorext_scale1_mv_mse"
 
 stage1_operating_point:
   name: balanced_v2
@@ -11,8 +11,8 @@ stage1_operating_point:
   min_component_size: 3
 
 data:
-  precomputed_train_dir: precomputed/cqr_balanced_v2/train
-  precomputed_val_dir: precomputed/cqr_balanced_v2/val
+  precomputed_train_dir: precomputed/cqr_balanced_v2_rolesplit/train
+  precomputed_val_dir: precomputed/cqr_balanced_v2_rolesplit/val
   train_bridge_dir: output/bridge_20k_train_balanced_v2
   val_bridge_dir: output/bridge_20k_val_balanced_v2
 
@@ -72,3 +72,4 @@ cqr:
     tau_weak: 0.18
     halo_layers: 1
     sentinel_score_quantile: 0.85
+    core_from_roi_weak: false

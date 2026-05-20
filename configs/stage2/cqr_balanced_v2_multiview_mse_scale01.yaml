@@ -1,7 +1,7 @@
-# DU2Vox Stage 2 — CQR balanced_v2 S1 OP Multiview + MSE
+# DU2Vox Stage 2 — CQR balanced_v2 Multiview + MSE, residual scale 0.1
 
 experiment:
-  name: "cqr_balanced_v2_multiview_mse"
+  name: "cqr_balanced_v2_multiview_mse_scale01"
 
 stage1_operating_point:
   name: balanced_v2
@@ -28,7 +28,7 @@ model:
   model_type: cqr_residual_inr
   prior_dim: 13
   prior_source: prior_ext
-  residual_scale: 1.0
+  residual_scale: 0.1
   n_freqs: 10
   hidden_dim: 256
   n_hidden_layers: 4

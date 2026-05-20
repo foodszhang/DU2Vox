@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 from pathlib import Path
 
 import numpy as np
@@ -25,6 +26,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dir", required=True)
     parser.add_argument("--max_files", type=int, default=20)
+    parser.add_argument("--out_csv", default=None)
     args = parser.parse_args()
 
     paths = sorted(Path(args.dir).glob("*.npz"))[: args.max_files]
@@ -76,10 +78,32 @@ def main():
         print(f"    thr={thr:.1f} dice={dice_at(fem_all, gt_all, thr):.4f}")
 
     print("\n  role aggregate:")
+    rows = [
+        {
+            "role": "all",
+            "n": len(gt_all),
+            "gt_pos_05": float((gt_all >= 0.5).mean()),
+            "fem_pos_05": float((fem_all >= 0.5).mean()),
+            "gt_mean": float(gt_all.mean()),
+            "fem_mean": float(fem_all.mean()),
+            "fem_dice_05": float(dice_at(fem_all, gt_all, 0.5)),
+        }
+    ]
     for rid in [0, 1, 2, 3]:
         m = role_all == rid
         if m.sum() == 0:
             continue
+        rows.append(
+            {
+                "role": ROLE_NAMES[rid],
+                "n": int(m.sum()),
+                "gt_pos_05": float((gt_all[m] >= 0.5).mean()),
+                "fem_pos_05": float((fem_all[m] >= 0.5).mean()),
+                "gt_mean": float(gt_all[m].mean()),
+                "fem_mean": float(fem_all[m].mean()),
+                "fem_dice_05": float(dice_at(fem_all[m], gt_all[m], 0.5)),
+            }
+        )
         print(
             f"    {ROLE_NAMES[rid]:8s} "
             f"n={m.sum():7d} "
@@ -88,6 +112,18 @@ def main():
             f"gt_mean={gt_all[m].mean():.4f} "
             f"fem_mean={fem_all[m].mean():.4f}"
         )
+
+    if args.out_csv:
+        out_path = Path(args.out_csv)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(out_path, "w", newline="") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=["role", "n", "gt_pos_05", "fem_pos_05", "gt_mean", "fem_mean", "fem_dice_05"],
+            )
+            writer.writeheader()
+            writer.writerows(rows)
+        print(f"\n[Diagnose] wrote {out_path}")
 
 
 if __name__ == "__main__":

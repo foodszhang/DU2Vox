@@ -142,7 +142,12 @@ def build_prior_arrays(
         prior_8d[valid, :4] = coarse_d[node_ids]
         prior_8d[valid, 4:8] = bary[valid].astype(np.float32)
 
+    prior_source = cfg["model"].get("prior_source", "prior_ext")
     prior_dim = int(cfg["model"].get("prior_dim", 8))
+    if prior_source == "prior_8d":
+        return prior_8d, valid, tet_ids, coarse_d
+    if prior_source != "prior_ext":
+        raise ValueError(f"Unknown prior_source: {prior_source}")
     if prior_dim <= 8:
         return prior_8d, valid, tet_ids, coarse_d
 

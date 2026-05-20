@@ -20,6 +20,8 @@ data:
 model:
   model_type: cqr_residual_inr
   prior_dim: 13
+  prior_source: prior_ext
+  residual_scale: 1.0
   n_freqs: 10
   hidden_dim: 256
   n_hidden_layers: 4

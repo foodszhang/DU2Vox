@@ -39,9 +39,38 @@ from du2vox.models.stage2.stage2_dataset import (
 )
 
 
+def build_stage2_model(ModelCls, cfg: dict, prior_dim: int, view_feat_dim: int = 0) -> nn.Module:
+    kwargs = dict(
+        n_freqs=cfg["model"]["n_freqs"],
+        hidden_dim=cfg["model"]["hidden_dim"],
+        n_hidden_layers=cfg["model"]["n_hidden_layers"],
+        prior_dim=prior_dim,
+        skip_connection=cfg["model"]["skip_connection"],
+        view_feat_dim=view_feat_dim,
+    )
+    if ModelCls is CQRResidualINR:
+        kwargs["residual_scale"] = cfg["model"].get("residual_scale", 1.0)
+    return ModelCls(**kwargs)
+
+
+def select_prior(batch: dict, prior_source: str, expected_dim: int) -> torch.Tensor:
+    if prior_source == "prior_8d":
+        prior = batch["prior_8d"]
+    elif prior_source == "prior_ext":
+        prior = batch.get("prior_ext", batch["prior_8d"])
+    else:
+        raise ValueError(f"Unknown prior_source: {prior_source}")
+
+    if prior.shape[-1] != expected_dim:
+        raise ValueError(
+            f"prior_source={prior_source} produced dim={prior.shape[-1]}, expected={expected_dim}"
+        )
+    return prior.cuda()
+
+
 def load_split(split_file: str):
     with open(split_file) as f:
-        return [l.strip() for l in f if l.strip()]
+        return [line.strip() for line in f if line.strip()]
 
 
 def build_dataloader(
@@ -109,6 +138,8 @@ def train_step(
     grad_clip_norm: float = 1.0,
     view_encoder: Optional[nn.Module] = None,
     loss_type: str = "gisc",
+    prior_source: str = "prior_ext",
+    expected_prior_dim: int = 8,
 ) -> dict:
     """
     Train one batch. Supports both DE-only and multiview modes.
@@ -119,7 +150,7 @@ def train_step(
     loss_type: "gisc" (weighted BCE + sparse + Focal Tversky) or "soft_dice" (pure soft Dice).
     """
     coords = batch["coords"].cuda()  # [B, N, 3] — normalized [-1,1] for INR
-    prior = batch.get("prior_ext", batch["prior_8d"]).cuda()
+    prior = select_prior(batch, prior_source, expected_prior_dim)
     gt = batch["gt"].cuda()  # [B, N]
     valid = batch["valid"].cuda()  # [B, N]
 
@@ -328,6 +359,8 @@ def validate(
     model: nn.Module,
     val_loader: DataLoader,
     view_encoder: Optional[nn.Module] = None,
+    prior_source: str = "prior_ext",
+    expected_prior_dim: int = 8,
 ) -> dict:
     """Validate with per-sample Dice averaging and FEM baseline comparison."""
     model.eval()
@@ -338,7 +371,7 @@ def validate(
     with torch.no_grad():
         for batch in val_loader:
             coords = batch["coords"].cuda()
-            prior = batch.get("prior_ext", batch["prior_8d"]).cuda()
+            prior = select_prior(batch, prior_source, expected_prior_dim)
             gt = batch["gt"]
             valid = batch["valid"]
             sids = batch["sample_id"]
@@ -432,6 +465,7 @@ def main():
     parser.add_argument("--max_epochs", type=int, default=None)
     parser.add_argument("--experiment_name", type=str, default=None)
     parser.add_argument("--checkpoint_dir", type=str, default="checkpoints/stage2")
+    parser.add_argument("--resume_checkpoint", type=str, default=None)
     args = parser.parse_args()
 
     with open(args.config) as f:
@@ -455,6 +489,8 @@ def main():
     # Build model
     view_encoder_cfg = cfg["model"].get("view_encoder", False)
     prior_dim = int(cfg["model"].get("prior_dim", 8))
+    prior_source = cfg["model"].get("prior_source", "prior_ext")
+    expected_prior_dim = 8 if prior_source == "prior_8d" else prior_dim
     model_type = cfg["model"].get("model_type", "")
     use_cqr_model = (model_type == "cqr_residual_inr") or (prior_dim > 8)
     ModelCls = CQRResidualINR if use_cqr_model else ResidualINR
@@ -466,8 +502,10 @@ def main():
     print(f"[Stage2] Training: {len(train_ids)} samples, Val: {len(val_ids)} samples")
     print(
         f"[Stage2] Model: model_type={model_type or 'residual_inr'}, "
-        f"prior_dim={prior_dim}, use_cqr_model={use_cqr_model}"
+        f"prior_dim={prior_dim}, prior_source={prior_source}, use_cqr_model={use_cqr_model}"
     )
+    if ModelCls is CQRResidualINR:
+        print(f"[Stage2] CQR residual_scale={cfg['model'].get('residual_scale', 1.0)}")
     print(f"[Stage2] Loss: {cfg['loss']['type']}")
     print(
         f"[Stage2] LR: base_lr={cfg['training']['lr']}, "
@@ -486,12 +524,10 @@ def main():
             encoder_base_channels=cfg["model"].get("encoder_base_channels", 32),
         ).cuda()
 
-        model = ModelCls(
-            n_freqs=cfg["model"]["n_freqs"],
-            hidden_dim=cfg["model"]["hidden_dim"],
-            n_hidden_layers=cfg["model"]["n_hidden_layers"],
+        model = build_stage2_model(
+            ModelCls,
+            cfg,
             prior_dim=prior_dim,
-            skip_connection=cfg["model"]["skip_connection"],
             view_feat_dim=cfg["model"]["view_feat_dim"],
         ).cuda()
 
@@ -512,19 +548,23 @@ def main():
     else:
         # DE-only mode
         view_encoder = None
-        model = ModelCls(
-            n_freqs=cfg["model"]["n_freqs"],
-            hidden_dim=cfg["model"]["hidden_dim"],
-            n_hidden_layers=cfg["model"]["n_hidden_layers"],
-            prior_dim=prior_dim,
-            skip_connection=cfg["model"]["skip_connection"],
-        ).cuda()
+        model = build_stage2_model(ModelCls, cfg, prior_dim=prior_dim).cuda()
 
         optimizer = torch.optim.AdamW(
             model.parameters(),
             lr=cfg["training"]["lr"],
             weight_decay=cfg["training"]["weight_decay"],
         )
+
+    if args.resume_checkpoint:
+        ckpt = torch.load(args.resume_checkpoint, map_location="cuda")
+        if isinstance(ckpt, dict) and "residual_inr" in ckpt:
+            model.load_state_dict(ckpt["residual_inr"])
+            if view_encoder is not None and "view_encoder" in ckpt:
+                view_encoder.load_state_dict(ckpt["view_encoder"])
+        else:
+            model.load_state_dict(ckpt)
+        print(f"[Stage2] Resumed model weights from {args.resume_checkpoint}")
 
     warmup_epochs = cfg["training"].get("warmup_epochs", 5)
     loss_type = cfg.get("loss", {}).get("type", "gisc")  # "gisc" or "soft_dice"
@@ -564,6 +604,27 @@ def main():
     patience_counter = 0
     train_log = []
 
+    if args.resume_checkpoint:
+        val_metrics = validate(
+            model,
+            val_loader,
+            view_encoder=view_encoder,
+            prior_source=prior_source,
+            expected_prior_dim=expected_prior_dim,
+        )
+        best_delta = val_metrics["delta_dice_05"]
+        best_val_loss = val_metrics["val_loss"]
+        best_ckpt_info = {
+            "epoch": 0,
+            "stage2_dice_05": val_metrics["stage2_dice_05"],
+            "fem_dice_05": val_metrics["fem_dice_05"],
+            "delta_dice_05": best_delta,
+        }
+        print(
+            f"[Stage2] Resume baseline: ΔDice={best_delta:+.4f} "
+            f"(S2={val_metrics['stage2_dice_05']:.4f} vs FEM={val_metrics['fem_dice_05']:.4f})"
+        )
+
     print(
         f"\n{'Epoch':>5}  {'Loss':>10}  {'ValLoss':>10}  {'S2Dice':>8}  {'FemDice':>8}  {'ΔDice':>8}  {'ResNorm':>8}  {'FemMSE':>10}  {'Valid':>7}  {'Time':>6}"
     )
@@ -597,6 +658,8 @@ def main():
                 grad_clip_norm=cfg["training"].get("grad_clip_norm", 1.0),
                 view_encoder=view_encoder,
                 loss_type=loss_type,
+                prior_source=prior_source,
+                expected_prior_dim=expected_prior_dim,
             )
             epoch_loss += metrics["loss"]
             epoch_fem += metrics["fem_baseline_loss"]
@@ -607,11 +670,16 @@ def main():
             epoch_valid += metrics["valid_count"]
             n_steps += 1
 
-        val_metrics = validate(model, val_loader, view_encoder=view_encoder)
+        val_metrics = validate(
+            model,
+            val_loader,
+            view_encoder=view_encoder,
+            prior_source=prior_source,
+            expected_prior_dim=expected_prior_dim,
+        )
         elapsed = time.perf_counter() - t0
 
         avg_loss = epoch_loss / max(n_steps, 1)
-        avg_fem = epoch_fem / max(n_steps, 1)
         avg_res = epoch_res / max(n_steps, 1)
         avg_bce = epoch_bce / max(n_steps, 1)
         avg_sparse = epoch_sparse / max(n_steps, 1)
