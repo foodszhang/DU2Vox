@@ -4,7 +4,6 @@ Stage 2 View Encoder: 2D U-Net encoder for MCX multi-view projections
 """
 from __future__ import annotations
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -398,8 +397,8 @@ class MultiViewFusion(nn.Module):
             scores = self.attn(flat)  # [B*N*7, 1]
             scores = scores.reshape(B, N, n_views)  # [B, N, 7]
 
-            # Mask invisible views with large negative
-            scores = scores.masked_fill(~visibility, -1e9)
+            # Mask invisible views with a dtype-safe negative value for AMP.
+            scores = scores.masked_fill(~visibility, torch.finfo(scores.dtype).min)
             attn_w = F.softmax(scores, dim=-1)  # [B, N, 7]
 
             # Weighted sum

@@ -16,14 +16,13 @@ from datetime import datetime
 from pathlib import Path
 
 import yaml
-import scipy.sparse as sp
 import torch
 from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ReduceLROnPlateau
+from torch.optim.lr_scheduler import CosineAnnealingLR, CosineAnnealingWarmRestarts, ReduceLROnPlateau
 
 from du2vox.models.stage1.gcain import GCAIN_full
 from du2vox.data.dataset import FMTSimGenDataset
-from du2vox.losses.tversky import criterion, criterion_gaussian
+from du2vox.losses.tversky import criterion, criterion_gaussian, criterion_support
 from du2vox.evaluation.metrics import evaluate_batch, summarize_metrics
 
 
@@ -39,6 +38,15 @@ def compute_loss(pred, gt, nodes, loss_cfg):
             core_threshold=loss_cfg.get("core_threshold", 0.6),
             tversky_alpha=loss_cfg.get("tversky_alpha", 0.1),
             tversky_beta=loss_cfg.get("tversky_beta", 0.9),
+        )
+    if loss_type == "support":
+        return criterion_support(
+            pred, gt, nodes,
+            weight_tversky=loss_cfg.get("tversky_weight", 0.5),
+            weight_bce=loss_cfg.get("bce_weight", 0.3),
+            weight_mse=loss_cfg.get("mse_weight", 0.2),
+            tversky_alpha=loss_cfg.get("tversky_alpha", 0.3),
+            tversky_beta=loss_cfg.get("tversky_beta", 0.7),
         )
     return criterion(
         pred, gt, nodes,
@@ -93,6 +101,12 @@ def build_scheduler(sched_cfg: dict, optimizer):
             T_mult=sched_cfg.get("T_mult", 2),
             eta_min=sched_cfg.get("eta_min", 1e-6),
         )
+    elif sched_type == "CosineAnnealingLR":
+        return CosineAnnealingLR(
+            optimizer,
+            T_max=sched_cfg.get("T_max", 300),
+            eta_min=sched_cfg.get("eta_min", 1e-6),
+        )
     elif sched_type == "ReduceLROnPlateau":
         return ReduceLROnPlateau(
             optimizer,
@@ -104,6 +118,28 @@ def build_scheduler(sched_cfg: dict, optimizer):
         raise ValueError(f"Unknown scheduler type: {sched_type}")
 
 
+def metric_improved(metric: str, current: float, best: float) -> bool:
+    if metric == "val_loss":
+        return current < best
+    return current > best
+
+
+def save_checkpoint(path: Path, epoch: int, model, optimizer, scheduler, best_metrics: dict, primary_metric: str) -> None:
+    torch.save(
+        {
+            "epoch": epoch,
+            "model_state_dict": model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+            "scheduler_state_dict": scheduler.state_dict(),
+            "best_metrics": best_metrics,
+            "best_val_loss": best_metrics.get("val_loss", float("inf")),
+            "best_dice": best_metrics.get("dice_bin_0.5", 0.0),
+            "primary_metric": primary_metric,
+        },
+        path,
+    )
+
+
 def train():
     parser = argparse.ArgumentParser(description="MS-GDUN training for FMT-SimGen")
     parser.add_argument(
@@ -111,6 +147,10 @@ def train():
     )
     parser.add_argument(
         "--resume", type=str, default=None,
+    )
+    parser.add_argument(
+        "--resume_weights_only", action="store_true",
+        help="Load only model weights from --resume and reset optimizer/scheduler/best metrics.",
     )
     args = parser.parse_args()
 
@@ -158,6 +198,7 @@ def train():
         normalize_gt_mode=data_cfg.get("normalize_gt_mode", "per_sample"),
         binarize_gt=data_cfg.get("binarize_gt", False),
         binarize_threshold=data_cfg.get("binarize_threshold", 0.05),
+        use_visible_mask=data_cfg.get("use_visible_mask", False),
     )
     val_set = FMTSimGenDataset(
         shared_dir=None,
@@ -186,6 +227,9 @@ def train():
     n_surface = train_set.A.shape[0]
     print(f"Train: {len(train_set)} samples, Val: {len(val_set)} samples")
     print(f"Shared assets: {n_nodes} nodes, {n_surface} surface nodes")
+    print(f"A shape: {tuple(train_set.A.shape)}, first b shape: {tuple(train_set.b_list[0].shape)}")
+    print(f"visible_mask applied: {train_set.visible_mask is not None}")
+    assert train_set.b_list[0].shape[0] == train_set.A.shape[0]
 
     # ── Move shared assets to GPU ──
     A = train_set.A.cuda()
@@ -232,26 +276,36 @@ def train():
 
     # ── Resume from checkpoint ──
     start_epoch = 1
-    best_val_loss = float("inf")
-    best_dice = 0.0
+    checkpoint_cfg = cfg.get("checkpoint", {})
+    primary_metric = checkpoint_cfg.get("primary_metric", "dice_bin_0.5")
+    best_metrics = {
+        "dice_bin_0.3": 0.0,
+        "dice_bin_0.5": 0.0,
+        "dice": 0.0,
+        "val_loss": float("inf"),
+    }
     if args.resume and os.path.exists(args.resume):
         print(f"Resuming from {args.resume}")
         ckpt = torch.load(args.resume, map_location="cuda")
         if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
             model.load_state_dict(ckpt["model_state_dict"])
-            if "optimizer_state_dict" in ckpt:
+            if args.resume_weights_only:
+                print("  Loaded model weights only; optimizer/scheduler/best metrics reset")
+            elif "optimizer_state_dict" in ckpt:
                 optimizer.load_state_dict(ckpt["optimizer_state_dict"])
-            if "scheduler_state_dict" in ckpt:
+            if not args.resume_weights_only and "scheduler_state_dict" in ckpt:
                 scheduler.load_state_dict(ckpt["scheduler_state_dict"])
                 print("  Scheduler state restored from checkpoint")
-            start_epoch = ckpt.get("epoch", 0) + 1
-            best_val_loss = ckpt.get("best_val_loss", float("inf"))
-            best_dice = ckpt.get("best_dice", 0.0)
+            if not args.resume_weights_only:
+                start_epoch = ckpt.get("epoch", 0) + 1
+                best_metrics.update(ckpt.get("best_metrics", {}))
+                best_metrics["val_loss"] = min(best_metrics["val_loss"], ckpt.get("best_val_loss", float("inf")))
+                best_metrics["dice_bin_0.3"] = max(best_metrics["dice_bin_0.3"], ckpt.get("best_dice", 0.0))
         else:
             model.load_state_dict(ckpt)
             start_epoch = 1
             print("  (old checkpoint format: starting from epoch 1)")
-        print(f"Resumed at epoch {start_epoch}, best_dice={best_dice:.4f}")
+        print(f"Resumed at epoch {start_epoch}, best_metrics={best_metrics}")
     else:
         print("Starting training from scratch")
 
@@ -259,7 +313,6 @@ def train():
     max_epochs = train_cfg["max_epochs"]
     grad_clip_norm = train_cfg.get("grad_clip_norm", 1.0)
     diag_epochs = log_cfg.get("diag_epochs", 3)
-    print_every = log_cfg.get("print_every", 1)
     detail_every = log_cfg.get("detail_every", 10)
     milestone_every = log_cfg.get("milestone_every", 50)
 
@@ -324,11 +377,12 @@ def train():
 
             val_loss_mean = sum(val_losses) / len(val_losses)
             val_summary = summarize_metrics(val_metrics)
-            current_dice = val_summary.get("dice_bin_0.3", 0.0)
+            current_dice03 = val_summary.get("dice_bin_0.3", 0.0)
+            current_dice05 = val_summary.get("dice_bin_0.5", 0.0)
 
             # ── Scheduler step ──
             sched_type = train_cfg["scheduler"].get("type", "CosineAnnealingWarmRestarts")
-            if sched_type == "CosineAnnealingWarmRestarts":
+            if sched_type in {"CosineAnnealingWarmRestarts", "CosineAnnealingLR"}:
                 scheduler.step()
             else:
                 scheduler.step(val_loss_mean)
@@ -342,11 +396,12 @@ def train():
                 f"Train: {train_loss_mean:.4f} | "
                 f"Val: {val_loss_mean:.4f} | "
                 f"Dice: {val_summary['dice']:.4f} | "
-                f"Dice@0.3: {current_dice:.4f} | "
+                f"Dice@0.3: {current_dice03:.4f} | "
+                f"Dice@0.5: {current_dice05:.4f} | "
                 f"Dice@0.6: {val_summary.get('dice_bin_0.6', 0.0):.4f} | "
                 f"Dice@0.1: {val_summary.get('dice_bin_0.1', 0.0):.4f} | "
-                f"Rec@0.1: {val_summary.get('recall_0.1', 0.0):.4f} | "
-                f"Prec@0.3: {val_summary.get('precision_0.3', 0.0):.4f} | "
+                f"Rec@0.5: {val_summary.get('recall_pred05_gt05', 0.0):.4f} | "
+                f"Prec@0.5: {val_summary.get('precision_pred05_gt05', 0.0):.4f} | "
                 f"pred: [{val_summary.get('pred_mean', 0):.3f}±{val_summary.get('pred_std', 0):.3f}] "
                 f"max={val_summary.get('pred_max', 0):.3f} "
                 f"f>0.1={val_summary.get('pred_frac_0.1', 0):.3f}"
@@ -354,46 +409,63 @@ def train():
 
             # ── Detailed val output ──
             if epoch % detail_every == 0 or epoch == max_epochs:
-                print(f"  ── Val Detail ──")
+                print("  ── Val Detail ──")
                 print(f"  Dice_bin@0.5: {val_summary.get('dice_bin_0.5', 0):.4f}")
                 print(f"  Dice_bin@0.3: {val_summary.get('dice_bin_0.3', 0):.4f}")
                 print(f"  Dice_bin@0.6: {val_summary.get('dice_bin_0.6', 0):.4f}")
                 print(f"  Dice_bin@0.1: {val_summary.get('dice_bin_0.1', 0):.4f}")
                 print(f"  Recall@0.3:   {val_summary.get('recall_0.3', 0):.4f}")
+                print(f"  Recall@0.5:   {val_summary.get('recall_pred05_gt05', 0):.4f}")
                 print(f"  Recall@0.1:   {val_summary.get('recall_0.1', 0):.4f}")
                 print(f"  Prec@0.3:     {val_summary.get('precision_0.3', 0):.4f}")
+                print(f"  Prec@0.5:     {val_summary.get('precision_pred05_gt05', 0):.4f}")
                 print(f"  Prec@0.1:     {val_summary.get('precision_0.1', 0):.4f}")
                 print(f"  LocError:     {val_summary.get('location_error', 0):.4f}")
                 print(f"  MSE:          {val_summary.get('mse', 0):.6f}")
                 print(f"  pred_frac>0.3:{val_summary.get('pred_frac_0.3', 0):.4f}")
                 print(f"  pred_frac>0.1:{val_summary.get('pred_frac_0.1', 0):.4f}")
-                print(f"  ───────────────")
+                print("  ───────────────")
 
             # ── Save latest ──
             latest_path = checkpoint_dir / "latest.pth"
-            torch.save({
-                "epoch": epoch,
-                "model_state_dict": model.state_dict(),
-                "optimizer_state_dict": optimizer.state_dict(),
-                "scheduler_state_dict": scheduler.state_dict(),
-                "best_val_loss": best_val_loss,
-                "best_dice": best_dice,
-            }, latest_path)
+            save_checkpoint(latest_path, epoch, model, optimizer, scheduler, best_metrics, primary_metric)
 
-            # ── Save best ──
-            if current_dice > best_dice:
-                best_dice = current_dice
-                best_val_loss = val_loss_mean
-                ckpt_path = checkpoint_dir / "best.pth"
-                torch.save({
-                    "epoch": epoch,
-                    "model_state_dict": model.state_dict(),
-                    "optimizer_state_dict": optimizer.state_dict(),
-                    "scheduler_state_dict": scheduler.state_dict(),
-                    "best_val_loss": best_val_loss,
-                    "best_dice": best_dice,
-                }, ckpt_path)
-                print(f"  -> Best! Dice@0.3={current_dice:.4f} @ Epoch {epoch} (val_loss={val_loss_mean:.4f})")
+            # ── Save metric-specific best checkpoints ──
+            metric_values = {
+                "dice_bin_0.3": current_dice03,
+                "dice_bin_0.5": current_dice05,
+                "dice": val_summary.get("dice", 0.0),
+                "val_loss": val_loss_mean,
+            }
+            metric_paths = {
+                "dice_bin_0.3": "best_dice03.pth",
+                "dice_bin_0.5": "best_dice05.pth",
+                "dice": "best_softdice.pth",
+                "val_loss": "best_val_loss.pth",
+            }
+            for metric, value in metric_values.items():
+                if metric_improved(metric, value, best_metrics[metric]):
+                    best_metrics[metric] = value
+                    save_checkpoint(
+                        checkpoint_dir / metric_paths[metric],
+                        epoch,
+                        model,
+                        optimizer,
+                        scheduler,
+                        best_metrics,
+                        primary_metric,
+                    )
+                    print(f"  -> Best {metric}: {value:.4f} @ Epoch {epoch}")
+                    if metric == primary_metric:
+                        save_checkpoint(
+                            checkpoint_dir / "best.pth",
+                            epoch,
+                            model,
+                            optimizer,
+                            scheduler,
+                            best_metrics,
+                            primary_metric,
+                        )
 
             # ── Milestone checkpoint ──
             if epoch % milestone_every == 0:
@@ -403,15 +475,17 @@ def train():
                     "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": optimizer.state_dict(),
                     "scheduler_state_dict": scheduler.state_dict(),
-                    "best_val_loss": best_val_loss,
-                    "best_dice": best_dice,
+                    "best_metrics": best_metrics,
+                    "best_val_loss": best_metrics["val_loss"],
+                    "best_dice": best_metrics["dice_bin_0.5"],
+                    "primary_metric": primary_metric,
                 }, milestone_path)
                 print(f"  -> Milestone checkpoint saved to {milestone_path}")
 
             # ── CSV summary ──
             print(
                 f"[CSV] {epoch},{train_loss_mean:.6f},{val_loss_mean:.6f},"
-                f"{val_summary['dice']:.6f},{current_dice:.6f},"
+                f"{val_summary['dice']:.6f},{current_dice03:.6f},"
                 f"{val_summary.get('dice_bin_0.1', 0):.6f},"
                 f"{val_summary.get('dice_bin_0.6', 0):.6f},"
                 f"{val_summary.get('recall_0.1', 0):.6f},"
@@ -430,7 +504,12 @@ def train():
         print(f"\n[LOG] Training failed at epoch {epoch}: {e}")
         raise
     finally:
-        print(f"\n[LOG] Final best: Dice@0.3={best_dice:.4f}, val_loss={best_val_loss:.4f}")
+        print(
+            f"\n[LOG] Final best: Dice@0.3={best_metrics['dice_bin_0.3']:.4f}, "
+            f"Dice@0.5={best_metrics['dice_bin_0.5']:.4f}, "
+            f"soft Dice={best_metrics['dice']:.4f}, val_loss={best_metrics['val_loss']:.4f}"
+        )
+        print(f"[LOG] Primary checkpoint metric: {primary_metric}")
         print(f"[LOG] Ended at {datetime.now().isoformat()}")
         if isinstance(sys.stdout, DualLogger):
             sys.stdout.file.close()

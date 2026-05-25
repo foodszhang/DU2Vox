@@ -50,8 +50,14 @@ def get_frame_constants(shared_dir: Optional[str | Path] = None) -> dict:
     global _CACHED_CONSTANTS, _CACHE_MTIME, _CACHE_PATH
 
     if shared_dir is None:
-        shared_dir = DEFAULT_SHARED_DIR
+        shared_dir = os.environ.get("DU2VOX_SHARED_DIR", DEFAULT_SHARED_DIR)
     manifest_path = Path(shared_dir) / "frame_manifest.json"
+
+    if not manifest_path.exists():
+        raise RuntimeError(
+            f"frame_manifest.json not found at {manifest_path}. "
+            f"Run FMT-SimGen build_shared_assets() first."
+        )
 
     # Check staleness: if file changed since last cache, invalidate
     current_mtime = manifest_path.stat().st_mtime
@@ -62,12 +68,6 @@ def get_frame_constants(shared_dir: Optional[str | Path] = None) -> dict:
 
     if _CACHED_CONSTANTS is not None:
         return _CACHED_CONSTANTS
-
-    if not manifest_path.exists():
-        raise RuntimeError(
-            f"frame_manifest.json not found at {manifest_path}. "
-            f"Run FMT-SimGen build_shared_assets() first."
-        )
 
     # Staleness check: raise if file is older than threshold (guards against
     # genuinely abandoned artifacts; does NOT catch "code changed but no regenerate"

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 import numpy as np
 import torch
@@ -203,6 +203,9 @@ class Stage2DatasetPrecomputed(Dataset):
             return {
                 "coords":   torch.zeros(self.n_query_points, 3, dtype=torch.float32),
                 "prior_8d": torch.zeros(self.n_query_points, 8, dtype=torch.float32),
+                "prior_prolong": torch.zeros(self.n_query_points, 15, dtype=torch.float32),
+                "prior_lift": torch.zeros(self.n_query_points, 15, dtype=torch.float32),
+                "correction_band": torch.zeros(self.n_query_points, dtype=torch.long),
                 "gt":       torch.zeros(self.n_query_points, dtype=torch.float32),
                 "valid":    torch.zeros(self.n_query_points, dtype=torch.bool),
                 "sample_id": sid,
@@ -243,8 +246,18 @@ class Stage2DatasetPrecomputed(Dataset):
         }
         if "prior_ext" in data:
             item["prior_ext"] = torch.from_numpy(data["prior_ext"][chosen].copy().astype(np.float32))
+        if "prior_prolong" in data:
+            item["prior_prolong"] = torch.from_numpy(data["prior_prolong"][chosen].copy().astype(np.float32))
+        if "prior_lift" in data:
+            item["prior_lift"] = torch.from_numpy(data["prior_lift"][chosen].copy().astype(np.float32))
         if "role" in data:
             item["role"] = torch.from_numpy(data["role"][chosen].copy().astype(np.int64))
+        if "correction_band" in data:
+            item["correction_band"] = torch.from_numpy(data["correction_band"][chosen].copy().astype(np.int64))
+        elif "role" in data:
+            item["correction_band"] = torch.from_numpy(data["role"][chosen].copy().astype(np.int64))
+        else:
+            item["correction_band"] = torch.zeros(self.n_query_points, dtype=torch.long)
         if "coverage_score" in data:
             item["coverage_score"] = torch.from_numpy(data["coverage_score"][chosen].copy().astype(np.float32))
         if "risk_components" in data:
@@ -303,6 +316,9 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
             return {
                 "coords":        torch.zeros(self.n_query_points, 3, dtype=torch.float32),
                 "prior_8d":      torch.zeros(self.n_query_points, 8, dtype=torch.float32),
+                "prior_prolong": torch.zeros(self.n_query_points, 15, dtype=torch.float32),
+                "prior_lift":    torch.zeros(self.n_query_points, 15, dtype=torch.float32),
+                "correction_band": torch.zeros(self.n_query_points, dtype=torch.long),
                 "gt":            torch.zeros(self.n_query_points, dtype=torch.float32),
                 "valid":         torch.zeros(self.n_query_points, dtype=torch.bool),
                 "coords_world":  torch.zeros(self.n_query_points, 3, dtype=torch.float32),
@@ -377,8 +393,18 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
         }
         if "prior_ext" in data:
             item["prior_ext"] = torch.from_numpy(data["prior_ext"][chosen].copy().astype(np.float32))
+        if "prior_prolong" in data:
+            item["prior_prolong"] = torch.from_numpy(data["prior_prolong"][chosen].copy().astype(np.float32))
+        if "prior_lift" in data:
+            item["prior_lift"] = torch.from_numpy(data["prior_lift"][chosen].copy().astype(np.float32))
         if "role" in data:
             item["role"] = torch.from_numpy(data["role"][chosen].copy().astype(np.int64))
+        if "correction_band" in data:
+            item["correction_band"] = torch.from_numpy(data["correction_band"][chosen].copy().astype(np.int64))
+        elif "role" in data:
+            item["correction_band"] = torch.from_numpy(data["role"][chosen].copy().astype(np.int64))
+        else:
+            item["correction_band"] = torch.zeros(self.n_query_points, dtype=torch.long)
         if "coverage_score" in data:
             item["coverage_score"] = torch.from_numpy(data["coverage_score"][chosen].copy().astype(np.float32))
         if "risk_components" in data:

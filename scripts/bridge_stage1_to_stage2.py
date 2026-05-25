@@ -80,7 +80,14 @@ def run_roi_stage(
             continue
 
         coarse_d = np.load(coarse_d_path).astype(np.float64)
-        result = derive_roi(coarse_d, nodes, elements, tau=args.tau, dilate_layers=args.dilate_layers)
+        result = derive_roi(
+            coarse_d,
+            nodes,
+            elements,
+            tau=args.tau,
+            dilate_layers=args.dilate_layers,
+            min_component_size=args.min_component_size,
+        )
         save_roi_results(result, sample_out)
         roi_results.append(result)
 
@@ -97,6 +104,7 @@ def run_roi_stage(
 
 def run_fem_stage(
     args,
+    cfg,
     nodes: np.ndarray,
     elements: np.ndarray,
     sample_ids: list[str],
@@ -201,6 +209,7 @@ def main():
     parser.add_argument("--samples_dir", default=None, help="Override samples_dir from config")
     parser.add_argument("--tau", type=float, default=0.5, help="ROI activation threshold (default 0.5)")
     parser.add_argument("--dilate_layers", type=int, default=1, help="ROI dilation layers (default 1)")
+    parser.add_argument("--min_component_size", type=int, default=0, help="Drop active-node components smaller than this size")
     parser.add_argument("--device", default="cuda", help="Device for Stage 1 inference")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size for inference")
     parser.add_argument("--skip_inference", action="store_true", help="Skip Stage 1 inference (reuse existing coarse_d.npy)")
@@ -252,7 +261,7 @@ def main():
     # 8D prior features (optional)
     if args.compute_prior_cache:
         print("\n[Bridge] === FEM Prior Features ===")
-        run_fem_stage(args, nodes, elements, sample_ids)
+        run_fem_stage(args, cfg, nodes, elements, sample_ids)
 
     # Summary
     print_summary(roi_results, output_dir)

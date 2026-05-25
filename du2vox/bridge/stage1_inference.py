@@ -14,7 +14,7 @@ import torch.nn.functional as F
 import yaml
 
 
-def _load_shared_assets(shared_dir: Path, device: str) -> dict:
+def _load_shared_assets(shared_dir: Path, device: str, use_visible_mask: bool = False) -> dict:
     """Load all shared FEM assets from shared_dir and move to device."""
     mesh = np.load(shared_dir / "mesh.npz")
     nodes = torch.tensor(mesh["nodes"], dtype=torch.float32).to(device)
@@ -28,12 +28,15 @@ def _load_shared_assets(shared_dir: Path, device: str) -> dict:
         A_sp = scipy.sparse.load_npz(shared_dir / "system_matrix.A.npz")
         A_full = A_sp.toarray().astype(np.float32)
 
-    # Apply visible_mask cropping (same as training dataset)
     visible_mask_path = shared_dir / "visible_mask.npy"
-    if visible_mask_path.exists():
+    visible_mask_exists = visible_mask_path.exists()
+    if use_visible_mask and visible_mask_exists:
         visible_mask = np.load(visible_mask_path)
         A_full = A_full[visible_mask, :]
-        print(f"  A cropped to visible: {A_full.shape[0]} x {A_full.shape[1]}")
+    print(
+        f"  A: {A_full.shape[0]} x {A_full.shape[1]} "
+        f"(visible_mask exists={visible_mask_exists}, applied={use_visible_mask and visible_mask_exists})"
+    )
 
     A = torch.tensor(A_full, dtype=torch.float32).to(device)
 
@@ -65,6 +68,7 @@ def _load_shared_assets(shared_dir: Path, device: str) -> dict:
         "LTL": LTL, "ATA": ATA,
         "knn_idx": knn_idx,
         "sens_w": sens_w,
+        "visible_mask": visible_mask if use_visible_mask and visible_mask_exists else None,
     }
 
 
@@ -112,9 +116,11 @@ def run_stage1_inference(
     normalize_b = data_cfg.get("normalize_b", True)
 
     print(f"[Stage1Inference] Loading shared assets from {shared_dir}")
-    assets = _load_shared_assets(shared_dir, device)
+    use_visible_mask = data_cfg.get("use_visible_mask", False)
+    assets = _load_shared_assets(shared_dir, device, use_visible_mask=use_visible_mask)
     n_nodes = assets["nodes"].shape[0]
     n_surface = assets["A"].shape[0]
+    visible_mask = assets["visible_mask"]
     print(f"  Mesh: {n_nodes} nodes, {n_surface} surface nodes")
 
     # Build model
@@ -167,7 +173,11 @@ def run_stage1_inference(
     b_list = []
     for sid in sample_ids:
         b = np.load(samples_dir / sid / "measurement_b.npy").astype(np.float32)
+        if visible_mask is not None and b.shape[0] != n_surface:
+            b = b[visible_mask]
         b = torch.tensor(b).unsqueeze(-1)  # [S, 1]
+        if b.shape[0] != n_surface:
+            raise ValueError(f"{sid}: b rows {b.shape[0]} != A rows {n_surface}")
         if normalize_b:
             b_max = b.max()
             if b_max > 1e-8:

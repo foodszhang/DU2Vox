@@ -46,6 +46,7 @@ class FMTSimGenDataset(Dataset):
         normalize_gt_mode: str = "per_sample",
         binarize_gt: bool = False,
         binarize_threshold: float = 0.05,
+        use_visible_mask: bool = False,
         shared: "FMTSimGenDataset | None" = None,
     ):
         samples_dir = Path(samples_dir)
@@ -66,7 +67,7 @@ class FMTSimGenDataset(Dataset):
             self.sens_w = shared.sens_w
         else:
             shared_dir = Path(shared_dir)
-            self._load_shared_assets(shared_dir)
+            self._load_shared_assets(shared_dir, use_visible_mask=use_visible_mask)
 
         # Store preprocessing options
         self.normalize_b = normalize_b
@@ -87,6 +88,8 @@ class FMTSimGenDataset(Dataset):
             gt_path = samples_dir / sid / "gt_nodes.npy"
 
             b = torch.tensor(np.load(b_path), dtype=torch.float32).unsqueeze(-1)
+            if self.visible_mask is not None and b.shape[0] != self.n_surface:
+                b = b[torch.tensor(self.visible_mask, dtype=torch.bool)]
             if self.normalize_b:
                 b_max = b.max()
                 if b_max > 1e-8:
@@ -125,7 +128,7 @@ class FMTSimGenDataset(Dataset):
                 gt = torch.clamp(gt, min=0.0, max=1.0)
                 self.gt_list[i] = gt
 
-    def _load_shared_assets(self, shared_dir: Path):
+    def _load_shared_assets(self, shared_dir: Path, use_visible_mask: bool = False):
         """Load shared assets from disk (called only when shared=None)."""
         mesh = np.load(shared_dir / "mesh.npz")
         self.nodes = torch.tensor(mesh["nodes"], dtype=torch.float32)
@@ -137,10 +140,17 @@ class FMTSimGenDataset(Dataset):
             A_arr = A_data["forward_matrix"]
         else:
             A_arr = A_data["arr_0"] if "arr_0" in A_data else scipy.sparse.load_npz(A_path).toarray()
+        visible_mask_path = shared_dir / "visible_mask.npy"
+        visible_mask_exists = visible_mask_path.exists()
+        if use_visible_mask and visible_mask_exists:
+            self.visible_mask = np.load(visible_mask_path).astype(bool)
+            A_arr = A_arr[self.visible_mask, :]
+        else:
+            self.visible_mask = None
+
         # A is 100% dense - store as dense float32 tensor directly
         self.A = torch.tensor(A_arr, dtype=torch.float32)
         self.n_surface = A_arr.shape[0]
-        self.visible_mask = None
 
         self.L = load_npz_as_torch_sparse(shared_dir / "graph_laplacian_full.Lap.npz")
         self.L0 = load_npz_as_torch_sparse(shared_dir / "graph_laplacian_full.n_Lap0.npz")
@@ -156,7 +166,11 @@ class FMTSimGenDataset(Dataset):
         self.sens_w = torch.norm(self.A, dim=0)
         self.sens_w = self.sens_w / (self.sens_w.max() + 1e-8)
 
-        print(f"  A: {A_arr.shape[0]} x {A_arr.shape[1]} (full surface, no visible_mask crop)")
+        print(
+            f"  A: {A_arr.shape[0]} x {A_arr.shape[1]} "
+            f"(visible_mask exists={visible_mask_exists}, applied={use_visible_mask and visible_mask_exists}, "
+            f"n_surface_full={n_surface_full})"
+        )
 
     def __len__(self) -> int:
         return len(self.sample_ids)

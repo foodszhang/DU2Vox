@@ -89,12 +89,14 @@ class ResidualINR(nn.Module):
         coords: torch.Tensor,
         prior_8d: torch.Tensor,
         view_feat: torch.Tensor = None,
+        correction_band: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         coords:     [B, N, 3] — coordinates, pre-normalized to [-1, 1]
                     (Stage2DatasetPrecomputed stores grid_coords_norm in .npz)
         prior_8d:   [B, N, 8]
         view_feat:  [B, N, view_feat_dim] or None (DE-only mode)
+        correction_band: accepted for CQR API compatibility, ignored here
         Returns: (d_hat, fem_interp, residual)  each [B, N]
         """
         B, N = coords.shape[:2]

@@ -14,8 +14,8 @@ from scipy.ndimage import map_coordinates
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from du2vox.bridge.cqr_query_builder import CQRQueryBuilder
+from du2vox.bridge.fem_lift_indicators import compute_lifting_indicators
 from du2vox.bridge.fem_bridging import FEMBridge
-from du2vox.bridge.view_evidence import compute_view_evidence, load_proj_npz
 from du2vox.utils.frame import FrameManifest
 
 
@@ -33,6 +33,25 @@ def normalize_coords(points: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.nda
     hi = points.max(axis=0).astype(np.float32)
     coords_norm = (2.0 * (points - lo) / (hi - lo + 1e-8) - 1.0).astype(np.float32)
     return coords_norm, lo, hi
+
+
+def get_lifting_config(cqr_cfg: dict) -> tuple[float, float, dict]:
+    lifting = cqr_cfg.get("lifting", {}) or {}
+    coverage = cqr_cfg.get("coverage", {}) or {}
+    prolongation = cqr_cfg.get("prolongation", {}) or {}
+    tau_core = float(
+        lifting.get(
+            "tau_core",
+            prolongation.get("tau_core_band", coverage.get("tau_core", 0.65)),
+        )
+    )
+    tau_halo = float(
+        lifting.get(
+            "tau_halo",
+            prolongation.get("tau_halo_band", coverage.get("tau_weak", 0.18)),
+        )
+    )
+    return tau_core, tau_halo, lifting.get("weights", {}) or {}
 
 
 def gt_index_to_world(frame: FrameManifest, idx: np.ndarray) -> np.ndarray:
@@ -82,9 +101,19 @@ def apply_oracle_sentinel(
     data["prior_8d"][replace] = prior_8d
     if "prior_ext" in data:
         data["prior_ext"][replace, :8] = prior_8d
+    if "prior_prolong" in data:
+        data["prior_prolong"][replace, :8] = prior_8d
+        data["prior_prolong"][replace, 8] = (prior_8d[:, :4] * prior_8d[:, 4:8]).sum(axis=1)
+    if "prior_lift" in data:
+        data["prior_lift"][replace, :8] = prior_8d
+        data["prior_lift"][replace, 8] = (prior_8d[:, :4] * prior_8d[:, 4:8]).sum(axis=1)
+    if "prolongation_value" in data:
+        data["prolongation_value"][replace] = (prior_8d[:, :4] * prior_8d[:, 4:8]).sum(axis=1)
     data["gt_values"][replace] = 1.0
     data["valid_mask"][replace] = valid
     data["role"][replace] = 3
+    if "correction_band" in data:
+        data["correction_band"][replace] = 3
 
 
 def precompute_one(
@@ -103,6 +132,8 @@ def precompute_one(
     roi_tet_indices = np.load(bd / "roi_tet_indices.npy").astype(np.int64)
     cqr_cfg = dict(cqr_cfg)
     if cqr_cfg.get("sentinel", {}).get("mode") == "view_guided":
+        from du2vox.bridge.view_evidence import compute_view_evidence, load_proj_npz
+
         proj_path = samples_dir / sid / "proj.npz"
         if not proj_path.exists():
             raise FileNotFoundError(f"view_guided sentinel requires {proj_path}")
@@ -125,6 +156,15 @@ def precompute_one(
         n_query_points=n_query_points,
         seed=sample_seed(sid),
     )
+    tau_core, tau_halo, lifting_weights = get_lifting_config(cqr_cfg)
+    lift_ind = compute_lifting_indicators(
+        nodes=nodes,
+        tets=elements,
+        node_values=coarse_d,
+        tau_core=tau_core,
+        tau_halo=tau_halo,
+        weights=lifting_weights,
+    )
 
     points = cqr["query_points"].astype(np.float32)
     coords_norm, bbox_min, bbox_max = normalize_coords(points)
@@ -144,19 +184,62 @@ def precompute_one(
     outside_gt = np.any((idx_float < 0) | (idx_float > shape_arr - 1), axis=1)
     valid = cqr["valid_mask"].astype(bool) & (~outside_gt)
     gt_values[outside_gt] = 0.0
+    tet_ids = cqr["tet_ids"].astype(np.int64)
+    valid_tet = tet_ids >= 0
+    q_tet_grad_norm = np.zeros(len(points), dtype=np.float32)
+    q_grad_jump_score = np.zeros(len(points), dtype=np.float32)
+    q_recovery_error_score = np.zeros(len(points), dtype=np.float32)
+    q_transition_score = np.zeros(len(points), dtype=np.float32)
+    q_residual_indicator = np.zeros(len(points), dtype=np.float32)
+    q_tet_grad_norm[valid_tet] = lift_ind["tet_grad_norm"][tet_ids[valid_tet]]
+    q_grad_jump_score[valid_tet] = lift_ind["grad_jump_score"][tet_ids[valid_tet]]
+    q_recovery_error_score[valid_tet] = lift_ind["recovery_error_score"][tet_ids[valid_tet]]
+    q_transition_score[valid_tet] = lift_ind["transition_score"][tet_ids[valid_tet]]
+    q_residual_indicator[valid_tet] = lift_ind["residual_indicator"][tet_ids[valid_tet]]
+    correction_band = cqr["correction_band"].astype(np.int64)
+    band_distance_score = np.zeros(len(points), dtype=np.float32)
+    band_distance_score[correction_band == 1] = 0.0
+    band_distance_score[correction_band == 2] = 0.5
+    band_distance_score[correction_band == 0] = 1.0
+    prolongation_value = cqr["prolongation_value"].astype(np.float32)
+    prior_lift = np.concatenate(
+        [
+            cqr["prior_8d"].astype(np.float32),
+            prolongation_value[:, None],
+            q_tet_grad_norm[:, None],
+            q_grad_jump_score[:, None],
+            q_recovery_error_score[:, None],
+            q_transition_score[:, None],
+            q_residual_indicator[:, None],
+            band_distance_score[:, None],
+        ],
+        axis=1,
+    ).astype(np.float32)
 
     out = {
         "grid_coords": points,
         "grid_coords_norm": coords_norm,
         "prior_8d": cqr["prior_8d"].astype(np.float32),
         "prior_ext": cqr["prior_ext"].astype(np.float32),
+        "prior_prolong": cqr["prior_prolong"].astype(np.float32),
+        "prior_lift": prior_lift,
         "gt_values": gt_values.astype(np.float32),
         "valid_mask": valid.astype(bool),
         "grid_shape": np.array([len(points), 1, 1], dtype=np.int32),
         "bbox_min": bbox_min.astype(np.float32),
         "bbox_max": bbox_max.astype(np.float32),
-        "tet_ids": cqr["tet_ids"].astype(np.int64),
+        "tet_ids": tet_ids,
+        "tet_id": tet_ids,
         "role": cqr["role"].astype(np.int64),
+        "correction_band": correction_band,
+        "prolongation_value": prolongation_value,
+        "correction_demand_score": cqr["correction_demand_score"].astype(np.float32),
+        "band_distance_score": band_distance_score,
+        "tet_grad_norm": q_tet_grad_norm,
+        "grad_jump_score": q_grad_jump_score,
+        "recovery_error_score": q_recovery_error_score,
+        "transition_score": q_transition_score,
+        "residual_indicator": q_residual_indicator,
         "coverage_score": cqr["coverage_score"].astype(np.float32),
         "view_evidence_score": cqr["view_evidence_score"].astype(np.float32),
         "sentinel_score": cqr["sentinel_score"].astype(np.float32),
@@ -252,10 +335,29 @@ def main() -> None:
 
         valid = data["valid_mask"]
         counts = data["coverage_role_counts"].tolist()
+        band_counts = np.bincount(data["correction_band"], minlength=4).tolist()
+        demand = data["correction_demand_score"]
+        prolong = data["prolongation_value"]
+        residual = data["residual_indicator"]
+        band = data["correction_band"]
+
+        def band_mean(values: np.ndarray, band_id: int) -> float:
+            mask = valid & (band == band_id)
+            return float(values[mask].mean()) if np.any(mask) else 0.0
+
         print(
             f"[{i}/{len(sample_ids)}] {sid}: "
             f"points={len(valid)}, valid={int(valid.sum())}/{len(valid)} "
             f"({100*valid.mean():.1f}%), roles(bg/core/halo/sentinel)={counts}, "
+            f"prior_prolong_dim={data['prior_prolong'].shape[-1]}, "
+            f"lift_dim={data['prior_lift'].shape[-1]}, "
+            f"bands(bg/core/halo/sentinel)={band_counts}, "
+            f"demand(bg/core/halo)="
+            f"({band_mean(demand, 0):.3f},{band_mean(demand, 1):.3f},{band_mean(demand, 2):.3f}), "
+            f"residual(bg/core/halo)="
+            f"({band_mean(residual, 0):.3f},{band_mean(residual, 1):.3f},{band_mean(residual, 2):.3f}), "
+            f"prolong(bg/core/halo)="
+            f"({band_mean(prolong, 0):.3f},{band_mean(prolong, 1):.3f},{band_mean(prolong, 2):.3f}), "
             f"t={elapsed:.1f}s"
         )
 

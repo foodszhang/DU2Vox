@@ -9,6 +9,7 @@ from du2vox.bridge.coverage_field import (
     CoverageFieldConfig,
     QueryRole,
     compute_coverage_field,
+    coverage_cfg_from_cqr,
     role_query_weights,
 )
 from du2vox.bridge.fem_bridging import FEMBridge
@@ -28,6 +29,7 @@ class CQRQueryConfig:
         }
     )
     coverage: CoverageFieldConfig = field(default_factory=CoverageFieldConfig)
+    prolongation: dict | None = None
     sentinel: dict = field(default_factory=dict)
     view_evidence: np.ndarray | None = None
     bg_score_quantile_max: float = 0.40
@@ -41,12 +43,13 @@ def _coerce_config(cfg: CQRQueryConfig | dict | None) -> CQRQueryConfig:
 
     cfg = dict(cfg)
     coverage_cfg = cfg.pop("coverage", None)
+    prolongation_cfg = cfg.get("prolongation")
     allowed = CQRQueryConfig.__annotations__
     out = CQRQueryConfig(**{k: v for k, v in cfg.items() if k in allowed})
-    if coverage_cfg is not None:
-        out.coverage = CoverageFieldConfig(
-            **{k: v for k, v in coverage_cfg.items() if k in CoverageFieldConfig.__annotations__}
-        )
+    if prolongation_cfg is not None:
+        out.coverage = coverage_cfg_from_cqr({"prolongation": prolongation_cfg})
+    elif coverage_cfg is not None:
+        out.coverage = coverage_cfg_from_cqr({"coverage": coverage_cfg})
     return out
 
 
@@ -264,9 +267,31 @@ class CQRQueryBuilder:
         view_evidence_score = field.get("view_evidence", np.zeros_like(field["coverage_score"]))[tet_ids].astype(np.float32)
         sentinel_score = field.get("sentinel_score", np.zeros_like(field["coverage_score"]))[tet_ids].astype(np.float32)
         risk_components = field["risk_components"][tet_ids].astype(np.float32)
+        correction_band = role.astype(np.int64)
+        prolongation_value = (prior_8d[:, :4] * prior_8d[:, 4:8]).sum(axis=1).astype(np.float32)
+        correction_demand_score = field["correction_demand_score"][tet_ids].astype(np.float32)
+        band_distance_score = field["band_distance_score"][tet_ids].astype(np.float32)
         query_weight = role_query_weights(role)
         prior_ext = np.concatenate(
             [prior_8d.astype(np.float32), coverage_score[:, None], risk_components],
+            axis=1,
+        ).astype(np.float32)
+        prior_prolong = np.concatenate(
+            [
+                prior_8d.astype(np.float32),
+                prolongation_value[:, None],
+                correction_demand_score[:, None],
+                band_distance_score[:, None],
+                risk_components,
+            ],
+            axis=1,
+        ).astype(np.float32)
+        prior_lift = np.concatenate(
+            [
+                prior_8d.astype(np.float32),
+                prolongation_value[:, None],
+                np.zeros((len(prior_8d), 6), dtype=np.float32),
+            ],
             axis=1,
         ).astype(np.float32)
 
@@ -274,9 +299,15 @@ class CQRQueryBuilder:
             "query_points": points,
             "prior_8d": prior_8d.astype(np.float32),
             "prior_ext": prior_ext,
+            "prior_prolong": prior_prolong,
+            "prior_lift": prior_lift,
             "valid_mask": valid_mask.astype(bool),
             "tet_ids": tet_ids,
             "role": role,
+            "correction_band": correction_band,
+            "prolongation_value": prolongation_value,
+            "correction_demand_score": correction_demand_score,
+            "band_distance_score": band_distance_score,
             "coverage_score": coverage_score,
             "view_evidence_score": view_evidence_score,
             "sentinel_score": sentinel_score,

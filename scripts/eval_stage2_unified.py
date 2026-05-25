@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -162,8 +163,39 @@ def build_model(cfg: dict[str, Any], device: torch.device) -> tuple[torch.nn.Mod
     )
     if model_cls is CQRResidualINR:
         kwargs["residual_scale"] = cfg["model"].get("residual_scale", 1.0)
+        kwargs["support_head"] = cfg["model"].get("support_head", False)
+        kwargs["use_prolongation_adapter"] = cfg["model"].get("use_prolongation_adapter", False)
+        kwargs["prolongation_feat_dim"] = cfg["model"].get("prolongation_feat_dim", 32)
+        kwargs["use_lifting_adapter"] = cfg["model"].get("use_lifting_adapter", False)
+        kwargs["lifting_feat_dim"] = cfg["model"].get("lifting_feat_dim", 32)
+        kwargs["use_band_embedding"] = cfg["model"].get("use_band_embedding", False)
+        kwargs["band_embed_dim"] = cfg["model"].get("band_embed_dim", 8)
+        kwargs["num_bands"] = cfg["model"].get("num_bands", 4)
     model = model_cls(**kwargs).to(device)
     return model, view_encoder
+
+
+def unpack_model_output(output):
+    if isinstance(output, dict):
+        return output
+    d_hat, fem_interp, residual = output
+    return {"d_hat": d_hat, "fem_interp": fem_interp, "residual": residual}
+
+
+def select_stage2_prediction(output: dict[str, torch.Tensor], cfg: dict[str, Any]) -> torch.Tensor:
+    output_mode = cfg["model"].get("output_mode", "residual")
+    if output_mode == "residual":
+        return output["d_hat"]
+    if output_mode == "support":
+        if "support_prob" not in output:
+            raise ValueError("output_mode=support requires model.support_head=true")
+        return output["support_prob"]
+    if output_mode == "hybrid":
+        if "support_prob" not in output:
+            raise ValueError("output_mode=hybrid requires model.support_head=true")
+        alpha = float(cfg["model"].get("hybrid_alpha", 0.5))
+        return alpha * output["support_prob"] + (1.0 - alpha) * output["d_hat"].clamp(0.0, 1.0)
+    raise ValueError(f"Unknown output_mode: {output_mode}")
 
 
 def select_prior(data: dict[str, np.ndarray], cfg: dict[str, Any], valid: np.ndarray) -> np.ndarray:
@@ -174,6 +206,10 @@ def select_prior(data: dict[str, np.ndarray], cfg: dict[str, Any], valid: np.nda
         prior = data["prior_8d"]
     elif prior_source == "prior_ext":
         prior = data["prior_ext"] if "prior_ext" in data else data["prior_8d"]
+    elif prior_source == "prior_prolong":
+        prior = data["prior_prolong"]
+    elif prior_source == "prior_lift":
+        prior = data["prior_lift"]
     else:
         raise ValueError(f"Unknown prior_source: {prior_source}")
     if prior.shape[-1] != expected_dim:
@@ -267,6 +303,12 @@ def run_model_on_sample(
     coords_norm = normalize_coords(data)[valid]
     coords_world = data["grid_coords"].astype(np.float32)[valid]
     prior = select_prior(data, cfg, valid)
+    if "correction_band" in data:
+        correction_band = data["correction_band"].astype(np.int64)[valid]
+    elif "role" in data:
+        correction_band = data["role"].astype(np.int64)[valid]
+    else:
+        correction_band = np.zeros(len(coords_norm), dtype=np.int64)
 
     if len(coords_norm) == 0:
         return (
@@ -291,14 +333,18 @@ def run_model_on_sample(
         end = min(start + batch_points, len(coords_norm))
         coords_b = torch.from_numpy(coords_norm[start:end]).unsqueeze(0).to(device)
         prior_b = torch.from_numpy(prior[start:end]).unsqueeze(0).to(device)
+        band_b = torch.from_numpy(correction_band[start:end]).unsqueeze(0).to(device)
         if view_encoder is None:
-            d_hat_b, fem_b, residual_b = model(coords_b, prior_b)
+            output = unpack_model_output(model(coords_b, prior_b, correction_band=band_b))
         else:
             world_b = torch.from_numpy(coords_world[start:end]).unsqueeze(0).to(device)
             view_feat, _ = view_encoder(proj_imgs, world_b, coords_vox_norm=None)
             valid_b = torch.from_numpy(mcx_valid[start:end]).unsqueeze(0).to(device)
             view_feat = view_feat * valid_b.unsqueeze(-1).float()
-            d_hat_b, fem_b, residual_b = model(coords_b, prior_b, view_feat)
+            output = unpack_model_output(model(coords_b, prior_b, view_feat, correction_band=band_b))
+        d_hat_b = select_stage2_prediction(output, cfg)
+        fem_b = output["fem_interp"]
+        residual_b = output["residual"]
         d_hat_chunks.append(d_hat_b.squeeze(0).detach().cpu().float().numpy())
         fem_chunks.append(fem_b.squeeze(0).detach().cpu().float().numpy())
         residual_chunks.append(residual_b.squeeze(0).detach().cpu().float().numpy())
@@ -412,6 +458,8 @@ def main() -> None:
 
     with open(args.config) as f:
         cfg = yaml.safe_load(f)
+    if cfg.get("data", {}).get("shared_dir"):
+        os.environ["DU2VOX_SHARED_DIR"] = str(cfg["data"]["shared_dir"])
 
     split_file = cfg["data"][f"{args.split}_split"]
     sample_ids = load_split(split_file)
@@ -466,6 +514,8 @@ def main() -> None:
         "checkpoint": args.checkpoint,
         "split": args.split,
         "role_subset": args.role_subset,
+        "output_mode": cfg["model"].get("output_mode", "residual"),
+        "hybrid_alpha": cfg["model"].get("hybrid_alpha", 0.5),
         "n_samples": len(rows),
         "overall": overall,
         "by_foci": summarize_by_foci(rows),

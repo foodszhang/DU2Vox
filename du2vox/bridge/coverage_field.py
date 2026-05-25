@@ -75,6 +75,22 @@ def _coerce_cfg(cfg: CoverageFieldConfig | dict | None) -> CoverageFieldConfig:
     return CoverageFieldConfig(**{k: v for k, v in cfg.items() if k in allowed})
 
 
+def coverage_cfg_from_cqr(cqr_cfg: dict | None) -> CoverageFieldConfig:
+    if not cqr_cfg:
+        return CoverageFieldConfig()
+    if "prolongation" in cqr_cfg:
+        prolongation = cqr_cfg.get("prolongation") or {}
+        return CoverageFieldConfig(
+            tau_core=float(prolongation.get("tau_core_band", CoverageFieldConfig.tau_core)),
+            tau_weak=float(prolongation.get("tau_halo_band", CoverageFieldConfig.tau_weak)),
+            halo_layers=int(prolongation.get("halo_layers", CoverageFieldConfig.halo_layers)),
+            core_from_roi_weak=bool(
+                prolongation.get("use_weak_roi_as_core", CoverageFieldConfig.core_from_roi_weak)
+            ),
+        )
+    return _coerce_cfg(cqr_cfg.get("coverage", {}))
+
+
 def _limit_mask_by_score(mask: np.ndarray, score: np.ndarray, max_ratio: float) -> np.ndarray:
     if max_ratio <= 0 or max_ratio >= 1 or not np.any(mask):
         return mask
@@ -165,6 +181,20 @@ def compute_coverage_field(
     role[halo_mask] = int(QueryRole.HALO)
     role[sentinel_mask] = int(QueryRole.SENTINEL)
 
+    weak_support_score = ((tet_max >= cfg.tau_weak) & (tet_max < cfg.tau_core)).astype(np.float32)
+    band_boundary_score = np.maximum(boundary_score, halo_mask.astype(np.float32))
+    band_boundary_score[core_mask] = np.maximum(band_boundary_score[core_mask], 0.5)
+    local_variation_score = (0.5 * range_n + 0.5 * var_n).astype(np.float32)
+    correction_demand_score = _norm(
+        weak_support_score + band_boundary_score + local_variation_score,
+        cfg.eps,
+    )
+
+    band_distance_score = np.zeros(len(elements), dtype=np.float32)
+    band_distance_score[role == int(QueryRole.CORE)] = 1.0
+    band_distance_score[role == int(QueryRole.HALO)] = 0.66
+    band_distance_score[role == int(QueryRole.SENTINEL)] = 0.33
+
     risk_components = np.stack([mean_n, max_n, range_n, var_n], axis=1).astype(np.float32)
 
     return {
@@ -174,6 +204,8 @@ def compute_coverage_field(
         "tet_var": tet_var,
         "coverage_score": coverage_score,
         "boundary_score": boundary_score,
+        "correction_demand_score": correction_demand_score.astype(np.float32),
+        "band_distance_score": band_distance_score.astype(np.float32),
         "risk_components": risk_components,
         "role": role,
     }

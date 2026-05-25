@@ -3,7 +3,7 @@ Evaluation metrics for FMT reconstruction.
 """
 
 import torch
-from du2vox.losses.tversky import dice_coeff, binary_dice_coeff, location_error
+from du2vox.losses.tversky import binary_dice_coeff, binary_dice_with_thresholds, dice_coeff, location_error
 
 
 def evaluate_batch(
@@ -26,11 +26,9 @@ def evaluate_batch(
     # Soft Dice
     dice = dice_coeff(pred, label).item()
 
-    # Binary Dice @ 0.5 (original)
-    dice_bin_05 = binary_dice_coeff(pred, label, threshold=0.5).item()
-
-    # Binary Dice @ 0.3
-    dice_bin_03 = binary_dice_coeff(pred, label, threshold=0.3).item()
+    dice_bin_05 = binary_dice_with_thresholds(pred, label, 0.5, label_thresh).item()
+    dice_bin_03 = binary_dice_with_thresholds(pred, label, 0.3, label_thresh).item()
+    dice_pred06_gt05 = binary_dice_with_thresholds(pred, label, 0.6, label_thresh).item()
 
     # Binary Dice @ 0.1
     dice_bin_01 = binary_dice_coeff(pred, label, threshold=0.1).item()
@@ -46,6 +44,14 @@ def evaluate_batch(
     FP_03 = (pred_bin_03 * (1 - label_bin_03)).sum(dim=1)
     recall_03 = (TP_03 / (TP_03 + FN_03 + 1e-8)).mean().item()
     precision_03 = (TP_03 / (TP_03 + FP_03 + 1e-8)).mean().item()
+
+    pred_bin_05 = (pred_squeeze > 0.5).float()
+    label_bin_05 = (label_squeeze > label_thresh).float()
+    TP_05 = (pred_bin_05 * label_bin_05).sum(dim=1)
+    FN_05 = ((1 - pred_bin_05) * label_bin_05).sum(dim=1)
+    FP_05 = (pred_bin_05 * (1 - label_bin_05)).sum(dim=1)
+    recall_05 = (TP_05 / (TP_05 + FN_05 + 1e-8)).mean().item()
+    precision_05 = (TP_05 / (TP_05 + FP_05 + 1e-8)).mean().item()
 
     # Recall/Precision @ 0.1
     pred_bin_01 = (pred_squeeze > 0.1).float()
@@ -85,8 +91,15 @@ def evaluate_batch(
         "dice_bin_0.3": dice_bin_03,
         "dice_bin_0.6": dice_bin_06,
         "dice_bin_0.1": dice_bin_01,
+        "dice_pred03_gt05": dice_bin_03,
+        "dice_pred05_gt05": dice_bin_05,
+        "dice_pred06_gt05": dice_pred06_gt05,
         "recall_0.3": recall_03,
         "precision_0.3": precision_03,
+        "recall_pred03_gt05": recall_03,
+        "recall_pred05_gt05": recall_05,
+        "precision_pred03_gt05": precision_03,
+        "precision_pred05_gt05": precision_05,
         "recall_0.1": recall_01,
         "precision_0.1": precision_01,
         "recall_0.6": recall_06,

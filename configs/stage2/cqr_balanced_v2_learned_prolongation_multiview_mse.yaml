@@ -1,0 +1,88 @@
+# DU2Vox Stage 2 — CQR balanced_v2 learned prolongation Multiview + MSE
+
+experiment:
+  name: "cqr_balanced_v2_learned_prolongation_mv_mse"
+
+stage1_operating_point:
+  name: balanced_v2
+  tau_active: 0.18
+  tau_core: 0.65
+  roi_dilation_layers: 0
+  min_component_size: 3
+
+data:
+  precomputed_train_dir: precomputed/cqr_balanced_v2_learned_prolongation/train
+  precomputed_val_dir: precomputed/cqr_balanced_v2_learned_prolongation/val
+  train_bridge_dir: output/bridge_20k_train_balanced_v2
+  val_bridge_dir: output/bridge_20k_val_balanced_v2
+
+  samples_dir: /home/foods/pro/FMT-SimGen/data/uniform_1000_20k/samples
+  shared_dir: /home/foods/pro/FMT-SimGen/output/shared_mesh_20k
+  train_split: /home/foods/pro/FMT-SimGen/data/uniform_1000_20k/splits/train.txt
+  val_split: /home/foods/pro/FMT-SimGen/data/uniform_1000_20k/splits/val.txt
+
+  n_query_points: 4096
+  roi_padding_mm: 1.0
+
+model:
+  model_type: cqr_residual_inr
+  prior_source: prior_prolong
+  prior_dim: 15
+  residual_scale: 1.0
+
+  use_prolongation_adapter: true
+  prolongation_feat_dim: 32
+
+  use_band_embedding: true
+  band_embed_dim: 8
+
+  n_freqs: 10
+  hidden_dim: 256
+  n_hidden_layers: 4
+  skip_connection: true
+  view_encoder: true
+  view_feat_dim: 32
+  fusion_method: "attn"
+  encoder_base_channels: 32
+  encoder_out_channels: 32
+  view_encoder_lr_scale: 0.2
+
+training:
+  lr: 5.0e-5
+  weight_decay: 1.0e-5
+  batch_size: 1
+  grad_accum_steps: 8
+  amp: true
+  max_epochs: 200
+  grad_clip_norm: 1.0
+  num_workers: 2
+  scheduler:
+    type: "CosineAnnealingLR"
+    T_max: 200
+    eta_min: 1.0e-6
+  early_stopping_patience: 30
+  warmup_epochs: 5
+
+loss:
+  type: "dice_mse"
+  dice_weight: 0.7
+  mse_weight: 0.3
+  residual_l2_weight: 0.001
+
+logging:
+  print_every: 1
+  detail_every: 5
+
+cqr:
+  name: correction_aware_query_refinement
+  ratios:
+    core: 0.45
+    halo: 0.45
+    sentinel: 0.00
+    bg: 0.10
+
+  prolongation:
+    tau_core_band: 0.65
+    tau_halo_band: 0.18
+    halo_layers: 1
+    use_weak_roi_as_core: false

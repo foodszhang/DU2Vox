@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -50,7 +51,38 @@ def build_stage2_model(ModelCls, cfg: dict, prior_dim: int, view_feat_dim: int =
     )
     if ModelCls is CQRResidualINR:
         kwargs["residual_scale"] = cfg["model"].get("residual_scale", 1.0)
+        kwargs["support_head"] = cfg["model"].get("support_head", False)
+        kwargs["use_prolongation_adapter"] = cfg["model"].get("use_prolongation_adapter", False)
+        kwargs["prolongation_feat_dim"] = cfg["model"].get("prolongation_feat_dim", 32)
+        kwargs["use_lifting_adapter"] = cfg["model"].get("use_lifting_adapter", False)
+        kwargs["lifting_feat_dim"] = cfg["model"].get("lifting_feat_dim", 32)
+        kwargs["use_band_embedding"] = cfg["model"].get("use_band_embedding", False)
+        kwargs["band_embed_dim"] = cfg["model"].get("band_embed_dim", 8)
+        kwargs["num_bands"] = cfg["model"].get("num_bands", 4)
     return ModelCls(**kwargs)
+
+
+def unpack_model_output(output):
+    if isinstance(output, dict):
+        return output
+    d_hat, fem_interp, residual = output
+    return {"d_hat": d_hat, "fem_interp": fem_interp, "residual": residual}
+
+
+def select_stage2_prediction(output: dict, cfg: dict) -> torch.Tensor:
+    output_mode = cfg["model"].get("output_mode", "residual")
+    if output_mode == "residual":
+        return output["d_hat"]
+    if output_mode == "support":
+        if "support_prob" not in output:
+            raise ValueError("output_mode=support requires model.support_head=true")
+        return output["support_prob"]
+    if output_mode == "hybrid":
+        if "support_prob" not in output:
+            raise ValueError("output_mode=hybrid requires model.support_head=true")
+        alpha = float(cfg["model"].get("hybrid_alpha", 0.5))
+        return alpha * output["support_prob"] + (1.0 - alpha) * output["d_hat"].clamp(0.0, 1.0)
+    raise ValueError(f"Unknown output_mode: {output_mode}")
 
 
 def select_prior(batch: dict, prior_source: str, expected_dim: int) -> torch.Tensor:
@@ -58,6 +90,10 @@ def select_prior(batch: dict, prior_source: str, expected_dim: int) -> torch.Ten
         prior = batch["prior_8d"]
     elif prior_source == "prior_ext":
         prior = batch.get("prior_ext", batch["prior_8d"])
+    elif prior_source == "prior_prolong":
+        prior = batch["prior_prolong"]
+    elif prior_source == "prior_lift":
+        prior = batch["prior_lift"]
     else:
         raise ValueError(f"Unknown prior_source: {prior_source}")
 
@@ -135,11 +171,17 @@ def train_step(
     model: nn.Module,
     batch: dict,
     optimizer: torch.optim.Optimizer,
+    scaler: torch.amp.GradScaler,
     grad_clip_norm: float = 1.0,
     view_encoder: Optional[nn.Module] = None,
     loss_type: str = "gisc",
+    loss_cfg: dict | None = None,
+    model_cfg: dict | None = None,
     prior_source: str = "prior_ext",
     expected_prior_dim: int = 8,
+    use_amp: bool = False,
+    accumulation_steps: int = 1,
+    step_optimizer: bool = True,
 ) -> dict:
     """
     Train one batch. Supports both DE-only and multiview modes.
@@ -151,168 +193,223 @@ def train_step(
     """
     coords = batch["coords"].cuda()  # [B, N, 3] — normalized [-1,1] for INR
     prior = select_prior(batch, prior_source, expected_prior_dim)
+    correction_band = batch.get("correction_band")
+    correction_band = correction_band.cuda() if correction_band is not None else None
     gt = batch["gt"].cuda()  # [B, N]
     valid = batch["valid"].cuda()  # [B, N]
 
     is_multiview = "proj_imgs" in batch and "coords_world" in batch
+    freeze_view_encoder = bool((model_cfg or {}).get("freeze_view_encoder", False))
+    loss_components = {
+        "dice": torch.tensor(0.0, device=coords.device),
+        "focal": torch.tensor(0.0, device=coords.device),
+        "bce": torch.tensor(0.0, device=coords.device),
+        "sparse": torch.tensor(0.0, device=coords.device),
+        "focal_tv": torch.tensor(0.0, device=coords.device),
+    }
 
-    if is_multiview:
-        coords_world = batch["coords_world"].cuda()  # [B, N, 3] — world mm for projection
-        proj_imgs = batch["proj_imgs"].cuda()  # [B, 7, 1, 256, 256]
-        # Phase 3: voxel-space coords for projection (preserves aspect ratio)
-        coords_vox = batch.get("coords_mcx_vox_norm")
-        coords_vox = coords_vox.cuda() if coords_vox is not None else None
-        view_feat, visibility = view_encoder(
-            proj_imgs, coords_world, coords_vox_norm=coords_vox
-        )  # [B, N, view_feat_dim], [B, N, 7]
-        # B4: apply mcx_valid mask to zero out view features for points outside MCX volume
-        if "mcx_valid" in batch:
-            mcx_valid = batch["mcx_valid"].cuda()  # [B, N]
-            view_feat = view_feat * mcx_valid.unsqueeze(-1).float()
-        d_hat, fem_interp, residual = model(coords, prior, view_feat)
-    else:
-        d_hat, fem_interp, residual = model(coords, prior)
-
-    # Loss only on valid ROI points
-    valid_mask = valid.flatten()
-    if valid_mask.sum() > 0:
-        pred_flat = d_hat.flatten()[valid_mask]
-        gt_flat = gt.flatten()[valid_mask]
-
-        # d_hat already includes fem_interp + residual, no need to add again
-        final_pred = torch.clamp(pred_flat, 0.0, 1.0)
-
-        p = final_pred.clamp(1e-6, 1 - 1e-6)
-        eps = 1e-6
-
-        if loss_type == "soft_dice":
-            # Pure soft Dice loss: 1 - 2*TP/(P+G)
-            g = gt_flat.clamp(eps, 1 - eps)
-            TP = (p * g).sum()
-            dice_loss = 1 - 2 * TP / (p.sum() + g.sum() + eps)
-            loss = dice_loss
-            loss_components = {
-                "dice": dice_loss.detach(),
-                "bce": torch.tensor(0.0),
-                "sparse": torch.tensor(0.0),
-                "focal_tv": torch.tensor(0.0),
-            }
+    with torch.amp.autocast("cuda", enabled=use_amp):
+        if is_multiview:
+            coords_world = batch["coords_world"].cuda()  # [B, N, 3] — world mm for projection
+            proj_imgs = batch["proj_imgs"].cuda()  # [B, 7, 1, 256, 256]
+            # Phase 3: voxel-space coords for projection (preserves aspect ratio)
+            coords_vox = batch.get("coords_mcx_vox_norm")
+            coords_vox = coords_vox.cuda() if coords_vox is not None else None
+            if freeze_view_encoder:
+                with torch.no_grad():
+                    view_feat, visibility = view_encoder(
+                        proj_imgs, coords_world, coords_vox_norm=coords_vox
+                    )
+            else:
+                view_feat, visibility = view_encoder(
+                    proj_imgs, coords_world, coords_vox_norm=coords_vox
+                )  # [B, N, view_feat_dim], [B, N, 7]
+            # B4: apply mcx_valid mask to zero out view features for points outside MCX volume
+            if "mcx_valid" in batch:
+                mcx_valid = batch["mcx_valid"].cuda()  # [B, N]
+                view_feat = view_feat * mcx_valid.unsqueeze(-1).float()
+            output = unpack_model_output(model(coords, prior, view_feat, correction_band=correction_band))
         else:
-            # loss_type: "focal" | "mse" | "asym_tversky" | "focal_v3"
-            g = (gt_flat >= 0.5).float()
-            p_t = p.clamp(eps, 1 - eps)
+            output = unpack_model_output(model(coords, prior, correction_band=correction_band))
+        d_hat = output["d_hat"]
+        fem_interp = output["fem_interp"]
+        residual = output["residual"]
 
-            if loss_type == "mse":
-                # Pure MSE on residual targets — baseline to test residual learning
-                target = torch.clamp(gt_flat, 0.0, 1.0)
-                mse_loss = ((p_t - target) ** 2).mean()
-                loss = mse_loss
-                loss_components = {
-                    "dice": mse_loss.detach(),
-                    "focal": torch.tensor(0.0),
-                    "bce": torch.tensor(0.0),
-                    "sparse": torch.tensor(0.0),
-                    "focal_tv": torch.tensor(0.0),
-                }
+        # Loss only on valid ROI points
+        valid_mask = valid.flatten()
+        if valid_mask.sum() > 0:
+            if model_cfg is not None:
+                pred_for_dice = select_stage2_prediction(output, {"model": model_cfg})
+            else:
+                pred_for_dice = d_hat
+            pred_flat = pred_for_dice.flatten()[valid_mask]
+            gt_flat = gt.flatten()[valid_mask]
 
-            elif loss_type == "mse_support":
-                # CQR-friendly hybrid loss:
-                #   MSE keeps relative-intensity regression,
-                #   BCE protects the 0.5 support boundary,
-                #   residual L2 prevents aggressive correction away from FEM prior.
-                target = torch.clamp(gt_flat, 0.0, 1.0)
-                mse_loss = ((p_t - target) ** 2).mean()
+            # d_hat already includes fem_interp + residual, no need to add again
+            final_pred = torch.clamp(pred_flat, 0.0, 1.0)
 
-                g_bin = (gt_flat >= 0.5).float()
-                p_prob = p_t.clamp(eps, 1 - eps)
+            p = final_pred.clamp(1e-6, 1 - 1e-6)
+            eps = 1e-6
 
-                pos = g_bin.sum()
-                neg = (1.0 - g_bin).sum()
-                pos_weight = (neg / (pos + eps)).clamp(1.0, 20.0)
-
-                point_weight = torch.where(
-                    g_bin > 0.5,
-                    pos_weight,
-                    torch.ones_like(g_bin),
+            if loss_type == "hybrid_support":
+                if "support_logit" not in output:
+                    raise ValueError("loss.type=hybrid_support requires model.support_head=true")
+                loss_cfg = loss_cfg or {}
+                support_threshold = float(loss_cfg.get("support_threshold", 0.5))
+                gt_bin = (gt_flat >= support_threshold).float()
+                support_logit = output["support_logit"].flatten()[valid_mask]
+                support_prob = output["support_prob"].flatten()[valid_mask]
+                mse_loss = nn.functional.mse_loss(
+                    d_hat.flatten()[valid_mask].clamp(0.0, 1.0),
+                    gt_flat.clamp(0.0, 1.0),
                 )
-
-                bce_loss = torch.nn.functional.binary_cross_entropy(
-                    p_prob,
-                    g_bin,
-                    weight=point_weight,
-                    reduction="mean",
+                bce_loss = nn.functional.binary_cross_entropy_with_logits(support_logit, gt_bin)
+                dice_loss = 1.0 - (2.0 * (support_prob * gt_bin).sum() + eps) / (
+                    support_prob.sum() + gt_bin.sum() + eps
                 )
-
-                res_l2_loss = (residual.flatten()[valid_mask] ** 2).mean()
-
-                loss = mse_loss + 0.05 * bce_loss + 0.01 * res_l2_loss
-
+                loss = (
+                    float(loss_cfg.get("mse_weight", 0.3)) * mse_loss
+                    + float(loss_cfg.get("bce_weight", 0.3)) * bce_loss
+                    + float(loss_cfg.get("dice_weight", 0.4)) * dice_loss
+                )
                 loss_components = {
-                    "dice": mse_loss.detach(),
-                    "focal": bce_loss.detach(),
+                    "dice": dice_loss.detach(),
                     "bce": bce_loss.detach(),
                     "sparse": torch.tensor(0.0),
-                    "focal_tv": res_l2_loss.detach(),
+                    "focal_tv": mse_loss.detach(),
+                    "focal": torch.tensor(0.0),
                 }
-
-            elif loss_type == "asym_tversky":
-                # Asymmetric Tversky: alpha=0.3 (FN penalty) < beta=0.7 (FP penalty)
-                # This penalizes missing tumor more than false positives
-                alpha, beta = 0.3, 0.7
-                tp = (p_t * g).sum()
-                fn = ((1 - p_t) * g).sum()
-                fp = (p_t * (1 - g)).sum()
-                tversky = 1 - tp / (tp + alpha * fn + beta * fp + eps)
-                # Combine with light MSE for smooth gradients
-                mse_term = ((p_t - gt_flat) ** 2).mean() * 0.1
-                loss = tversky + mse_term
+            elif loss_type == "soft_dice":
+                g = gt_flat.clamp(eps, 1 - eps)
+                tp = (p * g).sum()
+                dice_loss = 1.0 - 2.0 * tp / (p.sum() + g.sum() + eps)
+                loss = dice_loss
                 loss_components = {
-                    "dice": tversky.detach(),
-                    "focal": mse_term.detach(),
+                    "dice": dice_loss.detach(),
                     "bce": torch.tensor(0.0),
                     "sparse": torch.tensor(0.0),
                     "focal_tv": torch.tensor(0.0),
                 }
-            elif loss_type == "focal_v3":
-                # Focal loss v3: gamma=1.5 + lighter sparse + residual L2 reg
-                pt = torch.where(g > 0.5, p_t, 1 - p_t)
-                focal_weight = (1 - pt) ** 1.5
-                bce_raw = -torch.log(pt.clamp(eps, 1 - eps))
-                focal_loss = (focal_weight * bce_raw).mean()
-                sparse_loss = 0.002 * (p_t * (1 - g)).mean()
-                res_l2_loss = 0.01 * (residual.flatten()[valid_mask] ** 2).mean()
-                loss = focal_loss + sparse_loss + res_l2_loss
-                loss_components = {
-                    "dice": torch.tensor(0.0),
-                    "focal": focal_loss.detach(),
-                    "bce": torch.tensor(0.0),
-                    "sparse": sparse_loss.detach(),
-                    "focal_tv": res_l2_loss.detach(),
-                }
             else:
-                # Original focal loss (loss_type == "focal"): gamma=2.0
-                pt = torch.where(g > 0.5, p_t, 1 - p_t)
-                focal_weight = (1 - pt) ** 2.0
-                bce_raw = -torch.log(pt.clamp(eps, 1 - eps))
-                focal_loss = (focal_weight * bce_raw).mean()
-                sparse_loss = 0.01 * (p_t * (1 - g)).mean()
-                loss = focal_loss + sparse_loss
-                loss_components = {
-                    "dice": torch.tensor(0.0),
-                    "focal": focal_loss.detach(),
-                    "bce": torch.tensor(0.0),
-                    "sparse": sparse_loss.detach(),
-                    "focal_tv": torch.tensor(0.0),
-                }
-    else:
-        loss = torch.tensor(0.0, device=coords.device)
+                # loss_type: "focal" | "mse" | "asym_tversky" | "focal_v3" | "dice_mse"
+                g = (gt_flat >= 0.5).float()
+                p_t = p.clamp(eps, 1 - eps)
 
-    optimizer.zero_grad()
-    loss.backward()
-    torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip_norm)
-    if view_encoder is not None:
-        torch.nn.utils.clip_grad_norm_(view_encoder.parameters(), grad_clip_norm)
-    optimizer.step()
+                if loss_type == "dice_mse":
+                    target = torch.clamp(gt_flat, 0.0, 1.0)
+                    target_soft = target.clamp(eps, 1.0 - eps)
+                    tp = (p_t * target_soft).sum()
+                    dice_loss = 1.0 - 2.0 * tp / (p_t.sum() + target_soft.sum() + eps)
+                    mse_loss = ((p_t - target) ** 2).mean()
+                    res_l2_loss = (residual.flatten()[valid_mask] ** 2).mean()
+                    loss_cfg = loss_cfg or {}
+                    loss = (
+                        float(loss_cfg.get("dice_weight", 0.7)) * dice_loss
+                        + float(loss_cfg.get("mse_weight", 0.3)) * mse_loss
+                        + float(loss_cfg.get("residual_l2_weight", 0.0)) * res_l2_loss
+                    )
+                    loss_components = {
+                        "dice": dice_loss.detach(),
+                        "focal": mse_loss.detach(),
+                        "bce": torch.tensor(0.0),
+                        "sparse": torch.tensor(0.0),
+                        "focal_tv": res_l2_loss.detach(),
+                    }
+
+                elif loss_type == "mse":
+                    target = torch.clamp(gt_flat, 0.0, 1.0)
+                    mse_loss = ((p_t - target) ** 2).mean()
+                    loss = mse_loss
+                    loss_components = {
+                        "dice": mse_loss.detach(),
+                        "focal": torch.tensor(0.0),
+                        "bce": torch.tensor(0.0),
+                        "sparse": torch.tensor(0.0),
+                        "focal_tv": torch.tensor(0.0),
+                    }
+
+                elif loss_type == "mse_support":
+                    target = torch.clamp(gt_flat, 0.0, 1.0)
+                    mse_loss = ((p_t - target) ** 2).mean()
+                    g_bin = (gt_flat >= 0.5).float()
+                    p_prob = p_t.clamp(eps, 1 - eps)
+                    pos = g_bin.sum()
+                    neg = (1.0 - g_bin).sum()
+                    pos_weight = (neg / (pos + eps)).clamp(1.0, 20.0)
+                    point_weight = torch.where(g_bin > 0.5, pos_weight, torch.ones_like(g_bin))
+                    bce_loss = torch.nn.functional.binary_cross_entropy(
+                        p_prob,
+                        g_bin,
+                        weight=point_weight,
+                        reduction="mean",
+                    )
+                    res_l2_loss = (residual.flatten()[valid_mask] ** 2).mean()
+                    loss = mse_loss + 0.05 * bce_loss + 0.01 * res_l2_loss
+                    loss_components = {
+                        "dice": mse_loss.detach(),
+                        "focal": bce_loss.detach(),
+                        "bce": bce_loss.detach(),
+                        "sparse": torch.tensor(0.0),
+                        "focal_tv": res_l2_loss.detach(),
+                    }
+
+                elif loss_type == "asym_tversky":
+                    alpha, beta = 0.3, 0.7
+                    tp = (p_t * g).sum()
+                    fn = ((1 - p_t) * g).sum()
+                    fp = (p_t * (1 - g)).sum()
+                    tversky = 1 - tp / (tp + alpha * fn + beta * fp + eps)
+                    mse_term = ((p_t - gt_flat) ** 2).mean() * 0.1
+                    loss = tversky + mse_term
+                    loss_components = {
+                        "dice": tversky.detach(),
+                        "focal": mse_term.detach(),
+                        "bce": torch.tensor(0.0),
+                        "sparse": torch.tensor(0.0),
+                        "focal_tv": torch.tensor(0.0),
+                    }
+                elif loss_type == "focal_v3":
+                    pt = torch.where(g > 0.5, p_t, 1 - p_t)
+                    focal_weight = (1 - pt) ** 1.5
+                    bce_raw = -torch.log(pt.clamp(eps, 1 - eps))
+                    focal_loss = (focal_weight * bce_raw).mean()
+                    sparse_loss = 0.002 * (p_t * (1 - g)).mean()
+                    res_l2_loss = 0.01 * (residual.flatten()[valid_mask] ** 2).mean()
+                    loss = focal_loss + sparse_loss + res_l2_loss
+                    loss_components = {
+                        "dice": torch.tensor(0.0),
+                        "focal": focal_loss.detach(),
+                        "bce": torch.tensor(0.0),
+                        "sparse": sparse_loss.detach(),
+                        "focal_tv": res_l2_loss.detach(),
+                    }
+                else:
+                    pt = torch.where(g > 0.5, p_t, 1 - p_t)
+                    focal_weight = (1 - pt) ** 2.0
+                    bce_raw = -torch.log(pt.clamp(eps, 1 - eps))
+                    focal_loss = (focal_weight * bce_raw).mean()
+                    sparse_loss = 0.01 * (p_t * (1 - g)).mean()
+                    loss = focal_loss + sparse_loss
+                    loss_components = {
+                        "dice": torch.tensor(0.0),
+                        "focal": focal_loss.detach(),
+                        "bce": torch.tensor(0.0),
+                        "sparse": sparse_loss.detach(),
+                        "focal_tv": torch.tensor(0.0),
+                    }
+        else:
+            loss = torch.tensor(0.0, device=coords.device)
+
+    scaled_loss = loss / max(int(accumulation_steps), 1)
+    scaler.scale(scaled_loss).backward()
+    if step_optimizer:
+        scaler.unscale_(optimizer)
+        torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip_norm)
+        if view_encoder is not None and not freeze_view_encoder:
+            torch.nn.utils.clip_grad_norm_(view_encoder.parameters(), grad_clip_norm)
+        scaler.step(optimizer)
+        scaler.update()
+        optimizer.zero_grad(set_to_none=True)
 
     with torch.no_grad():
         if valid_mask.sum() > 0:
@@ -359,6 +456,7 @@ def validate(
     model: nn.Module,
     val_loader: DataLoader,
     view_encoder: Optional[nn.Module] = None,
+    cfg: dict | None = None,
     prior_source: str = "prior_ext",
     expected_prior_dim: int = 8,
 ) -> dict:
@@ -372,6 +470,8 @@ def validate(
         for batch in val_loader:
             coords = batch["coords"].cuda()
             prior = select_prior(batch, prior_source, expected_prior_dim)
+            correction_band = batch.get("correction_band")
+            correction_band = correction_band.cuda() if correction_band is not None else None
             gt = batch["gt"]
             valid = batch["valid"]
             sids = batch["sample_id"]
@@ -389,9 +489,14 @@ def validate(
                 if "mcx_valid" in batch:
                     mcx_valid = batch["mcx_valid"].cuda()
                     view_feat = view_feat * mcx_valid.unsqueeze(-1).float()
-                d_hat, fem_interp, _ = model(coords, prior, view_feat)
+                output = unpack_model_output(model(coords, prior, view_feat, correction_band=correction_band))
             else:
-                d_hat, fem_interp, _ = model(coords, prior)
+                output = unpack_model_output(model(coords, prior, correction_band=correction_band))
+            if cfg is not None:
+                d_hat = select_stage2_prediction(output, cfg)
+            else:
+                d_hat = output["d_hat"]
+            fem_interp = output["fem_interp"]
             d_hat = d_hat.cpu()
             fem_interp = fem_interp.cpu()
             gt_np = gt.numpy()
@@ -470,6 +575,8 @@ def main():
 
     with open(args.config) as f:
         cfg = yaml.safe_load(f)
+    if cfg.get("data", {}).get("shared_dir"):
+        os.environ["DU2VOX_SHARED_DIR"] = str(cfg["data"]["shared_dir"])
 
     exp_name = args.experiment_name or cfg["experiment"]["name"]
     max_epochs = args.max_epochs or cfg["training"]["max_epochs"]
@@ -502,11 +609,25 @@ def main():
     print(f"[Stage2] Training: {len(train_ids)} samples, Val: {len(val_ids)} samples")
     print(
         f"[Stage2] Model: model_type={model_type or 'residual_inr'}, "
-        f"prior_dim={prior_dim}, prior_source={prior_source}, use_cqr_model={use_cqr_model}"
+        f"prior_dim={prior_dim}, prior_source={prior_source}, use_cqr_model={use_cqr_model}, "
+        f"output_mode={cfg['model'].get('output_mode', 'residual')}"
     )
     if ModelCls is CQRResidualINR:
-        print(f"[Stage2] CQR residual_scale={cfg['model'].get('residual_scale', 1.0)}")
+        print(
+            f"[Stage2] CQR prior_source={prior_source}, prior_dim={prior_dim}, "
+            f"use_prolongation_adapter={cfg['model'].get('use_prolongation_adapter', False)}, "
+            f"prolongation_feat_dim={cfg['model'].get('prolongation_feat_dim', 32)}, "
+            f"use_band_embedding={cfg['model'].get('use_band_embedding', False)}, "
+            f"band_embed_dim={cfg['model'].get('band_embed_dim', 8)}, "
+            f"use_lifting_adapter={cfg['model'].get('use_lifting_adapter', False)}, "
+            f"lifting_feat_dim={cfg['model'].get('lifting_feat_dim', 32)}, "
+            f"residual_scale={cfg['model'].get('residual_scale', 1.0)}"
+        )
     print(f"[Stage2] Loss: {cfg['loss']['type']}")
+    print(
+        f"[Stage2] Precision: amp={cfg['training'].get('amp', False)}, "
+        f"grad_accum_steps={cfg['training'].get('grad_accum_steps', 1)}"
+    )
     print(
         f"[Stage2] LR: base_lr={cfg['training']['lr']}, "
         f"view_encoder_lr_scale={cfg['model'].get('view_encoder_lr_scale', 1.0)}"
@@ -523,6 +644,11 @@ def main():
             encoder_out_channels=cfg["model"].get("encoder_out_channels", 32),
             encoder_base_channels=cfg["model"].get("encoder_base_channels", 32),
         ).cuda()
+        freeze_view_encoder = bool(cfg["model"].get("freeze_view_encoder", False))
+        if freeze_view_encoder:
+            view_encoder.eval()
+            for param in view_encoder.parameters():
+                param.requires_grad_(False)
 
         model = build_stage2_model(
             ModelCls,
@@ -534,16 +660,17 @@ def main():
         # Joint optimizer with separate LR for view encoder
         lr_scale = cfg["model"].get("view_encoder_lr_scale", 1.0)
         ve_lr = cfg["training"]["lr"] * lr_scale
+        param_groups = [{"params": model.parameters(), "lr": cfg["training"]["lr"]}]
+        if not freeze_view_encoder:
+            param_groups.append({"params": view_encoder.parameters(), "lr": ve_lr})
         optimizer = torch.optim.AdamW(
-            [
-                {"params": model.parameters(), "lr": cfg["training"]["lr"]},
-                {"params": view_encoder.parameters(), "lr": ve_lr},
-            ],
+            param_groups,
             weight_decay=cfg["training"]["weight_decay"],
         )
         print(
             f"[Stage2] Multiview mode: view_feat_dim={cfg['model']['view_feat_dim']}, "
-            f"fusion={cfg['model'].get('fusion_method', 'mean')}, ve_lr={ve_lr:.0e}"
+            f"fusion={cfg['model'].get('fusion_method', 'mean')}, ve_lr={ve_lr:.0e}, "
+            f"freeze_view_encoder={freeze_view_encoder}"
         )
     else:
         # DE-only mode
@@ -568,6 +695,9 @@ def main():
 
     warmup_epochs = cfg["training"].get("warmup_epochs", 5)
     loss_type = cfg.get("loss", {}).get("type", "gisc")  # "gisc" or "soft_dice"
+    use_amp = bool(cfg["training"].get("amp", False))
+    grad_accum_steps = max(1, int(cfg["training"].get("grad_accum_steps", 1)))
+    scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer,
         T_max=cfg["training"]["scheduler"].get("T_max", max_epochs),
@@ -609,6 +739,7 @@ def main():
             model,
             val_loader,
             view_encoder=view_encoder,
+            cfg=cfg,
             prior_source=prior_source,
             expected_prior_dim=expected_prior_dim,
         )
@@ -641,6 +772,7 @@ def main():
         epoch_focal_tv = 0.0
         epoch_valid = 0
         n_steps = 0
+        optimizer.zero_grad(set_to_none=True)
 
         # Warmup: linear lr ramp
         if epoch <= warmup_epochs:
@@ -650,16 +782,23 @@ def main():
         else:
             scheduler.step()
 
-        for batch in train_loader:
+        for batch_idx, batch in enumerate(train_loader):
+            step_optimizer = ((batch_idx + 1) % grad_accum_steps == 0) or (batch_idx + 1 == len(train_loader))
             metrics = train_step(
                 model,
                 batch,
                 optimizer,
+                scaler,
                 grad_clip_norm=cfg["training"].get("grad_clip_norm", 1.0),
                 view_encoder=view_encoder,
                 loss_type=loss_type,
+                loss_cfg=cfg.get("loss", {}),
+                model_cfg=cfg.get("model", {}),
                 prior_source=prior_source,
                 expected_prior_dim=expected_prior_dim,
+                use_amp=use_amp,
+                accumulation_steps=grad_accum_steps,
+                step_optimizer=step_optimizer,
             )
             epoch_loss += metrics["loss"]
             epoch_fem += metrics["fem_baseline_loss"]
@@ -674,6 +813,7 @@ def main():
             model,
             val_loader,
             view_encoder=view_encoder,
+            cfg=cfg,
             prior_source=prior_source,
             expected_prior_dim=expected_prior_dim,
         )

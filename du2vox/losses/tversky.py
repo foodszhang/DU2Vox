@@ -40,6 +40,23 @@ def binary_dice_coeff(pred: torch.Tensor, label: torch.Tensor, threshold: float 
     return (2 * intersection + eps) / (pred_bin.sum() + label_bin.sum() + eps)
 
 
+def binary_dice_with_thresholds(
+    pred: torch.Tensor,
+    label: torch.Tensor,
+    pred_threshold: float,
+    label_threshold: float,
+    eps: float = 1e-8,
+) -> torch.Tensor:
+    """Binary Dice with explicit prediction and label thresholds."""
+    if pred.dim() == 3:
+        pred = pred.squeeze(-1)
+        label = label.squeeze(-1)
+    pred_bin = (pred > pred_threshold).float()
+    label_bin = (label > label_threshold).float()
+    intersection = (pred_bin * label_bin).sum()
+    return (2 * intersection + eps) / (pred_bin.sum() + label_bin.sum() + eps)
+
+
 def location_error(
     pred: torch.Tensor,
     label: torch.Tensor,
@@ -174,3 +191,23 @@ def criterion(
     tversky_fn = TverskyLoss(alpha=tversky_alpha, beta=tversky_beta)
     mse = weighted_mse_loss(pred, label)
     return weight_tversky * tversky_fn(pred, label) + weight_mse * mse
+
+
+def criterion_support(
+    pred: torch.Tensor,
+    label: torch.Tensor,
+    nodes: torch.Tensor,
+    weight_tversky: float = 0.5,
+    weight_bce: float = 0.3,
+    weight_mse: float = 0.2,
+    tversky_alpha: float = 0.3,
+    tversky_beta: float = 0.7,
+) -> torch.Tensor:
+    """Support-oriented Stage 1 loss for sigmoid predictions."""
+    del nodes
+    tversky_fn = TverskyLoss(alpha=tversky_alpha, beta=tversky_beta)
+    pred_prob = pred.clamp(1e-6, 1 - 1e-6)
+    target = label.clamp(0.0, 1.0)
+    bce = F.binary_cross_entropy(pred_prob, target)
+    mse = weighted_mse_loss(pred_prob, target)
+    return weight_tversky * tversky_fn(pred_prob, target) + weight_bce * bce + weight_mse * mse
