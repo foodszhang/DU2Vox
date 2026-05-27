@@ -1,7 +1,7 @@
-# DU2Vox Stage 2 — CQR balanced_v2 RGL-lite lift Multiview + MSE
+# DU2Vox Stage 2 — CQR RGL-lite lift on FMT-SimGen v2 3k/20k Multiview + MSE
 
 experiment:
-  name: "cqr_balanced_v2_rgl_lift_multiview_mse"
+  name: "cqr_v2_3k_rgl_lift_multiview_mse"
 
 stage1_operating_point:
   name: balanced_v2
@@ -11,15 +11,15 @@ stage1_operating_point:
   min_component_size: 3
 
 data:
-  precomputed_train_dir: precomputed/cqr_balanced_v2_rgl_lift/train
-  precomputed_val_dir: precomputed/cqr_balanced_v2_rgl_lift/val
-  train_bridge_dir: output/bridge_20k_train_balanced_v2
-  val_bridge_dir: output/bridge_20k_val_balanced_v2
+  precomputed_train_dir: precomputed/cqr_v2_3k_rgl_lift/train
+  precomputed_val_dir: precomputed/cqr_v2_3k_rgl_lift/val
+  train_bridge_dir: output/bridge_v2_3k_train_balanced_v2
+  val_bridge_dir: output/bridge_v2_3k_val_balanced_v2
 
-  samples_dir: /home/foods/pro/FMT-SimGen/data/uniform_1000_20k/samples
+  samples_dir: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples
   shared_dir: /home/foods/pro/FMT-SimGen/output/shared_mesh_20k
-  train_split: /home/foods/pro/FMT-SimGen/data/uniform_1000_20k/splits/train.txt
-  val_split: /home/foods/pro/FMT-SimGen/data/uniform_1000_20k/splits/val.txt
+  train_split: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/train.txt
+  val_split: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/val.txt
 
   n_query_points: 16384
   precompute_query_points: 32768
