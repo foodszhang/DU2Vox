@@ -13,6 +13,15 @@ class QueryRole(IntEnum):
     SENTINEL = 3
 
 
+def correction_band_distance(role: np.ndarray) -> np.ndarray:
+    out = np.zeros_like(role, dtype=np.float32)
+    out[role == int(QueryRole.CORE)] = 0.5
+    out[role == int(QueryRole.HALO)] = 1.0
+    out[role == int(QueryRole.BG)] = 0.0
+    out[role == int(QueryRole.SENTINEL)] = 0.0
+    return out.astype(np.float32)
+
+
 @dataclass
 class CoverageFieldConfig:
     tau_core: float = 0.50
@@ -190,10 +199,7 @@ def compute_coverage_field(
         cfg.eps,
     )
 
-    band_distance_score = np.zeros(len(elements), dtype=np.float32)
-    band_distance_score[role == int(QueryRole.CORE)] = 1.0
-    band_distance_score[role == int(QueryRole.HALO)] = 0.66
-    band_distance_score[role == int(QueryRole.SENTINEL)] = 0.33
+    band_distance_score = correction_band_distance(role)
 
     risk_components = np.stack([mean_n, max_n, range_n, var_n], axis=1).astype(np.float32)
 

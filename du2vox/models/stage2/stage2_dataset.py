@@ -206,6 +206,8 @@ class Stage2DatasetPrecomputed(Dataset):
                 "prior_prolong": torch.zeros(self.n_query_points, 15, dtype=torch.float32),
                 "prior_lift": torch.zeros(self.n_query_points, 15, dtype=torch.float32),
                 "correction_band": torch.zeros(self.n_query_points, dtype=torch.long),
+                "residual_indicator": torch.zeros(self.n_query_points, dtype=torch.float32),
+                "query_weight": torch.ones(self.n_query_points, dtype=torch.float32),
                 "gt":       torch.zeros(self.n_query_points, dtype=torch.float32),
                 "valid":    torch.zeros(self.n_query_points, dtype=torch.bool),
                 "sample_id": sid,
@@ -264,6 +266,10 @@ class Stage2DatasetPrecomputed(Dataset):
             item["risk_components"] = torch.from_numpy(data["risk_components"][chosen].copy().astype(np.float32))
         if "query_weight" in data:
             item["query_weight"] = torch.from_numpy(data["query_weight"][chosen].copy().astype(np.float32))
+        if "residual_indicator" in data:
+            item["residual_indicator"] = torch.from_numpy(
+                data["residual_indicator"][chosen].copy().astype(np.float32)
+            )
         return item
 
 
@@ -319,6 +325,8 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
                 "prior_prolong": torch.zeros(self.n_query_points, 15, dtype=torch.float32),
                 "prior_lift":    torch.zeros(self.n_query_points, 15, dtype=torch.float32),
                 "correction_band": torch.zeros(self.n_query_points, dtype=torch.long),
+                "residual_indicator": torch.zeros(self.n_query_points, dtype=torch.float32),
+                "query_weight": torch.ones(self.n_query_points, dtype=torch.float32),
                 "gt":            torch.zeros(self.n_query_points, dtype=torch.float32),
                 "valid":         torch.zeros(self.n_query_points, dtype=torch.bool),
                 "coords_world":  torch.zeros(self.n_query_points, 3, dtype=torch.float32),
@@ -411,4 +419,8 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
             item["risk_components"] = torch.from_numpy(data["risk_components"][chosen].copy().astype(np.float32))
         if "query_weight" in data:
             item["query_weight"] = torch.from_numpy(data["query_weight"][chosen].copy().astype(np.float32))
+        if "residual_indicator" in data:
+            item["residual_indicator"] = torch.from_numpy(
+                data["residual_indicator"][chosen].copy().astype(np.float32)
+            )
         return item

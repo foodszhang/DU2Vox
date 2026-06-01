@@ -16,7 +16,7 @@ from scipy.ndimage import map_coordinates
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from du2vox.bridge.coverage_field import compute_coverage_field, coverage_cfg_from_cqr
+from du2vox.bridge.coverage_field import correction_band_distance, compute_coverage_field, coverage_cfg_from_cqr
 from du2vox.bridge.fem_lift_indicators import compute_lifting_indicators
 from du2vox.bridge.fem_bridging import FEMBridge
 from du2vox.models.stage2.stage2_dataset import MCX_ANGLES
@@ -187,10 +187,7 @@ def build_prior_arrays(
                 weights=lifting.get("weights", {}) or {},
             )
             prolongation_value = (prior_8d[:, :4] * prior_8d[:, 4:8]).sum(axis=1)
-            band_distance_score = np.zeros(len(points), dtype=np.float32)
-            band_distance_score[correction_band == 1] = 0.0
-            band_distance_score[correction_band == 2] = 0.5
-            band_distance_score[correction_band == 0] = 1.0
+            band_distance_score = correction_band_distance(correction_band)
             prior[valid, 8] = prolongation_value[valid]
             prior[valid, 9] = lift_ind["tet_grad_norm"][valid_tets]
             prior[valid, 10] = lift_ind["grad_jump_score"][valid_tets]

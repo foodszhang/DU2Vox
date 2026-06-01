@@ -8,6 +8,7 @@ from scipy.spatial import cKDTree
 from du2vox.bridge.coverage_field import (
     CoverageFieldConfig,
     QueryRole,
+    correction_band_distance,
     compute_coverage_field,
     coverage_cfg_from_cqr,
     role_query_weights,
@@ -30,6 +31,7 @@ class CQRQueryConfig:
     )
     coverage: CoverageFieldConfig = field(default_factory=CoverageFieldConfig)
     prolongation: dict | None = None
+    lifting: dict = field(default_factory=dict)
     sentinel: dict = field(default_factory=dict)
     view_evidence: np.ndarray | None = None
     bg_score_quantile_max: float = 0.40
@@ -128,15 +130,31 @@ class CQRQueryBuilder:
         self.elements = elements.astype(np.int64)
         self.config = _coerce_config(config)
 
-    def _make_pools(self, field: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
+    def _make_pools(
+        self,
+        field: dict[str, np.ndarray],
+        lift_indicators: dict[str, np.ndarray] | None = None,
+    ) -> dict[str, np.ndarray]:
         role = field["role"]
         score = field["coverage_score"]
+        residual = None if lift_indicators is None else lift_indicators.get("residual_indicator")
         sentinel_cfg = self.config.sentinel or {}
+        lifting_cfg = self.config.lifting or {}
         all_tets = np.arange(len(role), dtype=np.int64)
 
         core = np.where(role == int(QueryRole.CORE))[0].astype(np.int64)
         halo = np.where(role == int(QueryRole.HALO))[0].astype(np.int64)
         sentinel = np.where(role == int(QueryRole.SENTINEL))[0].astype(np.int64)
+
+        if residual is not None:
+            residual = np.asarray(residual, dtype=np.float32)
+            q = float(lifting_cfg.get("residual_halo_quantile", 0.80))
+            residual_cut = float(np.quantile(residual, q))
+            residual_halo = residual >= residual_cut
+            halo = np.union1d(
+                halo,
+                np.where(residual_halo & (role != int(QueryRole.CORE)))[0],
+            ).astype(np.int64)
 
         if sentinel_cfg.get("mode") in {"distance_shell", "view_guided"} and len(core) > 0:
             centroids = self.nodes[self.elements].mean(axis=1)
@@ -204,6 +222,7 @@ class CQRQueryBuilder:
         roi_tet_indices: np.ndarray | None,
         n_query_points: int | None = None,
         seed: int | None = None,
+        lift_indicators: dict[str, np.ndarray] | None = None,
     ) -> dict[str, np.ndarray]:
         cfg = self.config
         n_query = int(n_query_points or cfg.n_query_points)
@@ -215,7 +234,7 @@ class CQRQueryBuilder:
             roi_tet_indices=roi_tet_indices,
             cfg=cfg.coverage,
         )
-        pools = self._make_pools(field)
+        pools = self._make_pools(field, lift_indicators=lift_indicators)
         counts = _counts(n_query, cfg.ratios)
 
         pts_chunks = []
@@ -229,10 +248,17 @@ class CQRQueryBuilder:
         }
 
         score = field["coverage_score"]
+        residual = None if lift_indicators is None else lift_indicators.get("residual_indicator")
+        halo_residual_weight = float((cfg.lifting or {}).get("halo_residual_weight", 0.5))
         for name in ["core", "halo", "sentinel", "bg"]:
             pool = pools[name]
             n = counts[name]
-            prob = 1.0 - score[pool] if name == "bg" else score[pool]
+            if name == "halo" and residual is not None:
+                prob = (1.0 - halo_residual_weight) * score[pool] + halo_residual_weight * residual[pool]
+            elif name == "bg":
+                prob = 1.0 - score[pool]
+            else:
+                prob = score[pool]
             pts, tids = _sample_points_in_tets(
                 rng=rng,
                 nodes=self.nodes,
@@ -270,7 +296,7 @@ class CQRQueryBuilder:
         correction_band = role.astype(np.int64)
         prolongation_value = (prior_8d[:, :4] * prior_8d[:, 4:8]).sum(axis=1).astype(np.float32)
         correction_demand_score = field["correction_demand_score"][tet_ids].astype(np.float32)
-        band_distance_score = field["band_distance_score"][tet_ids].astype(np.float32)
+        band_distance_score = correction_band_distance(correction_band)
         query_weight = role_query_weights(role)
         prior_ext = np.concatenate(
             [prior_8d.astype(np.float32), coverage_score[:, None], risk_components],

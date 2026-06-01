@@ -13,6 +13,7 @@ from scipy.ndimage import map_coordinates
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from du2vox.bridge.coverage_field import correction_band_distance
 from du2vox.bridge.cqr_query_builder import CQRQueryBuilder
 from du2vox.bridge.fem_lift_indicators import compute_lifting_indicators
 from du2vox.bridge.fem_bridging import FEMBridge
@@ -141,6 +142,16 @@ def precompute_one(
         view_score, _ = compute_view_evidence(centroids, load_proj_npz(str(proj_path)))
         cqr_cfg["view_evidence"] = view_score
 
+    tau_core, tau_halo, lifting_weights = get_lifting_config(cqr_cfg)
+    lift_ind = compute_lifting_indicators(
+        nodes=nodes,
+        tets=elements,
+        node_values=coarse_d,
+        tau_core=tau_core,
+        tau_halo=tau_halo,
+        weights=lifting_weights,
+    )
+
     builder = CQRQueryBuilder(
         nodes=nodes,
         elements=elements,
@@ -155,15 +166,7 @@ def precompute_one(
         roi_tet_indices=roi_tet_indices,
         n_query_points=n_query_points,
         seed=sample_seed(sid),
-    )
-    tau_core, tau_halo, lifting_weights = get_lifting_config(cqr_cfg)
-    lift_ind = compute_lifting_indicators(
-        nodes=nodes,
-        tets=elements,
-        node_values=coarse_d,
-        tau_core=tau_core,
-        tau_halo=tau_halo,
-        weights=lifting_weights,
+        lift_indicators=lift_ind,
     )
 
     points = cqr["query_points"].astype(np.float32)
@@ -197,11 +200,12 @@ def precompute_one(
     q_transition_score[valid_tet] = lift_ind["transition_score"][tet_ids[valid_tet]]
     q_residual_indicator[valid_tet] = lift_ind["residual_indicator"][tet_ids[valid_tet]]
     correction_band = cqr["correction_band"].astype(np.int64)
-    band_distance_score = np.zeros(len(points), dtype=np.float32)
-    band_distance_score[correction_band == 1] = 0.0
-    band_distance_score[correction_band == 2] = 0.5
-    band_distance_score[correction_band == 0] = 1.0
+    band_distance_score = correction_band_distance(correction_band)
     prolongation_value = cqr["prolongation_value"].astype(np.float32)
+    # prior_lift layout is fixed mainline input:
+    # 0:8 prior_8d, 8 prolongation_value, 9 tet_grad_norm,
+    # 10 grad_jump_score, 11 recovery_error_score, 12 transition_score,
+    # 13 residual_indicator, 14 band_distance_score.
     prior_lift = np.concatenate(
         [
             cqr["prior_8d"].astype(np.float32),
@@ -349,9 +353,8 @@ def main() -> None:
             f"[{i}/{len(sample_ids)}] {sid}: "
             f"points={len(valid)}, valid={int(valid.sum())}/{len(valid)} "
             f"({100*valid.mean():.1f}%), roles(bg/core/halo/sentinel)={counts}, "
-            f"prior_prolong_dim={data['prior_prolong'].shape[-1]}, "
-            f"lift_dim={data['prior_lift'].shape[-1]}, "
-            f"bands(bg/core/halo/sentinel)={band_counts}, "
+            f"prior_lift_dim={data['prior_lift'].shape[-1]}, "
+            f"band(bg/core/halo/sentinel)={band_counts}, "
             f"demand(bg/core/halo)="
             f"({band_mean(demand, 0):.3f},{band_mean(demand, 1):.3f},{band_mean(demand, 2):.3f}), "
             f"residual(bg/core/halo)="

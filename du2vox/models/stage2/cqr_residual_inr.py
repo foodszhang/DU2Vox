@@ -41,6 +41,8 @@ class PositionalEncoding(nn.Module):
 
 
 class LocalProlongationAdapter(nn.Module):
+    """Deprecated experimental adapter kept for old checkpoints/configs."""
+
     def __init__(self, prior_dim: int, out_dim: int, hidden_dim: int = 64):
         super().__init__()
         self.net = nn.Sequential(
@@ -55,6 +57,8 @@ class LocalProlongationAdapter(nn.Module):
 
 
 class LocalLiftingAdapter(nn.Module):
+    """Deprecated experimental adapter kept for old checkpoints/configs."""
+
     def __init__(self, prior_dim: int, out_dim: int = 32, hidden_dim: int = 64):
         super().__init__()
         self.net = nn.Sequential(

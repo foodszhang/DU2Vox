@@ -24,7 +24,7 @@ training:
   batch_size: 8
   lr: 1.0e-3
   weight_decay: 1.0e-4
-  max_epochs: 300
+  max_epochs: 100
   grad_clip_norm: 1.0
   activation: "sigmoid"
   leaky_relu_slope: 0.01

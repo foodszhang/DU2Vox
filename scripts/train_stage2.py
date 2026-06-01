@@ -89,11 +89,11 @@ def select_prior(batch: dict, prior_source: str, expected_dim: int) -> torch.Ten
     if prior_source == "prior_8d":
         prior = batch["prior_8d"]
     elif prior_source == "prior_ext":
-        prior = batch.get("prior_ext", batch["prior_8d"])
-    elif prior_source == "prior_prolong":
-        prior = batch["prior_prolong"]
+        prior = batch["prior_ext"]
     elif prior_source == "prior_lift":
         prior = batch["prior_lift"]
+    elif prior_source == "prior_prolong":
+        prior = batch["prior_prolong"]
     else:
         raise ValueError(f"Unknown prior_source: {prior_source}")
 
@@ -244,6 +244,15 @@ def train_step(
                 pred_for_dice = d_hat
             pred_flat = pred_for_dice.flatten()[valid_mask]
             gt_flat = gt.flatten()[valid_mask]
+            point_weight = torch.ones_like(gt_flat)
+            if "query_weight" in batch:
+                qw = batch["query_weight"].cuda().flatten()[valid_mask]
+                point_weight = point_weight * qw
+            if "residual_indicator" in batch:
+                ri = batch["residual_indicator"].cuda().flatten()[valid_mask]
+                residual_weight = float((loss_cfg or {}).get("residual_indicator_weight", 0.5))
+                point_weight = point_weight * (1.0 + residual_weight * ri)
+            point_weight = point_weight / (point_weight.mean().detach() + 1e-6)
 
             # d_hat already includes fem_interp + residual, no need to add again
             final_pred = torch.clamp(pred_flat, 0.0, 1.0)
@@ -314,6 +323,34 @@ def train_step(
                         "bce": torch.tensor(0.0),
                         "sparse": torch.tensor(0.0),
                         "focal_tv": res_l2_loss.detach(),
+                    }
+
+                elif loss_type == "mse_bce_dice":
+                    loss_cfg = loss_cfg or {}
+                    support_threshold = float(loss_cfg.get("support_threshold", 0.5))
+                    target = gt_flat.clamp(0.0, 1.0)
+                    gt_bin = (gt_flat >= support_threshold).float()
+                    pred = p_t.clamp(eps, 1 - eps)
+
+                    weight_sum = point_weight.sum() + eps
+                    mse_each = (pred - target) ** 2
+                    mse_loss = (mse_each * point_weight).sum() / weight_sum
+                    bce_each = -(gt_bin * torch.log(pred) + (1.0 - gt_bin) * torch.log(1.0 - pred))
+                    bce_loss = (bce_each * point_weight).sum() / weight_sum
+                    dice_loss = 1.0 - (2.0 * (pred * gt_bin * point_weight).sum() + eps) / (
+                        (pred * point_weight).sum() + (gt_bin * point_weight).sum() + eps
+                    )
+                    loss = (
+                        float(loss_cfg.get("mse_weight", 0.6)) * mse_loss
+                        + float(loss_cfg.get("bce_weight", 0.2)) * bce_loss
+                        + float(loss_cfg.get("dice_weight", 0.2)) * dice_loss
+                    )
+                    loss_components = {
+                        "dice": dice_loss.detach(),
+                        "focal": mse_loss.detach(),
+                        "bce": bce_loss.detach(),
+                        "sparse": torch.tensor(0.0),
+                        "focal_tv": torch.tensor(0.0),
                     }
 
                 elif loss_type == "mse":

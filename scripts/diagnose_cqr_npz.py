@@ -22,6 +22,26 @@ def dice_at(pred, gt, thr=0.5):
     return 2 * (p & g).sum() / (p.sum() + g.sum() + 1e-8)
 
 
+def gt_pos(gt, mask, thr=0.5):
+    if mask.sum() == 0:
+        return 0.0
+    return float((gt[mask] >= thr).mean())
+
+
+def top_bottom_residual_stats(residual, gt, valid):
+    if residual is None or valid.sum() == 0:
+        return 0.0, 0.0
+    rv = residual[valid]
+    gv = gt[valid]
+    top_cut = np.quantile(rv, 0.90)
+    bottom_cut = np.quantile(rv, 0.50)
+    top = rv >= top_cut
+    bottom = rv <= bottom_cut
+    top_gt = float((gv[top] >= 0.5).mean()) if top.any() else 0.0
+    bottom_gt = float((gv[bottom] >= 0.5).mean()) if bottom.any() else 0.0
+    return top_gt, bottom_gt
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dir", required=True)
@@ -62,11 +82,17 @@ def main():
         print(f"  fem_pos@0.5={((fem[valid] >= 0.5).mean() if valid.any() else 0):.4f}")
         print(f"  fem_dice@0.5={dice_at(fem[valid], gt[valid], 0.5):.4f}")
         print(f"  gt_mean={gt[valid].mean():.4f}, fem_mean={fem[valid].mean():.4f}")
-        if "prior_prolong" in d.files:
-            print(f"  prior_prolong_dim={d['prior_prolong'].shape[-1]}")
         if "prior_lift" in d.files:
             print(f"  prior_lift_dim={d['prior_lift'].shape[-1]}")
         print(f"  correction_band counts={np.bincount(correction_band[valid], minlength=4).tolist()}")
+        residual = lift_fields["residual_indicator"]
+        if residual is not None and valid.any():
+            top_gt, bottom_gt = top_bottom_residual_stats(residual, gt, valid)
+            halo = valid & (correction_band == 2)
+            print(f"  residual_indicator top10 gt_pos@0.5={top_gt:.4f}")
+            print(f"  residual_indicator bottom50 gt_pos@0.5={bottom_gt:.4f}")
+            print(f"  halo_gt_pos={gt_pos(gt, halo):.4f}")
+            print(f"  halo_residual_mean={(residual[halo].mean() if halo.any() else 0):.4f}")
         for name, values in [
             ("prolongation_value", prolongation_value),
             ("correction_demand_score", correction_demand_score),
@@ -136,6 +162,18 @@ def main():
     print(f"  fem_pos@0.5={(fem_all >= 0.5).mean():.4f}")
     print(f"  fem_dice@0.5={dice_at(fem_all, gt_all, 0.5):.4f}")
     print(f"  correction_band counts={np.bincount(band_all, minlength=4).tolist()}")
+    if lift_all["residual_indicator"] is not None:
+        residual_all = lift_all["residual_indicator"]
+        top_gt, bottom_gt = top_bottom_residual_stats(
+            residual_all,
+            gt_all,
+            np.ones(len(gt_all), dtype=bool),
+        )
+        halo_all = band_all == 2
+        print(f"  residual_indicator top10 gt_pos@0.5={top_gt:.4f}")
+        print(f"  residual_indicator bottom50 gt_pos@0.5={bottom_gt:.4f}")
+        print(f"  halo_gt_pos={gt_pos(gt_all, halo_all):.4f}")
+        print(f"  halo_residual_mean={(residual_all[halo_all].mean() if halo_all.any() else 0):.4f}")
     for name, values in [
         ("correction_demand_score", demand_all),
         ("prolongation_value", prolong_all),

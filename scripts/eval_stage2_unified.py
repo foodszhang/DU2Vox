@@ -205,11 +205,11 @@ def select_prior(data: dict[str, np.ndarray], cfg: dict[str, Any], valid: np.nda
     if prior_source == "prior_8d":
         prior = data["prior_8d"]
     elif prior_source == "prior_ext":
-        prior = data["prior_ext"] if "prior_ext" in data else data["prior_8d"]
-    elif prior_source == "prior_prolong":
-        prior = data["prior_prolong"]
+        prior = data["prior_ext"]
     elif prior_source == "prior_lift":
         prior = data["prior_lift"]
+    elif prior_source == "prior_prolong":
+        prior = data["prior_prolong"]
     else:
         raise ValueError(f"Unknown prior_source: {prior_source}")
     if prior.shape[-1] != expected_dim:
