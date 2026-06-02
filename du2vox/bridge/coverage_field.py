@@ -18,7 +18,7 @@ def correction_band_distance(role: np.ndarray) -> np.ndarray:
     out[role == int(QueryRole.CORE)] = 0.5
     out[role == int(QueryRole.HALO)] = 1.0
     out[role == int(QueryRole.BG)] = 0.0
-    out[role == int(QueryRole.SENTINEL)] = 0.0
+    out[role == int(QueryRole.SENTINEL)] = 0.75
     return out.astype(np.float32)
 
 

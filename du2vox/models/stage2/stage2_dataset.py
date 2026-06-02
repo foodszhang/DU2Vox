@@ -23,6 +23,67 @@ from du2vox.utils.frame import FrameManifest
 MCX_ANGLES = [-90, -60, -30, 0, 30, 60, 90]
 
 
+def _sample_query_indices(
+    valid_indices: np.ndarray,
+    n_query_points: int,
+    deterministic: bool,
+    seed: int | None = None,
+) -> np.ndarray:
+    n_valid = len(valid_indices)
+    if deterministic:
+        if n_valid >= n_query_points:
+            return valid_indices[:n_query_points]
+        reps = int(np.ceil(n_query_points / max(n_valid, 1)))
+        return np.tile(valid_indices, reps)[:n_query_points]
+
+    rng = np.random.default_rng(seed) if seed is not None else np.random.default_rng()
+    return rng.choice(valid_indices, n_query_points, replace=n_valid < n_query_points)
+
+
+def load_projection_stack(
+    sample_dir: Path,
+    projection_file: str = "proj.npz",
+    fallback_projection_file: str | None = None,
+    projection_norm: str = "none",
+    projection_eps: float = 1.0e-8,
+    projection_transform: str = "none",
+) -> tuple[np.ndarray, str]:
+    candidates = [projection_file]
+    if fallback_projection_file and fallback_projection_file not in candidates:
+        candidates.append(fallback_projection_file)
+
+    proj_path = None
+    for name in candidates:
+        path = sample_dir / name
+        if path.exists():
+            proj_path = path
+            break
+    if proj_path is None:
+        raise FileNotFoundError(f"projection file not found under {sample_dir}: tried {candidates}")
+
+    with np.load(proj_path) as proj_data:
+        proj_imgs = np.stack([proj_data[str(angle)].astype(np.float32) for angle in MCX_ANGLES], axis=0)
+
+    proj_imgs = np.nan_to_num(proj_imgs, nan=0.0, posinf=0.0, neginf=0.0)
+    proj_imgs = np.clip(proj_imgs.astype(np.float32), 0.0, None)
+
+    if projection_transform == "log1p":
+        proj_imgs = np.log1p(proj_imgs).astype(np.float32)
+
+    if projection_norm == "per_view_max":
+        scale = np.maximum(np.max(np.abs(proj_imgs), axis=(1, 2), keepdims=True), float(projection_eps))
+        proj_imgs = (proj_imgs / scale).astype(np.float32)
+    elif projection_norm not in {"none", None}:
+        raise ValueError(f"Unknown projection_norm: {projection_norm}")
+
+    if projection_transform == "log1p_after_norm":
+        proj_imgs = np.log1p(proj_imgs).astype(np.float32)
+    elif projection_transform not in {"none", "log1p", "log1p_after_norm", None}:
+        raise ValueError(f"Unknown projection_transform: {projection_transform}")
+
+    return proj_imgs.astype(np.float32), proj_path.name
+
+
 class Stage2Dataset(Dataset):
     """
     Parameters
@@ -156,16 +217,34 @@ class Stage2DatasetPrecomputed(Dataset):
         n_query_points: int = 4096,
         cache_size: int = 32,
         deterministic: bool = False,
+        resample_queries_each_epoch: bool = False,
+        query_epoch_seed_stride: int = 1000003,
+        base_seed: int = 0,
     ):
         self.precomputed_dir = Path(precomputed_dir)
         self.sample_ids = sample_ids
         self.n_query_points = n_query_points
         self._cache_size = cache_size
         self.deterministic = deterministic
+        self.resample_queries_each_epoch = bool(resample_queries_each_epoch)
+        self.query_epoch_seed_stride = int(query_epoch_seed_stride)
+        self.base_seed = int(base_seed)
+        self.current_epoch = 0
 
         # LRU cache: sid -> loaded npz arrays
         self._npz_cache: dict[str, dict] = {}
         self._cache_order: list[str] = []
+
+    def set_epoch(self, epoch: int) -> None:
+        self.current_epoch = int(epoch)
+
+    def _query_seed(self, idx: int) -> int | None:
+        if self.deterministic:
+            return None
+        seed = self.base_seed + int(idx)
+        if self.resample_queries_each_epoch:
+            seed += self.current_epoch * self.query_epoch_seed_stride
+        return seed
 
     def _load_npz(self, sid: str) -> dict:
         """Load .npz from cache or disk (LRU)."""
@@ -213,19 +292,12 @@ class Stage2DatasetPrecomputed(Dataset):
                 "sample_id": sid,
             }
 
-        # Sample n_query_points from valid indices.
-        # Validation should be deterministic so FemDice / Stage2Dice are comparable across epochs.
-        if self.deterministic:
-            if n_valid >= self.n_query_points:
-                chosen = valid_indices[: self.n_query_points]
-            else:
-                reps = int(np.ceil(self.n_query_points / max(n_valid, 1)))
-                chosen = np.tile(valid_indices, reps)[: self.n_query_points]
-        else:
-            if n_valid >= self.n_query_points:
-                chosen = np.random.choice(valid_indices, self.n_query_points, replace=False)
-            else:
-                chosen = np.random.choice(valid_indices, self.n_query_points, replace=True)
+        chosen = _sample_query_indices(
+            valid_indices,
+            self.n_query_points,
+            self.deterministic,
+            seed=self._query_seed(idx),
+        )
 
         # Use pre-normalized coords if available, otherwise normalize on the fly
         if "grid_coords_norm" in data:
@@ -298,6 +370,14 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
         cache_size: int = 16,
         shared_dir: str | None = None,
         deterministic: bool = False,
+        resample_queries_each_epoch: bool = False,
+        query_epoch_seed_stride: int = 1000003,
+        base_seed: int = 0,
+        projection_file: str = "proj.npz",
+        fallback_projection_file: str | None = None,
+        projection_norm: str = "none",
+        projection_eps: float = 1.0e-8,
+        projection_transform: str = "none",
     ):
         super().__init__(
             precomputed_dir=precomputed_dir,
@@ -305,8 +385,17 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
             n_query_points=n_query_points,
             cache_size=cache_size,
             deterministic=deterministic,
+            resample_queries_each_epoch=resample_queries_each_epoch,
+            query_epoch_seed_stride=query_epoch_seed_stride,
+            base_seed=base_seed,
         )
         self.samples_dir = Path(samples_dir)
+        self.projection_file = projection_file
+        self.fallback_projection_file = fallback_projection_file
+        self.projection_norm = projection_norm
+        self.projection_eps = float(projection_eps)
+        self.projection_transform = projection_transform
+        self._logged_projection_files: set[str] = set()
         # Load frame manifest for MCX coordinate transform
         self.frame = FrameManifest.load(shared_dir) if shared_dir else None
 
@@ -334,19 +423,12 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
                 "sample_id":     sid,
             }
 
-        # Sample n_query_points from valid indices.
-        # Validation should be deterministic so FemDice / Stage2Dice are comparable across epochs.
-        if self.deterministic:
-            if n_valid >= self.n_query_points:
-                chosen = valid_indices[: self.n_query_points]
-            else:
-                reps = int(np.ceil(self.n_query_points / max(n_valid, 1)))
-                chosen = np.tile(valid_indices, reps)[: self.n_query_points]
-        else:
-            if n_valid >= self.n_query_points:
-                chosen = np.random.choice(valid_indices, self.n_query_points, replace=False)
-            else:
-                chosen = np.random.choice(valid_indices, self.n_query_points, replace=True)
+        chosen = _sample_query_indices(
+            valid_indices,
+            self.n_query_points,
+            self.deterministic,
+            seed=self._query_seed(idx),
+        )
 
         # Normalized coords for INR input
         if "grid_coords_norm" in data:
@@ -376,18 +458,17 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
         else:
             mcx_valid = np.ones(len(world_xyz), dtype=bool)
 
-        # Load MCX projection images: [7, 256, 256] in angle order
-        proj_path = self.samples_dir / sid / "proj.npz"
-        if proj_path.exists():
-            proj_data = np.load(proj_path)
-            # Stack in the same angle order as MCX_ANGLES
-            proj_imgs = np.stack(
-                [proj_data[str(angle)].astype(np.float32) for angle in MCX_ANGLES],
-                axis=0,
-            )  # [7, 256, 256]
-        else:
-            # Fallback: zeros if proj.npz not available
-            proj_imgs = np.zeros((7, 256, 256), dtype=np.float32)
+        proj_imgs, used_projection_file = load_projection_stack(
+            self.samples_dir / sid,
+            projection_file=self.projection_file,
+            fallback_projection_file=self.fallback_projection_file,
+            projection_norm=self.projection_norm,
+            projection_eps=self.projection_eps,
+            projection_transform=self.projection_transform,
+        )
+        if used_projection_file not in self._logged_projection_files:
+            print(f"[Dataset] projection_file used: {used_projection_file}")
+            self._logged_projection_files.add(used_projection_file)
 
         item = {
             "coords":       torch.from_numpy(coords_norm.astype(np.float32)),
@@ -397,6 +478,7 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
             "coords_world": torch.from_numpy(coords_world),
             "mcx_valid":   torch.from_numpy(mcx_valid),
             "proj_imgs":   torch.from_numpy(proj_imgs).unsqueeze(1),  # [7, 1, 256, 256]
+            "projection_file": used_projection_file,
             "sample_id":   sid,
         }
         if "prior_ext" in data:

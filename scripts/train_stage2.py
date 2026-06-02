@@ -123,6 +123,7 @@ def build_dataloader(
     n_query = cfg["data"]["n_query_points"]
 
     if precomputed_dir and Path(precomputed_dir).exists():
+        resample_train = bool(cfg["data"].get("resample_queries_each_epoch", False)) and not deterministic
         # Check if multiview mode is enabled
         if cfg["model"].get("view_encoder", False):
             dataset = Stage2DatasetPrecomputedMultiview(
@@ -132,6 +133,14 @@ def build_dataloader(
                 n_query_points=n_query,
                 shared_dir=cfg["data"].get("shared_dir"),
                 deterministic=deterministic,
+                resample_queries_each_epoch=resample_train,
+                query_epoch_seed_stride=cfg["data"].get("query_epoch_seed_stride", 1000003),
+                base_seed=cfg["data"].get("query_base_seed", 0),
+                projection_file=cfg["data"].get("projection_file", "proj.npz"),
+                fallback_projection_file=cfg["data"].get("fallback_projection_file"),
+                projection_norm=cfg["data"].get("projection_norm", "none"),
+                projection_eps=cfg["data"].get("projection_eps", 1.0e-8),
+                projection_transform=cfg["data"].get("projection_transform", "none"),
             )
         else:
             dataset = Stage2DatasetPrecomputed(
@@ -139,6 +148,9 @@ def build_dataloader(
                 sample_ids=sample_ids,
                 n_query_points=n_query,
                 deterministic=deterministic,
+                resample_queries_each_epoch=resample_train,
+                query_epoch_seed_stride=cfg["data"].get("query_epoch_seed_stride", 1000003),
+                base_seed=cfg["data"].get("query_base_seed", 0),
             )
         return DataLoader(
             dataset,
@@ -180,6 +192,7 @@ def train_step(
     prior_source: str = "prior_ext",
     expected_prior_dim: int = 8,
     use_amp: bool = False,
+    amp_dtype: torch.dtype = torch.float16,
     accumulation_steps: int = 1,
     step_optimizer: bool = True,
 ) -> dict:
@@ -208,7 +221,7 @@ def train_step(
         "focal_tv": torch.tensor(0.0, device=coords.device),
     }
 
-    with torch.amp.autocast("cuda", enabled=use_amp):
+    with torch.amp.autocast("cuda", enabled=use_amp, dtype=amp_dtype):
         if is_multiview:
             coords_world = batch["coords_world"].cuda()  # [B, N, 3] — world mm for projection
             proj_imgs = batch["proj_imgs"].cuda()  # [B, 7, 1, 256, 256]
@@ -325,7 +338,7 @@ def train_step(
                         "focal_tv": res_l2_loss.detach(),
                     }
 
-                elif loss_type == "mse_bce_dice":
+                elif loss_type in {"mse_bce_dice", "sparse_support"}:
                     loss_cfg = loss_cfg or {}
                     support_threshold = float(loss_cfg.get("support_threshold", 0.5))
                     target = gt_flat.clamp(0.0, 1.0)
@@ -335,8 +348,13 @@ def train_step(
                     weight_sum = point_weight.sum() + eps
                     mse_each = (pred - target) ** 2
                     mse_loss = (mse_each * point_weight).sum() / weight_sum
+                    bce_weight = point_weight
+                    if loss_type == "sparse_support":
+                        pos_weight = float(loss_cfg.get("pos_weight", 1.0))
+                        bce_weight = bce_weight * torch.where(gt_bin > 0.5, pos_weight, 1.0)
+                        bce_weight = bce_weight / (bce_weight.mean().detach() + eps)
                     bce_each = -(gt_bin * torch.log(pred) + (1.0 - gt_bin) * torch.log(1.0 - pred))
-                    bce_loss = (bce_each * point_weight).sum() / weight_sum
+                    bce_loss = (bce_each * bce_weight).sum() / (bce_weight.sum() + eps)
                     dice_loss = 1.0 - (2.0 * (pred * gt_bin * point_weight).sum() + eps) / (
                         (pred * point_weight).sum() + (gt_bin * point_weight).sum() + eps
                     )
@@ -621,6 +639,8 @@ def main():
     # Load splits
     train_ids = load_split(cfg["data"]["train_split"])
     val_ids = load_split(cfg["data"]["val_split"])
+    test_split = cfg.get("data", {}).get("test_split")
+    test_count = len(load_split(test_split)) if test_split else 0
 
     if args.max_samples:
         train_ids = train_ids[: args.max_samples]
@@ -643,7 +663,12 @@ def main():
         print(f"[Stage2] Mode: precomputed (train={precomputed_train}, val={precomputed_val})")
     else:
         print("[Stage2] Mode: on-demand (bridge_dir fallback)")
-    print(f"[Stage2] Training: {len(train_ids)} samples, Val: {len(val_ids)} samples")
+    print(f"[Stage2] Data root: {cfg['data'].get('dataset_root', cfg['data'].get('samples_dir', ''))}")
+    print(
+        f"[Stage2] Splits: train={cfg['data']['train_split']}, "
+        f"val={cfg['data']['val_split']}, test={test_split or 'N/A'}"
+    )
+    print(f"[Stage2] Training: {len(train_ids)} samples, Val: {len(val_ids)} samples, Test: {test_count} samples")
     print(
         f"[Stage2] Model: model_type={model_type or 'residual_inr'}, "
         f"prior_dim={prior_dim}, prior_source={prior_source}, use_cqr_model={use_cqr_model}, "
@@ -660,9 +685,10 @@ def main():
             f"lifting_feat_dim={cfg['model'].get('lifting_feat_dim', 32)}, "
             f"residual_scale={cfg['model'].get('residual_scale', 1.0)}"
         )
-    print(f"[Stage2] Loss: {cfg['loss']['type']}")
+    print(f"[Stage2] Loss: {cfg['loss']['type']} weights={cfg.get('loss', {})}")
     print(
         f"[Stage2] Precision: amp={cfg['training'].get('amp', False)}, "
+        f"amp_dtype={cfg['training'].get('amp_dtype', 'fp16')}, "
         f"grad_accum_steps={cfg['training'].get('grad_accum_steps', 1)}"
     )
     print(
@@ -670,6 +696,22 @@ def main():
         f"view_encoder_lr_scale={cfg['model'].get('view_encoder_lr_scale', 1.0)}"
     )
     print(f"[Stage2] Data: train_precomputed={precomputed_train}, val_precomputed={precomputed_val}")
+    print(
+        f"[Stage2] Projection: file={cfg['data'].get('projection_file', 'proj.npz')}, "
+        f"fallback={cfg['data'].get('fallback_projection_file')}, "
+        f"norm={cfg['data'].get('projection_norm', 'none')}, "
+        f"transform={cfg['data'].get('projection_transform', 'none')}"
+    )
+    print(
+        f"[Stage2] Query resampling: resample_queries_each_epoch="
+        f"{cfg['data'].get('resample_queries_each_epoch', False)}, "
+        f"query_epoch_seed_stride={cfg['data'].get('query_epoch_seed_stride', 1000003)}"
+    )
+    print(
+        f"[Stage2] CQR measurement_proposal="
+        f"{cfg.get('cqr', {}).get('measurement_proposal', {}).get('enabled', False)} "
+        f"ratio={cfg.get('cqr', {}).get('ratios', {}).get('proposal', 0.0)}"
+    )
 
     if view_encoder_cfg:
         # Multiview mode: ViewEncoderModule + ResidualINR
@@ -680,6 +722,8 @@ def main():
             fusion_method=cfg["model"].get("fusion_method", "attn"),
             encoder_out_channels=cfg["model"].get("encoder_out_channels", 32),
             encoder_base_channels=cfg["model"].get("encoder_base_channels", 32),
+            projection_transform=cfg["model"].get("view_projection_transform", "log1p"),
+            multiscale_cfg=cfg["model"].get("view_multiscale", {}),
         ).cuda()
         freeze_view_encoder = bool(cfg["model"].get("freeze_view_encoder", False))
         if freeze_view_encoder:
@@ -707,7 +751,8 @@ def main():
         print(
             f"[Stage2] Multiview mode: view_feat_dim={cfg['model']['view_feat_dim']}, "
             f"fusion={cfg['model'].get('fusion_method', 'mean')}, ve_lr={ve_lr:.0e}, "
-            f"freeze_view_encoder={freeze_view_encoder}"
+            f"freeze_view_encoder={freeze_view_encoder}, "
+            f"view_multiscale={cfg['model'].get('view_multiscale', {}).get('enabled', False)}"
         )
     else:
         # DE-only mode
@@ -733,6 +778,8 @@ def main():
     warmup_epochs = cfg["training"].get("warmup_epochs", 5)
     loss_type = cfg.get("loss", {}).get("type", "gisc")  # "gisc" or "soft_dice"
     use_amp = bool(cfg["training"].get("amp", False))
+    amp_dtype_name = cfg["training"].get("amp_dtype", "fp16")
+    amp_dtype = torch.bfloat16 if amp_dtype_name == "bf16" else torch.float16
     grad_accum_steps = max(1, int(cfg["training"].get("grad_accum_steps", 1)))
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
@@ -819,6 +866,9 @@ def main():
         else:
             scheduler.step()
 
+        if hasattr(train_loader.dataset, "set_epoch"):
+            train_loader.dataset.set_epoch(epoch)
+
         for batch_idx, batch in enumerate(train_loader):
             step_optimizer = ((batch_idx + 1) % grad_accum_steps == 0) or (batch_idx + 1 == len(train_loader))
             metrics = train_step(
@@ -834,6 +884,7 @@ def main():
                 prior_source=prior_source,
                 expected_prior_dim=expected_prior_dim,
                 use_amp=use_amp,
+                amp_dtype=amp_dtype,
                 accumulation_steps=grad_accum_steps,
                 step_optimizer=step_optimizer,
             )

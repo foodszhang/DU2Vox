@@ -216,12 +216,14 @@ class ViewEncoder(nn.Module):
 
         # Final projection to output channels
         self.final = nn.Conv2d(base_channels, out_channels, 1)
+        self.s2_proj = nn.Conv2d(ch2, out_channels, 1)
+        self.s3_proj = nn.Conv2d(ch3, out_channels, 1)
 
         self.feat_dim = out_channels
         self.h_out = 256 // (2 ** n_downsample)  # 64
         self.w_out = 256 // (2 ** n_downsample)  # 64
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, return_multiscale: bool = False) -> torch.Tensor | dict[str, torch.Tensor]:
         """
         x: [B, 1, 256, 256] → out: [B, feat_dim, 64, 64]
         """
@@ -249,6 +251,11 @@ class ViewEncoder(nn.Module):
         # Downsample 4× if needed (n_downsample=2 means 64×64 output)
         if out.shape[-1] != self.w_out:
             out = F.adaptive_avg_pool2d(out, (self.h_out, self.w_out))
+
+        if return_multiscale:
+            s2 = self.s2_proj(F.adaptive_avg_pool2d(d2, (self.h_out, self.w_out)))
+            s3 = self.s3_proj(F.adaptive_avg_pool2d(b, (self.h_out, self.w_out)))
+            return {"s1": out, "s2": s2, "s3": s3}
 
         return out
 
@@ -433,8 +440,14 @@ class ViewEncoderModule(nn.Module):
         fusion_method: str = "attn",
         encoder_out_channels: int = 32,
         encoder_base_channels: int = 32,
+        projection_transform: str = "log1p",
+        multiscale_cfg: dict | None = None,
     ):
         super().__init__()
+        multiscale_cfg = multiscale_cfg or {}
+        self.projection_transform = projection_transform
+        self.multiscale_enabled = bool(multiscale_cfg.get("enabled", False))
+        self.multiscale_scales = list(multiscale_cfg.get("scales", ["s1", "s2", "s3"]))
 
         # Shared 2D U-Net encoder
         self.encoder = ViewEncoder(
@@ -455,9 +468,18 @@ class ViewEncoderModule(nn.Module):
         )
 
         self.view_feat_dim = view_feat_dim
+        self.encoder_out_channels = encoder_out_channels
 
         # Project fused features to desired output dim
-        if view_feat_dim != encoder_out_channels:
+        fused_dim = encoder_out_channels * len(self.multiscale_scales) if self.multiscale_enabled else encoder_out_channels
+        if self.multiscale_enabled:
+            hidden_dim = int(multiscale_cfg.get("hidden_dim", max(encoder_out_channels, view_feat_dim)))
+            self.fuse_proj = nn.Sequential(
+                nn.Linear(fused_dim, hidden_dim),
+                nn.ReLU(inplace=True),
+                nn.Linear(hidden_dim, view_feat_dim),
+            )
+        elif view_feat_dim != encoder_out_channels:
             self.fuse_proj = nn.Linear(encoder_out_channels, view_feat_dim)
         else:
             self.fuse_proj = nn.Identity()
@@ -495,14 +517,38 @@ class ViewEncoderModule(nn.Module):
 
         B, n_views = proj_imgs.shape[:2]
 
-        # Normalize projections: log-scale for better dynamic range
-        proj_norm = torch.log1p(proj_imgs.clamp(min=0))
+        if self.projection_transform == "log1p":
+            proj_norm = torch.log1p(proj_imgs.clamp(min=0))
+        elif self.projection_transform in {"none", None}:
+            proj_norm = proj_imgs
+        else:
+            raise ValueError(f"Unknown view projection_transform: {self.projection_transform}")
 
         # Encode each view (shared encoder, batch over views)
         feat_maps_list = []
+        multiscale_maps: dict[str, list[torch.Tensor]] = {scale: [] for scale in self.multiscale_scales}
         for v in range(n_views):
-            feat = self.encoder(proj_norm[:, v])
-            feat_maps_list.append(feat)
+            feat = self.encoder(proj_norm[:, v], return_multiscale=self.multiscale_enabled)
+            if self.multiscale_enabled:
+                for scale in self.multiscale_scales:
+                    multiscale_maps[scale].append(feat[scale])
+            else:
+                feat_maps_list.append(feat)
+
+        if self.multiscale_enabled:
+            fused_scales = []
+            visibility_out = None
+            for scale in self.multiscale_scales:
+                feat_maps = torch.stack(multiscale_maps[scale], dim=1)
+                multi_view_feat, visibility = self.project_and_sample(
+                    coords_world,
+                    feat_maps,
+                    coords_vox_norm=coords_vox_norm,
+                )
+                fused_scales.append(self.fusion(multi_view_feat, visibility))
+                visibility_out = visibility
+            view_feat = self.fuse_proj(torch.cat(fused_scales, dim=-1))
+            return view_feat, visibility_out
 
         # Stack: [B, 7, C, H', W']
         feat_maps = torch.stack(feat_maps_list, dim=1)

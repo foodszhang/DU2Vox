@@ -12,7 +12,7 @@ ROLE_NAMES = {
     0: "bg",
     1: "core",
     2: "halo",
-    3: "sentinel",
+    3: "proposal",
 }
 
 
@@ -92,6 +92,8 @@ def main():
             print(f"  residual_indicator top10 gt_pos@0.5={top_gt:.4f}")
             print(f"  residual_indicator bottom50 gt_pos@0.5={bottom_gt:.4f}")
             print(f"  halo_gt_pos={gt_pos(gt, halo):.4f}")
+            proposal = valid & (correction_band == 3)
+            print(f"  proposal_gt_pos={gt_pos(gt, proposal):.4f}")
             print(f"  halo_residual_mean={(residual[halo].mean() if halo.any() else 0):.4f}")
         for name, values in [
             ("prolongation_value", prolongation_value),
@@ -170,9 +172,11 @@ def main():
             np.ones(len(gt_all), dtype=bool),
         )
         halo_all = band_all == 2
+        proposal_all = band_all == 3
         print(f"  residual_indicator top10 gt_pos@0.5={top_gt:.4f}")
         print(f"  residual_indicator bottom50 gt_pos@0.5={bottom_gt:.4f}")
         print(f"  halo_gt_pos={gt_pos(gt_all, halo_all):.4f}")
+        print(f"  proposal_gt_pos={gt_pos(gt_all, proposal_all):.4f}")
         print(f"  halo_residual_mean={(residual_all[halo_all].mean() if halo_all.any() else 0):.4f}")
     for name, values in [
         ("correction_demand_score", demand_all),

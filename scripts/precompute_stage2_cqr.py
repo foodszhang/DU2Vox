@@ -17,6 +17,10 @@ from du2vox.bridge.coverage_field import correction_band_distance
 from du2vox.bridge.cqr_query_builder import CQRQueryBuilder
 from du2vox.bridge.fem_lift_indicators import compute_lifting_indicators
 from du2vox.bridge.fem_bridging import FEMBridge
+from du2vox.bridge.measurement_proposal import (
+    load_measurement_proposal,
+    sample_measurement_proposal_points,
+)
 from du2vox.utils.frame import FrameManifest
 
 
@@ -132,6 +136,24 @@ def precompute_one(
     coarse_d = np.load(bd / "coarse_d.npy").astype(np.float32)
     roi_tet_indices = np.load(bd / "roi_tet_indices.npy").astype(np.int64)
     cqr_cfg = dict(cqr_cfg)
+    proposal_cfg = cqr_cfg.get("measurement_proposal", {}) or {}
+    if proposal_cfg.get("enabled", False):
+        heatmap, meta, _ = load_measurement_proposal(
+            samples_dir / sid,
+            proposal_subdir=proposal_cfg.get("proposal_subdir", "proposal"),
+            proposal_filename=proposal_cfg.get("proposal_filename", "meas_backproj_heatmap.npy"),
+            proposal_meta_filename=proposal_cfg.get("proposal_meta_filename", "meas_backproj_meta.json"),
+        )
+        ratios = cqr_cfg.get("ratios", {}) or {}
+        proposal_ratio = float(ratios.get("proposal", proposal_cfg.get("proposal_ratio", 0.0)))
+        n_proposal = int(round(n_query_points * max(0.0, proposal_ratio)))
+        rng = np.random.default_rng(sample_seed(sid) + 2027)
+        cqr_cfg["proposal_points"] = sample_measurement_proposal_points(
+            heatmap,
+            meta,
+            n_points=max(n_proposal, 1),
+            rng=rng,
+        )
     if cqr_cfg.get("sentinel", {}).get("mode") == "view_guided":
         from du2vox.bridge.view_evidence import compute_view_evidence, load_proj_npz
 
@@ -202,6 +224,11 @@ def precompute_one(
     correction_band = cqr["correction_band"].astype(np.int64)
     band_distance_score = correction_band_distance(correction_band)
     prolongation_value = cqr["prolongation_value"].astype(np.float32)
+    query_src_tag = np.zeros_like(correction_band, dtype=np.int64)
+    query_src_tag[correction_band == 1] = 0
+    query_src_tag[correction_band == 2] = 1
+    query_src_tag[correction_band == 0] = 2
+    query_src_tag[correction_band == 3] = 3
     # prior_lift layout is fixed mainline input:
     # 0:8 prior_8d, 8 prolongation_value, 9 tet_grad_norm,
     # 10 grad_jump_score, 11 recovery_error_score, 12 transition_score,
@@ -235,6 +262,7 @@ def precompute_one(
         "tet_ids": tet_ids,
         "tet_id": tet_ids,
         "role": cqr["role"].astype(np.int64),
+        "query_src_tag": query_src_tag,
         "correction_band": correction_band,
         "prolongation_value": prolongation_value,
         "correction_demand_score": cqr["correction_demand_score"].astype(np.float32),
@@ -269,7 +297,7 @@ def precompute_one(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Precompute CQR Stage-2 query clouds")
     parser.add_argument("--config", required=True)
-    parser.add_argument("--split", required=True, choices=["train", "val"])
+    parser.add_argument("--split", required=True, choices=["train", "val", "test"])
     parser.add_argument("--output_dir", required=True)
     parser.add_argument("--n_query_points", type=int, default=None)
     parser.add_argument("--n_candidates", type=int, default=16)
@@ -310,6 +338,14 @@ def main() -> None:
     print(f"[CQR] split={args.split}, samples={len(sample_ids)}, n_query={n_query}")
     print(f"[CQR] bridge_dir={bridge_dir}")
     print(f"[CQR] output_dir={output_dir}")
+    proposal_cfg = cqr_cfg.get("measurement_proposal", {}) or {}
+    if proposal_cfg.get("enabled", False):
+        print(
+            "[CQR] measurement_proposal="
+            f"enabled ratio={cqr_cfg.get('ratios', {}).get('proposal', proposal_cfg.get('proposal_ratio', 0.0))} "
+            f"file={proposal_cfg.get('proposal_subdir', 'proposal')}/"
+            f"{proposal_cfg.get('proposal_filename', 'meas_backproj_heatmap.npy')}"
+        )
     print("-" * 80)
 
     total = 0.0

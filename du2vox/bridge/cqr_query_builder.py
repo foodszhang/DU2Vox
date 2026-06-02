@@ -33,7 +33,9 @@ class CQRQueryConfig:
     prolongation: dict | None = None
     lifting: dict = field(default_factory=dict)
     sentinel: dict = field(default_factory=dict)
+    measurement_proposal: dict = field(default_factory=dict)
     view_evidence: np.ndarray | None = None
+    proposal_points: np.ndarray | None = None
     bg_score_quantile_max: float = 0.40
 
 
@@ -56,7 +58,7 @@ def _coerce_config(cfg: CQRQueryConfig | dict | None) -> CQRQueryConfig:
 
 
 def _normalize_ratios(ratios: dict[str, float]) -> dict[str, float]:
-    keys = ["core", "halo", "sentinel", "bg"]
+    keys = ["core", "halo", "sentinel", "bg", "proposal"]
     vals = {k: max(0.0, float(ratios.get(k, 0.0))) for k in keys}
     total = sum(vals.values())
 
@@ -67,7 +69,7 @@ def _normalize_ratios(ratios: dict[str, float]) -> dict[str, float]:
         )
 
     if total <= 0:
-        return {"core": 0.25, "halo": 0.45, "sentinel": 0.20, "bg": 0.10}
+        return {"core": 0.25, "halo": 0.45, "sentinel": 0.20, "bg": 0.10, "proposal": 0.0}
     return {k: vals[k] / total for k in keys}
 
 
@@ -245,14 +247,29 @@ class CQRQueryBuilder:
             "halo": int(QueryRole.HALO),
             "sentinel": int(QueryRole.SENTINEL),
             "bg": int(QueryRole.BG),
+            "proposal": int(QueryRole.SENTINEL),
         }
 
         score = field["coverage_score"]
         residual = None if lift_indicators is None else lift_indicators.get("residual_indicator")
         halo_residual_weight = float((cfg.lifting or {}).get("halo_residual_weight", 0.5))
-        for name in ["core", "halo", "sentinel", "bg"]:
-            pool = pools[name]
+        for name in ["core", "halo", "sentinel", "bg", "proposal"]:
             n = counts[name]
+            if name == "proposal":
+                proposal_points = cfg.proposal_points
+                if n <= 0:
+                    continue
+                if proposal_points is None or len(proposal_points) == 0:
+                    raise ValueError("CQR proposal ratio > 0 but no measurement proposal points were provided")
+                local = rng.choice(len(proposal_points), size=n, replace=len(proposal_points) < n)
+                pts = np.asarray(proposal_points, dtype=np.float32)[local]
+                tids = np.full(n, -1, dtype=np.int64)
+                pts_chunks.append(pts)
+                tet_chunks.append(tids)
+                role_chunks.append(np.full(n, role_value[name], dtype=np.int64))
+                continue
+
+            pool = pools[name]
             if name == "halo" and residual is not None:
                 prob = (1.0 - halo_residual_weight) * score[pool] + halo_residual_weight * residual[pool]
             elif name == "bg":
@@ -280,7 +297,18 @@ class CQRQueryBuilder:
         tet_ids = tet_ids[perm]
         role = role[perm]
 
-        active_tets = np.unique(tet_ids).astype(np.int64)
+        missing_tet = tet_ids < 0
+        if np.any(missing_tet):
+            global_bridge = FEMBridge(
+                self.nodes,
+                self.elements,
+                roi_tet_indices=None,
+                n_candidates=cfg.n_candidates,
+            )
+            located, _ = global_bridge.locate_points_batch(points[missing_tet])
+            tet_ids[missing_tet] = located.astype(np.int64)
+
+        active_tets = np.unique(tet_ids[tet_ids >= 0]).astype(np.int64)
         bridge = FEMBridge(
             self.nodes,
             self.elements,
@@ -289,13 +317,15 @@ class CQRQueryBuilder:
         )
         prior_8d, valid_mask = bridge.get_prior_features(points, coarse_d, K=cfg.n_candidates)
 
-        coverage_score = field["coverage_score"][tet_ids].astype(np.float32)
-        view_evidence_score = field.get("view_evidence", np.zeros_like(field["coverage_score"]))[tet_ids].astype(np.float32)
-        sentinel_score = field.get("sentinel_score", np.zeros_like(field["coverage_score"]))[tet_ids].astype(np.float32)
-        risk_components = field["risk_components"][tet_ids].astype(np.float32)
+        safe_tet_ids = tet_ids.copy()
+        safe_tet_ids[safe_tet_ids < 0] = 0
+        coverage_score = field["coverage_score"][safe_tet_ids].astype(np.float32)
+        view_evidence_score = field.get("view_evidence", np.zeros_like(field["coverage_score"]))[safe_tet_ids].astype(np.float32)
+        sentinel_score = field.get("sentinel_score", np.zeros_like(field["coverage_score"]))[safe_tet_ids].astype(np.float32)
+        risk_components = field["risk_components"][safe_tet_ids].astype(np.float32)
         correction_band = role.astype(np.int64)
         prolongation_value = (prior_8d[:, :4] * prior_8d[:, 4:8]).sum(axis=1).astype(np.float32)
-        correction_demand_score = field["correction_demand_score"][tet_ids].astype(np.float32)
+        correction_demand_score = field["correction_demand_score"][safe_tet_ids].astype(np.float32)
         band_distance_score = correction_band_distance(correction_band)
         query_weight = role_query_weights(role)
         prior_ext = np.concatenate(

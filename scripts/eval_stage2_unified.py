@@ -17,11 +17,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from du2vox.models.stage2.cqr_residual_inr import CQRResidualINR
 from du2vox.models.stage2.residual_inr import ResidualINR
-from du2vox.models.stage2.stage2_dataset import MCX_ANGLES
+from du2vox.models.stage2.stage2_dataset import load_projection_stack
 from du2vox.utils.frame import FrameManifest
 
 
-ROLE_NAMES = {0: "bg", 1: "core", 2: "halo", 3: "sentinel"}
+ROLE_NAMES = {0: "bg", 1: "core", 2: "halo", 3: "proposal"}
 
 METRIC_KEYS = [
     "s2_dice_05",
@@ -41,13 +41,13 @@ METRIC_KEYS = [
     "fem_pos_ratio_05",
 ]
 
-ROLE_SUBSETS = ["all", "core", "core_halo", "halo", "sentinel", "bg", "non_bg"]
+ROLE_SUBSETS = ["all", "core", "core_halo", "halo", "proposal", "bg", "non_bg"]
 
 BASE_FIELDNAMES = ["sample_id", "role_subset", "num_foci", "n_valid", *METRIC_KEYS]
 ROLE_FIELDNAMES = [
     f"{name}_{suffix}"
     for suffix in ["count", "gt_pos_05", "s2_pos_05", "fem_pos_05", "dice_05"]
-    for name in ["bg", "core", "halo", "sentinel"]
+    for name in ["bg", "core", "halo", "proposal"]
 ]
 
 
@@ -85,7 +85,7 @@ def make_role_mask(role: np.ndarray, subset: str) -> np.ndarray:
         return (role == 1) | (role == 2)
     if subset == "halo":
         return role == 2
-    if subset == "sentinel":
+    if subset == "proposal":
         return role == 3
     if subset == "bg":
         return role == 0
@@ -151,6 +151,8 @@ def build_model(cfg: dict[str, Any], device: torch.device) -> tuple[torch.nn.Mod
             fusion_method=cfg["model"].get("fusion_method", "attn"),
             encoder_out_channels=cfg["model"].get("encoder_out_channels", 32),
             encoder_base_channels=cfg["model"].get("encoder_base_channels", 32),
+            projection_transform=cfg["model"].get("view_projection_transform", "log1p"),
+            multiscale_cfg=cfg["model"].get("view_multiscale", {}),
         ).to(device)
 
     kwargs = dict(
@@ -258,12 +260,16 @@ def normalize_coords(data: dict[str, np.ndarray]) -> np.ndarray:
     return (2.0 * (raw - bbox_min) / (bbox_max - bbox_min + 1e-8) - 1.0).astype(np.float32)
 
 
-def load_proj_imgs(samples_dir: Path, sample_id: str) -> np.ndarray:
-    proj_path = samples_dir / sample_id / "proj.npz"
-    if not proj_path.exists():
-        return np.zeros((7, 1, 256, 256), dtype=np.float32)
-    proj_data = np.load(proj_path)
-    proj_imgs = np.stack([proj_data[str(angle)].astype(np.float32) for angle in MCX_ANGLES], axis=0)
+def load_proj_imgs(samples_dir: Path, sample_id: str, cfg: dict[str, Any]) -> np.ndarray:
+    data_cfg = cfg.get("data", {})
+    proj_imgs, _ = load_projection_stack(
+        samples_dir / sample_id,
+        projection_file=data_cfg.get("projection_file", "proj.npz"),
+        fallback_projection_file=data_cfg.get("fallback_projection_file"),
+        projection_norm=data_cfg.get("projection_norm", "none"),
+        projection_eps=data_cfg.get("projection_eps", 1.0e-8),
+        projection_transform=data_cfg.get("projection_transform", "none"),
+    )
     return proj_imgs[:, None, :, :]
 
 
@@ -326,7 +332,7 @@ def run_model_on_sample(
     if view_encoder is not None:
         if samples_dir is None:
             raise ValueError("samples_dir is required for multiview evaluation")
-        proj_imgs = torch.from_numpy(load_proj_imgs(samples_dir, sample_id)).unsqueeze(0).to(device)
+        proj_imgs = torch.from_numpy(load_proj_imgs(samples_dir, sample_id, cfg)).unsqueeze(0).to(device)
         mcx_valid = mcx_valid_mask(frame, coords_world)
 
     for start in range(0, len(coords_norm), batch_points):
