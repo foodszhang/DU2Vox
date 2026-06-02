@@ -247,7 +247,7 @@ class CQRQueryBuilder:
             "halo": int(QueryRole.HALO),
             "sentinel": int(QueryRole.SENTINEL),
             "bg": int(QueryRole.BG),
-            "proposal": int(QueryRole.SENTINEL),
+            "proposal": int(QueryRole.PROPOSAL),
         }
 
         score = field["coverage_score"]
@@ -308,6 +308,22 @@ class CQRQueryBuilder:
             located, _ = global_bridge.locate_points_batch(points[missing_tet])
             tet_ids[missing_tet] = located.astype(np.int64)
 
+        valid_tet = tet_ids >= 0
+        if not np.all(valid_tet):
+            points = points[valid_tet]
+            tet_ids = tet_ids[valid_tet]
+            role = role[valid_tet]
+        if len(points) == 0:
+            raise RuntimeError("No valid CQR query points remain after tet location")
+        if len(points) < n_query:
+            deficit = n_query - len(points)
+            refill_idx = rng.choice(len(points), size=deficit, replace=True)
+            points = np.concatenate([points, points[refill_idx]], axis=0).astype(np.float32)
+            tet_ids = np.concatenate([tet_ids, tet_ids[refill_idx]], axis=0).astype(np.int64)
+            role = np.concatenate([role, role[refill_idx]], axis=0).astype(np.int64)
+        if np.any(tet_ids < 0):
+            raise RuntimeError("Invalid tet_id remains after proposal locate/refill")
+
         active_tets = np.unique(tet_ids[tet_ids >= 0]).astype(np.int64)
         bridge = FEMBridge(
             self.nodes,
@@ -316,16 +332,13 @@ class CQRQueryBuilder:
             n_candidates=cfg.n_candidates,
         )
         prior_8d, valid_mask = bridge.get_prior_features(points, coarse_d, K=cfg.n_candidates)
-
-        safe_tet_ids = tet_ids.copy()
-        safe_tet_ids[safe_tet_ids < 0] = 0
-        coverage_score = field["coverage_score"][safe_tet_ids].astype(np.float32)
-        view_evidence_score = field.get("view_evidence", np.zeros_like(field["coverage_score"]))[safe_tet_ids].astype(np.float32)
-        sentinel_score = field.get("sentinel_score", np.zeros_like(field["coverage_score"]))[safe_tet_ids].astype(np.float32)
-        risk_components = field["risk_components"][safe_tet_ids].astype(np.float32)
+        coverage_score = field["coverage_score"][tet_ids].astype(np.float32)
+        view_evidence_score = field.get("view_evidence", np.zeros_like(field["coverage_score"]))[tet_ids].astype(np.float32)
+        sentinel_score = field.get("sentinel_score", np.zeros_like(field["coverage_score"]))[tet_ids].astype(np.float32)
+        risk_components = field["risk_components"][tet_ids].astype(np.float32)
         correction_band = role.astype(np.int64)
         prolongation_value = (prior_8d[:, :4] * prior_8d[:, 4:8]).sum(axis=1).astype(np.float32)
-        correction_demand_score = field["correction_demand_score"][safe_tet_ids].astype(np.float32)
+        correction_demand_score = field["correction_demand_score"][tet_ids].astype(np.float32)
         band_distance_score = correction_band_distance(correction_band)
         query_weight = role_query_weights(role)
         prior_ext = np.concatenate(
@@ -369,5 +382,5 @@ class CQRQueryBuilder:
             "sentinel_score": sentinel_score,
             "risk_components": risk_components,
             "query_weight": query_weight.astype(np.float32),
-            "role_counts": np.bincount(role, minlength=4).astype(np.int64),
+            "role_counts": np.bincount(role, minlength=5).astype(np.int64),
         }

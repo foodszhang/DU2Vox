@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from du2vox.bridge.coverage_field import correction_band_distance, compute_coverage_field, coverage_cfg_from_cqr
 from du2vox.bridge.fem_lift_indicators import compute_lifting_indicators
 from du2vox.bridge.fem_bridging import FEMBridge
-from du2vox.models.stage2.stage2_dataset import MCX_ANGLES
+from du2vox.models.stage2.stage2_dataset import load_projection_stack
 from du2vox.utils.frame import FrameManifest
 from scripts.eval_stage2_unified import build_model, load_checkpoint, select_stage2_prediction, unpack_model_output
 
@@ -91,12 +91,16 @@ def mean_dict(rows: list[dict[str, Any]], keys: list[str]) -> dict[str, float]:
     return out
 
 
-def load_proj_imgs(samples_dir: Path, sample_id: str) -> np.ndarray:
-    proj_path = samples_dir / sample_id / "proj.npz"
-    if not proj_path.exists():
-        return np.zeros((7, 1, 256, 256), dtype=np.float32)
-    proj_data = np.load(proj_path)
-    proj_imgs = np.stack([proj_data[str(angle)].astype(np.float32) for angle in MCX_ANGLES], axis=0)
+def load_proj_imgs(samples_dir: Path, sample_id: str, cfg: dict[str, Any]) -> np.ndarray:
+    data_cfg = cfg.get("data", {})
+    proj_imgs, _ = load_projection_stack(
+        samples_dir / sample_id,
+        projection_file=data_cfg.get("projection_file", "proj.npz"),
+        fallback_projection_file=data_cfg.get("fallback_projection_file"),
+        projection_norm=data_cfg.get("projection_norm", "none"),
+        projection_eps=data_cfg.get("projection_eps", 1.0e-8),
+        projection_transform=data_cfg.get("projection_transform", "none"),
+    )
     return proj_imgs[:, None, :, :]
 
 
@@ -218,7 +222,7 @@ def run_model(
     proj_imgs = None
     mcx_valid = None
     if view_encoder is not None:
-        proj_imgs = torch.from_numpy(load_proj_imgs(samples_dir, sample_id)).unsqueeze(0).to(device)
+        proj_imgs = torch.from_numpy(load_proj_imgs(samples_dir, sample_id, cfg)).unsqueeze(0).to(device)
         mcx_valid = mcx_valid_mask(frame, coords_world)
 
     for start in range(0, len(coords_norm), batch_points):

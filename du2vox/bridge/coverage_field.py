@@ -11,14 +11,16 @@ class QueryRole(IntEnum):
     CORE = 1
     HALO = 2
     SENTINEL = 3
+    PROPOSAL = 4
 
 
 def correction_band_distance(role: np.ndarray) -> np.ndarray:
     out = np.zeros_like(role, dtype=np.float32)
+    out[role == int(QueryRole.BG)] = 0.0
     out[role == int(QueryRole.CORE)] = 0.5
     out[role == int(QueryRole.HALO)] = 1.0
-    out[role == int(QueryRole.BG)] = 0.0
-    out[role == int(QueryRole.SENTINEL)] = 0.75
+    out[role == int(QueryRole.SENTINEL)] = 0.0
+    out[role == int(QueryRole.PROPOSAL)] = 0.75
     return out.astype(np.float32)
 
 
@@ -219,7 +221,9 @@ def compute_coverage_field(
 
 def role_query_weights(role: np.ndarray) -> np.ndarray:
     w = np.ones_like(role, dtype=np.float32)
-    w[role == int(QueryRole.HALO)] = 1.15
-    w[role == int(QueryRole.SENTINEL)] = 1.20
-    w[role == int(QueryRole.BG)] = 0.90
+    w[role == int(QueryRole.BG)] = 0.75
+    w[role == int(QueryRole.CORE)] = 1.0
+    w[role == int(QueryRole.HALO)] = 1.25
+    w[role == int(QueryRole.SENTINEL)] = 1.0
+    w[role == int(QueryRole.PROPOSAL)] = 1.0
     return w.astype(np.float32)

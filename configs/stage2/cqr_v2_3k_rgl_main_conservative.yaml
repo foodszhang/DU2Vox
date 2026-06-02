@@ -1,7 +1,7 @@
-# DU2Vox Stage 2 — v2 3k RGL-CQR sparse-support mainline
+# DU2Vox Stage 2 - v2 3k RGL-CQR conservative sparse-support repair
 
 experiment:
-  name: cqr_v2_3k_rgl_main_multiview_sparse
+  name: cqr_v2_3k_rgl_main_conservative
 
 stage1_operating_point:
   name: balanced_v2
@@ -26,9 +26,9 @@ data:
   val_bridge_dir: output/bridge_v2_3k_val_balanced_v2
   test_bridge_dir: output/bridge_v2_3k_test_balanced_v2
 
-  precomputed_train_dir: precomputed/cqr_v2_3k_rgl_main/train
-  precomputed_val_dir: precomputed/cqr_v2_3k_rgl_main/val
-  precomputed_test_dir: precomputed/cqr_v2_3k_rgl_main/test
+  precomputed_train_dir: precomputed/cqr_v2_3k_rgl_main_conservative/train
+  precomputed_val_dir: precomputed/cqr_v2_3k_rgl_main_conservative/val
+  precomputed_test_dir: precomputed/cqr_v2_3k_rgl_main_conservative/test
 
   projection_file: proj.npz
   fallback_projection_file: null
@@ -93,12 +93,12 @@ training:
 
 loss:
   type: sparse_support
-  bce_weight: 0.4
-  dice_weight: 0.4
-  mse_weight: 0.2
-  pos_weight: 80.0
+  bce_weight: 0.25
+  dice_weight: 0.25
+  mse_weight: 0.50
+  pos_weight: 20.0
   support_threshold: 0.5
-  residual_indicator_weight: 0.5
+  residual_indicator_weight: 0.0
 
 logging:
   print_every: 1
@@ -107,10 +107,10 @@ logging:
 cqr:
   name: correction_guided_query_refinement
   ratios:
-    core: 0.30
-    halo: 0.35
-    bg: 0.10
-    proposal: 0.25
+    core: 0.40
+    halo: 0.40
+    bg: 0.15
+    proposal: 0.05
     sentinel: 0.00
 
   lifting:
@@ -126,7 +126,7 @@ cqr:
 
   measurement_proposal:
     enabled: true
-    proposal_ratio: 0.25
+    proposal_ratio: 0.05
     proposal_subdir: proposal
     proposal_filename: meas_backproj_heatmap.npy
     proposal_meta_filename: meas_backproj_meta.json

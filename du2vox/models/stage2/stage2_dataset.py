@@ -467,7 +467,7 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
             projection_transform=self.projection_transform,
         )
         if used_projection_file not in self._logged_projection_files:
-            print(f"[Dataset] projection_file used: {used_projection_file}")
+            print(f"[Dataset] projection input_file used: {used_projection_file}")
             self._logged_projection_files.add(used_projection_file)
 
         item = {

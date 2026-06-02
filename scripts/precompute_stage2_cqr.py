@@ -14,6 +14,7 @@ from scipy.ndimage import map_coordinates
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from du2vox.bridge.coverage_field import correction_band_distance
+from du2vox.bridge.coverage_field import QueryRole
 from du2vox.bridge.cqr_query_builder import CQRQueryBuilder
 from du2vox.bridge.fem_lift_indicators import compute_lifting_indicators
 from du2vox.bridge.fem_bridging import FEMBridge
@@ -224,11 +225,11 @@ def precompute_one(
     correction_band = cqr["correction_band"].astype(np.int64)
     band_distance_score = correction_band_distance(correction_band)
     prolongation_value = cqr["prolongation_value"].astype(np.float32)
-    query_src_tag = np.zeros_like(correction_band, dtype=np.int64)
-    query_src_tag[correction_band == 1] = 0
-    query_src_tag[correction_band == 2] = 1
-    query_src_tag[correction_band == 0] = 2
-    query_src_tag[correction_band == 3] = 3
+    query_src_tag = np.full_like(correction_band, -1, dtype=np.int64)
+    query_src_tag[correction_band == int(QueryRole.CORE)] = 0
+    query_src_tag[correction_band == int(QueryRole.HALO)] = 1
+    query_src_tag[correction_band == int(QueryRole.BG)] = 2
+    query_src_tag[correction_band == int(QueryRole.PROPOSAL)] = 3
     # prior_lift layout is fixed mainline input:
     # 0:8 prior_8d, 8 prolongation_value, 9 tet_grad_norm,
     # 10 grad_jump_score, 11 recovery_error_score, 12 transition_score,
@@ -290,7 +291,7 @@ def precompute_one(
         cqr_cfg.get("oracle", {}),
         sample_seed(sid),
     )
-    out["coverage_role_counts"] = np.bincount(out["role"], minlength=4).astype(np.int64)
+    out["coverage_role_counts"] = np.bincount(out["role"], minlength=5).astype(np.int64)
     return out
 
 
@@ -375,7 +376,7 @@ def main() -> None:
 
         valid = data["valid_mask"]
         counts = data["coverage_role_counts"].tolist()
-        band_counts = np.bincount(data["correction_band"], minlength=4).tolist()
+        band_counts = np.bincount(data["correction_band"], minlength=5).tolist()
         demand = data["correction_demand_score"]
         prolong = data["prolongation_value"]
         residual = data["residual_indicator"]
@@ -388,9 +389,9 @@ def main() -> None:
         print(
             f"[{i}/{len(sample_ids)}] {sid}: "
             f"points={len(valid)}, valid={int(valid.sum())}/{len(valid)} "
-            f"({100*valid.mean():.1f}%), roles(bg/core/halo/sentinel)={counts}, "
+            f"({100*valid.mean():.1f}%), roles(bg/core/halo/sentinel/proposal)={counts}, "
             f"prior_lift_dim={data['prior_lift'].shape[-1]}, "
-            f"band(bg/core/halo/sentinel)={band_counts}, "
+            f"band(bg/core/halo/sentinel/proposal)={band_counts}, "
             f"demand(bg/core/halo)="
             f"({band_mean(demand, 0):.3f},{band_mean(demand, 1):.3f},{band_mean(demand, 2):.3f}), "
             f"residual(bg/core/halo)="

@@ -12,6 +12,14 @@ ROLE_NAMES = {
     0: "bg",
     1: "core",
     2: "halo",
+    3: "sentinel",
+    4: "proposal",
+}
+
+TAG_NAMES = {
+    0: "core",
+    1: "halo",
+    2: "bg",
     3: "proposal",
 }
 
@@ -59,6 +67,7 @@ def main():
         gt = d["gt_values"]
         prior = d["prior_ext"] if "prior_ext" in d.files else d["prior_8d"]
         role = d["role"] if "role" in d.files else np.zeros(len(gt), dtype=np.int64)
+        query_src_tag = d["query_src_tag"] if "query_src_tag" in d.files else None
         correction_band = d["correction_band"] if "correction_band" in d.files else role
         prolongation_value = d["prolongation_value"] if "prolongation_value" in d.files else None
         correction_demand_score = d["correction_demand_score"] if "correction_demand_score" in d.files else None
@@ -84,7 +93,7 @@ def main():
         print(f"  gt_mean={gt[valid].mean():.4f}, fem_mean={fem[valid].mean():.4f}")
         if "prior_lift" in d.files:
             print(f"  prior_lift_dim={d['prior_lift'].shape[-1]}")
-        print(f"  correction_band counts={np.bincount(correction_band[valid], minlength=4).tolist()}")
+        print(f"  correction_band counts={np.bincount(correction_band[valid], minlength=5).tolist()}")
         residual = lift_fields["residual_indicator"]
         if residual is not None and valid.any():
             top_gt, bottom_gt = top_bottom_residual_stats(residual, gt, valid)
@@ -92,9 +101,24 @@ def main():
             print(f"  residual_indicator top10 gt_pos@0.5={top_gt:.4f}")
             print(f"  residual_indicator bottom50 gt_pos@0.5={bottom_gt:.4f}")
             print(f"  halo_gt_pos={gt_pos(gt, halo):.4f}")
-            proposal = valid & (correction_band == 3)
+            proposal = valid & (correction_band == 4)
             print(f"  proposal_gt_pos={gt_pos(gt, proposal):.4f}")
             print(f"  halo_residual_mean={(residual[halo].mean() if halo.any() else 0):.4f}")
+        if query_src_tag is not None:
+            print("  query_src_tag stats:")
+            for tag_id, tag_name in TAG_NAMES.items():
+                m = query_src_tag == tag_id
+                valid_m = m & valid
+                residual = lift_fields["residual_indicator"]
+                residual_mean = float(residual[valid_m].mean()) if residual is not None and valid_m.any() else 0.0
+                print(
+                    f"    tag={tag_name:8s} "
+                    f"n={int(m.sum()):6d} "
+                    f"valid_rate={(float(valid_m.sum()) / max(int(m.sum()), 1)):.4f} "
+                    f"gt_pos@0.5={gt_pos(gt, valid_m):.4f} "
+                    f"fem_pos@0.5={((fem[valid_m] >= 0.5).mean() if valid_m.any() else 0):.4f} "
+                    f"residual_indicator_mean={residual_mean:.4f}"
+                )
         for name, values in [
             ("prolongation_value", prolongation_value),
             ("correction_demand_score", correction_demand_score),
@@ -106,7 +130,7 @@ def main():
             if values is not None and valid.any():
                 print(f"  {name} mean={values[valid].mean():.4f}, std={values[valid].std():.4f}")
 
-        for rid in [0, 1, 2, 3]:
+        for rid in [0, 1, 2, 3, 4]:
             m = valid & (role == rid)
             if m.sum() == 0:
                 continue
@@ -143,6 +167,7 @@ def main():
                 prolongation_value[valid] if prolongation_value is not None else None,
                 band_distance_score[valid] if band_distance_score is not None else None,
                 {k: v[valid] if v is not None else None for k, v in lift_fields.items()},
+                query_src_tag[valid] if query_src_tag is not None else None,
             )
         )
 
@@ -157,13 +182,14 @@ def main():
         key: None if all_rows[0][7][key] is None else np.concatenate([row[7][key] for row in all_rows])
         for key in all_rows[0][7]
     }
+    tag_all = None if all_rows[0][8] is None else np.concatenate([row[8] for row in all_rows])
 
     print("\n[Aggregate]")
     print(f"  n={len(gt_all)}")
     print(f"  gt_pos@0.5={(gt_all >= 0.5).mean():.4f}")
     print(f"  fem_pos@0.5={(fem_all >= 0.5).mean():.4f}")
     print(f"  fem_dice@0.5={dice_at(fem_all, gt_all, 0.5):.4f}")
-    print(f"  correction_band counts={np.bincount(band_all, minlength=4).tolist()}")
+    print(f"  correction_band counts={np.bincount(band_all, minlength=5).tolist()}")
     if lift_all["residual_indicator"] is not None:
         residual_all = lift_all["residual_indicator"]
         top_gt, bottom_gt = top_bottom_residual_stats(
@@ -172,7 +198,7 @@ def main():
             np.ones(len(gt_all), dtype=bool),
         )
         halo_all = band_all == 2
-        proposal_all = band_all == 3
+        proposal_all = band_all == 4
         print(f"  residual_indicator top10 gt_pos@0.5={top_gt:.4f}")
         print(f"  residual_indicator bottom50 gt_pos@0.5={bottom_gt:.4f}")
         print(f"  halo_gt_pos={gt_pos(gt_all, halo_all):.4f}")
@@ -192,6 +218,23 @@ def main():
     for thr in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]:
         print(f"    thr={thr:.1f} dice={dice_at(fem_all, gt_all, thr):.4f}")
 
+    if tag_all is not None:
+        print("\n  query_src_tag aggregate:")
+        for tag_id, tag_name in TAG_NAMES.items():
+            m = tag_all == tag_id
+            if not m.any():
+                continue
+            residual_all = lift_all["residual_indicator"]
+            residual_mean = float(residual_all[m].mean()) if residual_all is not None else 0.0
+            print(
+                f"    tag={tag_name:8s} "
+                f"n={int(m.sum()):7d} "
+                f"valid_rate=1.0000 "
+                f"gt_pos@0.5={float((gt_all[m] >= 0.5).mean()):.4f} "
+                f"fem_pos@0.5={float((fem_all[m] >= 0.5).mean()):.4f} "
+                f"residual_indicator_mean={residual_mean:.4f}"
+            )
+
     print("\n  role aggregate:")
     rows = [
         {
@@ -204,7 +247,7 @@ def main():
             "fem_dice_05": float(dice_at(fem_all, gt_all, 0.5)),
         }
     ]
-    for rid in [0, 1, 2, 3]:
+    for rid in [0, 1, 2, 3, 4]:
         m = role_all == rid
         if m.sum() == 0:
             continue

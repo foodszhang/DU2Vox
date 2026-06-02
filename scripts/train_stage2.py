@@ -41,6 +41,8 @@ from du2vox.models.stage2.stage2_dataset import (
 
 
 def build_stage2_model(ModelCls, cfg: dict, prior_dim: int, view_feat_dim: int = 0) -> nn.Module:
+    cqr_ratios = cfg.get("cqr", {}).get("ratios", {}) or {}
+    default_num_bands = 5 if float(cqr_ratios.get("proposal", 0.0)) > 0.0 else 4
     kwargs = dict(
         n_freqs=cfg["model"]["n_freqs"],
         hidden_dim=cfg["model"]["hidden_dim"],
@@ -58,7 +60,7 @@ def build_stage2_model(ModelCls, cfg: dict, prior_dim: int, view_feat_dim: int =
         kwargs["lifting_feat_dim"] = cfg["model"].get("lifting_feat_dim", 32)
         kwargs["use_band_embedding"] = cfg["model"].get("use_band_embedding", False)
         kwargs["band_embed_dim"] = cfg["model"].get("band_embed_dim", 8)
-        kwargs["num_bands"] = cfg["model"].get("num_bands", 4)
+        kwargs["num_bands"] = cfg["model"].get("num_bands", default_num_bands)
     return ModelCls(**kwargs)
 
 
@@ -697,8 +699,7 @@ def main():
     )
     print(f"[Stage2] Data: train_precomputed={precomputed_train}, val_precomputed={precomputed_val}")
     print(
-        f"[Stage2] Projection: file={cfg['data'].get('projection_file', 'proj.npz')}, "
-        f"fallback={cfg['data'].get('fallback_projection_file')}, "
+        f"[Projection] input_file={cfg['data'].get('projection_file', 'proj.npz')}, "
         f"norm={cfg['data'].get('projection_norm', 'none')}, "
         f"transform={cfg['data'].get('projection_transform', 'none')}"
     )

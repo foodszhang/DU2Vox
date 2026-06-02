@@ -21,7 +21,7 @@ from du2vox.models.stage2.stage2_dataset import load_projection_stack
 from du2vox.utils.frame import FrameManifest
 
 
-ROLE_NAMES = {0: "bg", 1: "core", 2: "halo", 3: "proposal"}
+ROLE_NAMES = {0: "bg", 1: "core", 2: "halo", 3: "sentinel", 4: "proposal"}
 
 METRIC_KEYS = [
     "s2_dice_05",
@@ -47,7 +47,7 @@ BASE_FIELDNAMES = ["sample_id", "role_subset", "num_foci", "n_valid", *METRIC_KE
 ROLE_FIELDNAMES = [
     f"{name}_{suffix}"
     for suffix in ["count", "gt_pos_05", "s2_pos_05", "fem_pos_05", "dice_05"]
-    for name in ["bg", "core", "halo", "proposal"]
+    for name in ["bg", "core", "halo", "sentinel", "proposal"]
 ]
 
 
@@ -86,7 +86,7 @@ def make_role_mask(role: np.ndarray, subset: str) -> np.ndarray:
     if subset == "halo":
         return role == 2
     if subset == "proposal":
-        return role == 3
+        return role == 4
     if subset == "bg":
         return role == 0
     if subset == "non_bg":
@@ -139,6 +139,8 @@ def build_model(cfg: dict[str, Any], device: torch.device) -> tuple[torch.nn.Mod
     model_type = cfg["model"].get("model_type", "")
     use_cqr_model = (model_type == "cqr_residual_inr") or (prior_dim > 8)
     model_cls = CQRResidualINR if use_cqr_model else ResidualINR
+    cqr_ratios = cfg.get("cqr", {}).get("ratios", {}) or {}
+    default_num_bands = 5 if float(cqr_ratios.get("proposal", 0.0)) > 0.0 else 4
 
     view_encoder = None
     view_feat_dim = 0
@@ -172,7 +174,7 @@ def build_model(cfg: dict[str, Any], device: torch.device) -> tuple[torch.nn.Mod
         kwargs["lifting_feat_dim"] = cfg["model"].get("lifting_feat_dim", 32)
         kwargs["use_band_embedding"] = cfg["model"].get("use_band_embedding", False)
         kwargs["band_embed_dim"] = cfg["model"].get("band_embed_dim", 8)
-        kwargs["num_bands"] = cfg["model"].get("num_bands", 4)
+        kwargs["num_bands"] = cfg["model"].get("num_bands", default_num_bands)
     model = model_cls(**kwargs).to(device)
     return model, view_encoder
 
@@ -234,13 +236,30 @@ def load_checkpoint(
         print(f"[Eval] checkpoint type={type(ckpt).__name__}")
 
     if isinstance(ckpt, dict) and "residual_inr" in ckpt:
-        model.load_state_dict(ckpt["residual_inr"])
+        state_dict = ckpt["residual_inr"]
     elif isinstance(ckpt, dict) and "model" in ckpt:
-        model.load_state_dict(ckpt["model"])
+        state_dict = ckpt["model"]
     elif isinstance(ckpt, dict) and "model_state_dict" in ckpt:
-        model.load_state_dict(ckpt["model_state_dict"])
+        state_dict = ckpt["model_state_dict"]
     else:
-        model.load_state_dict(ckpt)
+        state_dict = ckpt
+    if (
+        isinstance(state_dict, dict)
+        and "band_embedding.weight" in state_dict
+        and hasattr(model, "band_embedding")
+        and state_dict["band_embedding.weight"].shape != model.band_embedding.weight.shape
+    ):
+        old_weight = state_dict["band_embedding.weight"]
+        new_weight = model.band_embedding.weight.detach().clone()
+        n = min(old_weight.shape[0], new_weight.shape[0])
+        new_weight[:n] = old_weight[:n]
+        state_dict = dict(state_dict)
+        state_dict["band_embedding.weight"] = new_weight
+        print(
+            "[Eval][WARN] padded band_embedding.weight "
+            f"from {tuple(old_weight.shape)} to {tuple(new_weight.shape)}"
+        )
+    model.load_state_dict(state_dict)
 
     if view_encoder is not None:
         if isinstance(ckpt, dict) and "view_encoder" in ckpt:

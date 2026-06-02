@@ -89,7 +89,7 @@ class CQRResidualINR(nn.Module):
         lifting_feat_dim: int = 32,
         use_band_embedding: bool = False,
         band_embed_dim: int = 8,
-        num_bands: int = 4,
+        num_bands: int = 5,
     ):
         super().__init__()
         if prior_dim < 8:
