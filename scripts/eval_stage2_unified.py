@@ -175,6 +175,9 @@ def build_model(cfg: dict[str, Any], device: torch.device) -> tuple[torch.nn.Mod
         kwargs["use_band_embedding"] = cfg["model"].get("use_band_embedding", False)
         kwargs["band_embed_dim"] = cfg["model"].get("band_embed_dim", 8)
         kwargs["num_bands"] = cfg["model"].get("num_bands", default_num_bands)
+        kwargs["use_residual_gate"] = cfg["model"].get("use_residual_gate", False)
+        kwargs["residual_gate_init_bias"] = cfg["model"].get("residual_gate_init_bias", -2.0)
+        kwargs["residual_gate_source"] = cfg["model"].get("residual_gate_source", "prior_view")
     model = model_cls(**kwargs).to(device)
     return model, view_encoder
 

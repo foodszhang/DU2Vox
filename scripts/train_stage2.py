@@ -61,6 +61,9 @@ def build_stage2_model(ModelCls, cfg: dict, prior_dim: int, view_feat_dim: int =
         kwargs["use_band_embedding"] = cfg["model"].get("use_band_embedding", False)
         kwargs["band_embed_dim"] = cfg["model"].get("band_embed_dim", 8)
         kwargs["num_bands"] = cfg["model"].get("num_bands", default_num_bands)
+        kwargs["use_residual_gate"] = cfg["model"].get("use_residual_gate", False)
+        kwargs["residual_gate_init_bias"] = cfg["model"].get("residual_gate_init_bias", -2.0)
+        kwargs["residual_gate_source"] = cfg["model"].get("residual_gate_source", "prior_view")
     return ModelCls(**kwargs)
 
 
@@ -221,6 +224,8 @@ def train_step(
         "bce": torch.tensor(0.0, device=coords.device),
         "sparse": torch.tensor(0.0, device=coords.device),
         "focal_tv": torch.tensor(0.0, device=coords.device),
+        "anchor": torch.tensor(0.0, device=coords.device),
+        "gate_l1": torch.tensor(0.0, device=coords.device),
     }
 
     with torch.amp.autocast("cuda", enabled=use_amp, dtype=amp_dtype):
@@ -275,6 +280,24 @@ def train_step(
             p = final_pred.clamp(1e-6, 1 - 1e-6)
             eps = 1e-6
 
+            def fem_safe_terms() -> tuple[torch.Tensor, torch.Tensor]:
+                cfg_loss = loss_cfg or {}
+                fem_anchor_weight = float(cfg_loss.get("fem_anchor_weight", 0.0))
+                gate_l1_weight = float(cfg_loss.get("gate_l1_weight", 0.0))
+                fem_flat = fem_interp.flatten()[valid_mask]
+                anchor_loss = torch.tensor(0.0, device=coords.device)
+                if fem_anchor_weight > 0:
+                    anchor_mask = gt_flat < float(cfg_loss.get("support_threshold", 0.5))
+                    if "residual_indicator" in batch:
+                        ri_anchor = batch["residual_indicator"].cuda().flatten()[valid_mask]
+                        anchor_mask = anchor_mask | (ri_anchor < float(cfg_loss.get("anchor_residual_threshold", 0.3)))
+                    if anchor_mask.any():
+                        anchor_loss = torch.abs(pred_flat[anchor_mask] - fem_flat[anchor_mask]).mean()
+                gate_l1_loss = torch.tensor(0.0, device=coords.device)
+                if gate_l1_weight > 0 and "residual_gate" in output:
+                    gate_l1_loss = output["residual_gate"].flatten()[valid_mask].mean()
+                return fem_anchor_weight * anchor_loss, gate_l1_weight * gate_l1_loss
+
             if loss_type == "hybrid_support":
                 if "support_logit" not in output:
                     raise ValueError("loss.type=hybrid_support requires model.support_head=true")
@@ -327,10 +350,13 @@ def train_step(
                     mse_loss = ((p_t - target) ** 2).mean()
                     res_l2_loss = (residual.flatten()[valid_mask] ** 2).mean()
                     loss_cfg = loss_cfg or {}
+                    anchor_term, gate_term = fem_safe_terms()
                     loss = (
                         float(loss_cfg.get("dice_weight", 0.7)) * dice_loss
                         + float(loss_cfg.get("mse_weight", 0.3)) * mse_loss
                         + float(loss_cfg.get("residual_l2_weight", 0.0)) * res_l2_loss
+                        + anchor_term
+                        + gate_term
                     )
                     loss_components = {
                         "dice": dice_loss.detach(),
@@ -338,9 +364,11 @@ def train_step(
                         "bce": torch.tensor(0.0),
                         "sparse": torch.tensor(0.0),
                         "focal_tv": res_l2_loss.detach(),
+                        "anchor": anchor_term.detach(),
+                        "gate_l1": gate_term.detach(),
                     }
 
-                elif loss_type in {"mse_bce_dice", "sparse_support"}:
+                elif loss_type in {"mse_bce_dice", "sparse_support", "fem_safe_sparse"}:
                     loss_cfg = loss_cfg or {}
                     support_threshold = float(loss_cfg.get("support_threshold", 0.5))
                     target = gt_flat.clamp(0.0, 1.0)
@@ -351,7 +379,7 @@ def train_step(
                     mse_each = (pred - target) ** 2
                     mse_loss = (mse_each * point_weight).sum() / weight_sum
                     bce_weight = point_weight
-                    if loss_type == "sparse_support":
+                    if loss_type in {"sparse_support", "fem_safe_sparse"}:
                         pos_weight = float(loss_cfg.get("pos_weight", 1.0))
                         bce_weight = bce_weight * torch.where(gt_bin > 0.5, pos_weight, 1.0)
                         bce_weight = bce_weight / (bce_weight.mean().detach() + eps)
@@ -360,10 +388,13 @@ def train_step(
                     dice_loss = 1.0 - (2.0 * (pred * gt_bin * point_weight).sum() + eps) / (
                         (pred * point_weight).sum() + (gt_bin * point_weight).sum() + eps
                     )
+                    anchor_term, gate_term = fem_safe_terms()
                     loss = (
                         float(loss_cfg.get("mse_weight", 0.6)) * mse_loss
                         + float(loss_cfg.get("bce_weight", 0.2)) * bce_loss
                         + float(loss_cfg.get("dice_weight", 0.2)) * dice_loss
+                        + anchor_term
+                        + gate_term
                     )
                     loss_components = {
                         "dice": dice_loss.detach(),
@@ -371,6 +402,8 @@ def train_step(
                         "bce": bce_loss.detach(),
                         "sparse": torch.tensor(0.0),
                         "focal_tv": torch.tensor(0.0),
+                        "anchor": anchor_term.detach(),
+                        "gate_l1": gate_term.detach(),
                     }
 
                 elif loss_type == "mse":
@@ -498,6 +531,12 @@ def train_step(
         "focal": loss_components.get("focal", torch.tensor(0.0)).item()
         if valid_mask.sum() > 0
         else 0.0,
+        "anchor": loss_components.get("anchor", torch.tensor(0.0)).item()
+        if valid_mask.sum() > 0
+        else 0.0,
+        "gate_l1": loss_components.get("gate_l1", torch.tensor(0.0)).item()
+        if valid_mask.sum() > 0
+        else 0.0,
     }
 
 
@@ -620,6 +659,95 @@ def validate(
     return summary
 
 
+def save_stage2_checkpoint(
+    path: Path,
+    model: nn.Module,
+    view_encoder: Optional[nn.Module],
+    extra: dict | None = None,
+) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if view_encoder is not None:
+        payload = {
+            "residual_inr": model.state_dict(),
+            "view_encoder": view_encoder.state_dict(),
+        }
+        if extra:
+            payload.update(extra)
+        torch.save(payload, path)
+    else:
+        if extra:
+            torch.save({"model": model.state_dict(), **extra}, path)
+        else:
+            torch.save(model.state_dict(), path)
+
+
+def grouped_validate(
+    model: nn.Module,
+    view_encoder: Optional[nn.Module],
+    cfg: dict,
+    sample_ids: list[str],
+    split: str,
+    batch_points: int,
+) -> dict:
+    from scripts.eval_stage2_unified import (
+        METRIC_KEYS,
+        evaluate_sample,
+        get_num_foci,
+        mean_dict,
+        run_model_on_sample,
+    )
+    from du2vox.utils.frame import FrameManifest
+
+    precomputed_dir = Path(cfg["data"].get(f"precomputed_{split}_dir", ""))
+    if not precomputed_dir.exists():
+        raise FileNotFoundError(f"precomputed_{split}_dir not found: {precomputed_dir}")
+    samples_dir = Path(cfg["data"]["samples_dir"]) if cfg["data"].get("samples_dir") else None
+    frame = FrameManifest.load(cfg["data"]["shared_dir"]) if cfg["data"].get("shared_dir") else None
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    rows = []
+    was_training = model.training
+    ve_was_training = view_encoder.training if view_encoder is not None else False
+    model.eval()
+    if view_encoder is not None:
+        view_encoder.eval()
+    with torch.no_grad():
+        for sample_id in sample_ids:
+            npz_path = precomputed_dir / f"{sample_id}.npz"
+            if not npz_path.exists():
+                print(f"[GroupedVal][WARN] missing npz: {npz_path}")
+                continue
+            data = dict(np.load(npz_path, allow_pickle=False))
+            d_hat, fem, residual, valid = run_model_on_sample(
+                model=model,
+                view_encoder=view_encoder,
+                cfg=cfg,
+                data=data,
+                samples_dir=samples_dir,
+                frame=frame,
+                sample_id=sample_id,
+                batch_points=batch_points,
+                role_subset="all",
+                device=device,
+            )
+            rows.append(
+                evaluate_sample(
+                    sample_id,
+                    "all",
+                    get_num_foci(precomputed_dir, samples_dir, sample_id),
+                    data,
+                    d_hat,
+                    fem,
+                    residual,
+                    valid,
+                )
+            )
+    if was_training:
+        model.train()
+    if view_encoder is not None and ve_was_training:
+        view_encoder.train()
+    return mean_dict(rows, METRIC_KEYS) | {"n_samples": len(rows)}
+
+
 def main():
     parser = argparse.ArgumentParser(description="Stage 2 Residual INR training")
     parser.add_argument("--config", required=True)
@@ -685,7 +813,9 @@ def main():
             f"band_embed_dim={cfg['model'].get('band_embed_dim', 8)}, "
             f"use_lifting_adapter={cfg['model'].get('use_lifting_adapter', False)}, "
             f"lifting_feat_dim={cfg['model'].get('lifting_feat_dim', 32)}, "
-            f"residual_scale={cfg['model'].get('residual_scale', 1.0)}"
+            f"residual_scale={cfg['model'].get('residual_scale', 1.0)}, "
+            f"use_residual_gate={cfg['model'].get('use_residual_gate', False)}, "
+            f"residual_gate_init_bias={cfg['model'].get('residual_gate_init_bias', -2.0)}"
         )
     print(f"[Stage2] Loss: {cfg['loss']['type']} weights={cfg.get('loss', {})}")
     print(
@@ -712,6 +842,12 @@ def main():
         f"[Stage2] CQR measurement_proposal="
         f"{cfg.get('cqr', {}).get('measurement_proposal', {}).get('enabled', False)} "
         f"ratio={cfg.get('cqr', {}).get('ratios', {}).get('proposal', 0.0)}"
+    )
+    validation_cfg = cfg.get("validation", {}) or {}
+    print(
+        f"[Stage2] Validation: save_best_by={validation_cfg.get('save_best_by', 'sampled_delta_dice')}, "
+        f"grouped_eval_interval={validation_cfg.get('grouped_eval_interval', 0)}, "
+        f"grouped_eval_split={validation_cfg.get('grouped_eval_split', 'val')}"
     )
 
     if view_encoder_cfg:
@@ -814,10 +950,18 @@ def main():
 
     best_delta = -float("inf")  # Allow negative — training may degrade, delta tells us how much
     best_ckpt_info = None  # {epoch, stage2_dice_05, fem_dice_05, delta_dice_05}
+    best_grouped = -float("inf")
+    best_grouped_info = None
     best_val_loss = float("inf")
     patience = cfg["training"].get("early_stopping_patience", 20)
     patience_counter = 0
     train_log = []
+    validation_cfg = cfg.get("validation", {}) or {}
+    grouped_interval = int(validation_cfg.get("grouped_eval_interval", 0) or 0)
+    grouped_split = validation_cfg.get("grouped_eval_split", "val")
+    save_best_by = validation_cfg.get("save_best_by", "sampled_delta_dice")
+    grouped_batch_points = int(validation_cfg.get("grouped_batch_points", 8192))
+    use_grouped_best = save_best_by == "grouped_s2_dice"
 
     if args.resume_checkpoint:
         val_metrics = validate(
@@ -855,6 +999,8 @@ def main():
         epoch_bce = 0.0
         epoch_sparse = 0.0
         epoch_focal_tv = 0.0
+        epoch_anchor = 0.0
+        epoch_gate_l1 = 0.0
         epoch_valid = 0
         n_steps = 0
         optimizer.zero_grad(set_to_none=True)
@@ -895,6 +1041,8 @@ def main():
             epoch_bce += metrics["bce"]
             epoch_sparse += metrics["sparse"]
             epoch_focal_tv += metrics["focal_tv"]
+            epoch_anchor += metrics["anchor"]
+            epoch_gate_l1 += metrics["gate_l1"]
             epoch_valid += metrics["valid_count"]
             n_steps += 1
 
@@ -913,6 +1061,8 @@ def main():
         avg_bce = epoch_bce / max(n_steps, 1)
         avg_sparse = epoch_sparse / max(n_steps, 1)
         avg_focal_tv = epoch_focal_tv / max(n_steps, 1)
+        avg_anchor = epoch_anchor / max(n_steps, 1)
+        avg_gate_l1 = epoch_gate_l1 / max(n_steps, 1)
 
         entry = {
             "epoch": epoch,
@@ -927,12 +1077,12 @@ def main():
             "bce": avg_bce,
             "sparse": avg_sparse,
             "focal_tv": avg_focal_tv,
+            "anchor": avg_anchor,
+            "gate_l1": avg_gate_l1,
             "valid_count": epoch_valid,
             "elapsed_s": elapsed,
             "lr": optimizer.param_groups[0]["lr"],
         }
-        train_log.append(entry)
-
         # Log every epoch
         print(
             f"{epoch:>5}  {avg_loss:>10.6f}  {val_metrics['val_loss']:>10.6f}  "
@@ -941,7 +1091,49 @@ def main():
             f"{avg_res:>8.4f}  {val_metrics['fem_mse']:>10.6f}  "
             f"{epoch_valid:>7}  {elapsed:>5.1f}s"
         )
-        print(f"         bce={avg_bce:.4f}  sp={avg_sparse:.4f}  ft={avg_focal_tv:.4f}")
+        print(
+            f"         bce={avg_bce:.4f}  sp={avg_sparse:.4f}  ft={avg_focal_tv:.4f}  "
+            f"anchor={avg_anchor:.4f}  gate={avg_gate_l1:.4f}"
+        )
+
+        grouped_metrics = None
+        grouped_improved = False
+        if grouped_interval > 0 and epoch % grouped_interval == 0:
+            grouped_ids = val_ids if grouped_split == "val" else load_split(cfg["data"][f"{grouped_split}_split"])
+            print(f"[GroupedVal] epoch={epoch}, split={grouped_split}, samples={len(grouped_ids)}")
+            grouped_metrics = grouped_validate(
+                model=model,
+                view_encoder=view_encoder,
+                cfg=cfg,
+                sample_ids=grouped_ids,
+                split=grouped_split,
+                batch_points=grouped_batch_points,
+            )
+            entry["grouped_s2_dice_05"] = grouped_metrics["s2_dice_05"]
+            entry["grouped_fem_dice_05"] = grouped_metrics["fem_dice_05"]
+            entry["grouped_delta_dice_05"] = grouped_metrics["delta_dice_05"]
+            entry["grouped_s2_precision_05"] = grouped_metrics["s2_precision_05"]
+            entry["grouped_s2_recall_05"] = grouped_metrics["s2_recall_05"]
+            print(
+                f"[GroupedVal] S2={grouped_metrics['s2_dice_05']:.4f}, "
+                f"FEM={grouped_metrics['fem_dice_05']:.4f}, "
+                f"Delta={grouped_metrics['delta_dice_05']:+.4f}, "
+                f"precision={grouped_metrics['s2_precision_05']:.4f}, "
+                f"recall={grouped_metrics['s2_recall_05']:.4f}"
+            )
+            if grouped_metrics["s2_dice_05"] > best_grouped + 0.0005:
+                grouped_improved = True
+                best_grouped = grouped_metrics["s2_dice_05"]
+                best_grouped_info = {"epoch": epoch, **grouped_metrics}
+                extra = {"epoch": epoch, "grouped_metrics": grouped_metrics, "sampled_val_metrics": val_metrics}
+                group_path = Path(args.checkpoint_dir) / exp_name / "best_grouped.pth"
+                save_stage2_checkpoint(group_path, model, view_encoder, extra=extra)
+                if use_grouped_best:
+                    save_stage2_checkpoint(Path(args.checkpoint_dir) / exp_name / "best.pth", model, view_encoder, extra=extra)
+                    patience_counter = 0
+                print(f"  -> Best grouped ckpt saved: S2={best_grouped:.4f} at ep={epoch}")
+
+        train_log.append(entry)
 
         # Save best by delta_dice_05 (relative improvement over FEM baseline)
         # Noise tolerance: only save if delta improved by > 0.0005
@@ -956,29 +1148,25 @@ def main():
                 "delta_dice_05": delta,
             }
             best_val_loss = val_metrics["val_loss"]
+        if improved and not use_grouped_best:
             ckpt_path = Path(args.checkpoint_dir) / exp_name / "best.pth"
-            ckpt_path.parent.mkdir(parents=True, exist_ok=True)
-            if view_encoder is not None:
-                torch.save(
-                    {
-                        "residual_inr": model.state_dict(),
-                        "view_encoder": view_encoder.state_dict(),
-                    },
-                    ckpt_path,
-                )
-            else:
-                torch.save(model.state_dict(), ckpt_path)
+            save_stage2_checkpoint(ckpt_path, model, view_encoder, extra={"epoch": epoch, "sampled_val_metrics": val_metrics})
             patience_counter = 0
             print(
                 f"  -> Best ckpt saved: ΔDice={delta:+.4f} (S2={val_metrics['stage2_dice_05']:.4f} vs FEM={val_metrics['fem_dice_05']:.4f})"
             )
-        else:
+        elif not use_grouped_best:
+            patience_counter += 1
+        elif not grouped_improved:
             patience_counter += 1
 
         # Early stopping
         if patience_counter >= patience and epoch > warmup_epochs:
             print(
-                f"\nEarly stopping at epoch {epoch} (best ΔDice={best_delta:+.4f} at ep={best_ckpt_info['epoch']})"
+                f"\nEarly stopping at epoch {epoch} "
+                f"(best_by={save_best_by}, "
+                f"sampled_best_ep={best_ckpt_info['epoch'] if best_ckpt_info else 'N/A'}, "
+                f"grouped_best_ep={best_grouped_info['epoch'] if best_grouped_info else 'N/A'})"
             )
             break
 
@@ -986,11 +1174,22 @@ def main():
     with open(log_path / "train_log.json", "w") as f:
         json.dump(train_log, f, indent=2)
 
-    print(
-        f"\nTraining complete. Best ΔDice@0.5: {best_delta:+.4f} (ep={best_ckpt_info['epoch']}, S2={best_ckpt_info['stage2_dice_05']:.4f}, FEM={best_ckpt_info['fem_dice_05']:.4f})"
-    )
+    if best_ckpt_info is not None:
+        print(
+            f"\nTraining complete. Best sampled ΔDice@0.5: {best_delta:+.4f} "
+            f"(ep={best_ckpt_info['epoch']}, S2={best_ckpt_info['stage2_dice_05']:.4f}, "
+            f"FEM={best_ckpt_info['fem_dice_05']:.4f})"
+        )
+    if best_grouped_info is not None:
+        print(
+            f"Best grouped S2Dice@0.5: {best_grouped_info['s2_dice_05']:.4f} "
+            f"(ep={best_grouped_info['epoch']}, FEM={best_grouped_info['fem_dice_05']:.4f}, "
+            f"Delta={best_grouped_info['delta_dice_05']:+.4f})"
+        )
     print(f"Best val_loss: {best_val_loss:.6f}")
     print(f"Checkpoints: {Path(args.checkpoint_dir) / exp_name / 'best.pth'}")
+    if grouped_interval > 0:
+        print(f"Grouped checkpoint: {Path(args.checkpoint_dir) / exp_name / 'best_grouped.pth'}")
 
 
 if __name__ == "__main__":

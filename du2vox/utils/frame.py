@@ -175,9 +175,13 @@ class FrameManifest:
         )
         mesh = np.load(Path(shared_dir) / "mesh.npz")
         nodes = mesh["nodes"].astype(np.float64)
-        assert nodes.max() < 45, (
-            f"nodes.max()={nodes.max():.1f} — mesh.npz may be in wrong frame "
-            f"(expected trunk-local < 45mm)"
+        tol_mm = 3.0
+        assert (nodes.min(axis=0) >= frame.mcx_bbox_min - tol_mm).all() and (
+            nodes.max(axis=0) <= frame.mcx_bbox_max + tol_mm
+        ).all(), (
+            f"mesh bbox={nodes.min(axis=0)}..{nodes.max(axis=0)} is outside "
+            f"manifest bbox={frame.mcx_bbox_min}..{frame.mcx_bbox_max} "
+            f"with tolerance={tol_mm}mm"
         )
         elements = mesh["elements"]
         return nodes, elements

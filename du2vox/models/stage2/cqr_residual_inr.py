@@ -90,6 +90,9 @@ class CQRResidualINR(nn.Module):
         use_band_embedding: bool = False,
         band_embed_dim: int = 8,
         num_bands: int = 5,
+        use_residual_gate: bool = False,
+        residual_gate_init_bias: float = -2.0,
+        residual_gate_source: str = "prior_view",
     ):
         super().__init__()
         if prior_dim < 8:
@@ -107,6 +110,9 @@ class CQRResidualINR(nn.Module):
         self.use_band_embedding = bool(use_band_embedding)
         self.band_embed_dim = int(band_embed_dim)
         self.num_bands = int(num_bands)
+        self.use_residual_gate = bool(use_residual_gate)
+        self.residual_gate_bias = float(residual_gate_init_bias)
+        self.residual_gate_source = residual_gate_source
         self.hidden_dim = hidden_dim
         self.n_hidden_layers = n_hidden_layers
         self.skip_connection = skip_connection
@@ -141,6 +147,10 @@ class CQRResidualINR(nn.Module):
         self.out = nn.Linear(hidden_dim, 1)
         nn.init.zeros_(self.out.weight)
         nn.init.zeros_(self.out.bias)
+        if self.use_residual_gate:
+            self.gate_out = nn.Linear(hidden_dim, 1)
+            nn.init.zeros_(self.gate_out.weight)
+            nn.init.zeros_(self.gate_out.bias)
         if self.support_head:
             self.support_out = nn.Linear(hidden_dim, 1)
         self.act = nn.ReLU(inplace=True)
@@ -181,7 +191,13 @@ class CQRResidualINR(nn.Module):
             else:
                 x = self.act(layer(x))
 
-        residual = self.out(x).squeeze(-1) * self.residual_scale
+        raw_residual = self.out(x).squeeze(-1) * self.residual_scale
+        if self.use_residual_gate:
+            residual_gate = torch.sigmoid(self.gate_out(x).squeeze(-1) - self.residual_gate_bias)
+            residual = residual_gate * raw_residual
+        else:
+            residual_gate = torch.ones_like(raw_residual)
+            residual = raw_residual
         fem_interp = (flat_prior[:, :4] * flat_prior[:, 4:8]).sum(dim=-1)
         d_hat = fem_interp + residual
         if self.support_head:
@@ -191,7 +207,17 @@ class CQRResidualINR(nn.Module):
                 "d_hat": d_hat.view(B, N),
                 "fem_interp": fem_interp.view(B, N),
                 "residual": residual.view(B, N),
+                "raw_residual": raw_residual.view(B, N),
+                "residual_gate": residual_gate.view(B, N),
                 "support_logit": support_logit.view(B, N),
                 "support_prob": support_prob.view(B, N),
+            }
+        if self.use_residual_gate:
+            return {
+                "d_hat": d_hat.view(B, N),
+                "fem_interp": fem_interp.view(B, N),
+                "residual": residual.view(B, N),
+                "raw_residual": raw_residual.view(B, N),
+                "residual_gate": residual_gate.view(B, N),
             }
         return d_hat.view(B, N), fem_interp.view(B, N), residual.view(B, N)
