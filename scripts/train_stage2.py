@@ -40,6 +40,18 @@ from du2vox.models.stage2.stage2_dataset import (
 )
 
 
+def get_residual_gate_logit_bias(model_cfg: dict, warn_prefix: str = "[Stage2]") -> float:
+    if "residual_gate_logit_bias" in model_cfg:
+        return float(model_cfg.get("residual_gate_logit_bias", -2.0))
+    if "residual_gate_init_bias" in model_cfg:
+        print(
+            f"{warn_prefix}[WARN] residual_gate_init_bias is deprecated; "
+            "use residual_gate_logit_bias"
+        )
+        return float(model_cfg.get("residual_gate_init_bias", -2.0))
+    return -2.0
+
+
 def build_stage2_model(ModelCls, cfg: dict, prior_dim: int, view_feat_dim: int = 0) -> nn.Module:
     cqr_ratios = cfg.get("cqr", {}).get("ratios", {}) or {}
     default_num_bands = 5 if float(cqr_ratios.get("proposal", 0.0)) > 0.0 else 4
@@ -62,7 +74,9 @@ def build_stage2_model(ModelCls, cfg: dict, prior_dim: int, view_feat_dim: int =
         kwargs["band_embed_dim"] = cfg["model"].get("band_embed_dim", 8)
         kwargs["num_bands"] = cfg["model"].get("num_bands", default_num_bands)
         kwargs["use_residual_gate"] = cfg["model"].get("use_residual_gate", False)
-        kwargs["residual_gate_init_bias"] = cfg["model"].get("residual_gate_init_bias", -2.0)
+        kwargs["residual_gate_logit_bias"] = get_residual_gate_logit_bias(cfg["model"])
+        kwargs["residual_gate_cap"] = cfg["model"].get("residual_gate_cap", "none")
+        kwargs["residual_gate_cap_min"] = cfg["model"].get("residual_gate_cap_min", 0.0)
         kwargs["residual_gate_source"] = cfg["model"].get("residual_gate_source", "prior_view")
     return ModelCls(**kwargs)
 
@@ -287,12 +301,19 @@ def train_step(
                 fem_flat = fem_interp.flatten()[valid_mask]
                 anchor_loss = torch.tensor(0.0, device=coords.device)
                 if fem_anchor_weight > 0:
-                    anchor_mask = gt_flat < float(cfg_loss.get("support_threshold", 0.5))
+                    support_threshold = float(cfg_loss.get("support_threshold", 0.5))
+                    gt_bin_anchor = (gt_flat >= support_threshold).float()
+                    anchor_mask = gt_bin_anchor < 0.5
                     if "residual_indicator" in batch:
                         ri_anchor = batch["residual_indicator"].cuda().flatten()[valid_mask]
-                        anchor_mask = anchor_mask | (ri_anchor < float(cfg_loss.get("anchor_residual_threshold", 0.3)))
+                        anchor_mask = anchor_mask & (
+                            ri_anchor < float(cfg_loss.get("anchor_residual_threshold", 0.3))
+                        )
                     if anchor_mask.any():
-                        anchor_loss = torch.abs(pred_flat[anchor_mask] - fem_flat[anchor_mask]).mean()
+                        anchor_weight = point_weight * anchor_mask.float()
+                        anchor_loss = (
+                            torch.abs(pred_flat - fem_flat) * point_weight * anchor_mask.float()
+                        ).sum() / (anchor_weight.sum() + eps)
                 gate_l1_loss = torch.tensor(0.0, device=coords.device)
                 if gate_l1_weight > 0 and "residual_gate" in output:
                     gate_l1_loss = output["residual_gate"].flatten()[valid_mask].mean()
@@ -717,7 +738,7 @@ def grouped_validate(
                 print(f"[GroupedVal][WARN] missing npz: {npz_path}")
                 continue
             data = dict(np.load(npz_path, allow_pickle=False))
-            d_hat, fem, residual, valid = run_model_on_sample(
+            d_hat, fem, residual, valid, diagnostics = run_model_on_sample(
                 model=model,
                 view_encoder=view_encoder,
                 cfg=cfg,
@@ -739,6 +760,7 @@ def grouped_validate(
                     fem,
                     residual,
                     valid,
+                    diagnostics,
                 )
             )
     if was_training:
@@ -815,7 +837,9 @@ def main():
             f"lifting_feat_dim={cfg['model'].get('lifting_feat_dim', 32)}, "
             f"residual_scale={cfg['model'].get('residual_scale', 1.0)}, "
             f"use_residual_gate={cfg['model'].get('use_residual_gate', False)}, "
-            f"residual_gate_init_bias={cfg['model'].get('residual_gate_init_bias', -2.0)}"
+            f"residual_gate_logit_bias={get_residual_gate_logit_bias(cfg['model'])}, "
+            f"residual_gate_cap={cfg['model'].get('residual_gate_cap', 'none')}, "
+            f"residual_gate_cap_min={cfg['model'].get('residual_gate_cap_min', 0.0)}"
         )
     print(f"[Stage2] Loss: {cfg['loss']['type']} weights={cfg.get('loss', {})}")
     print(
@@ -961,7 +985,7 @@ def main():
     grouped_split = validation_cfg.get("grouped_eval_split", "val")
     save_best_by = validation_cfg.get("save_best_by", "sampled_delta_dice")
     grouped_batch_points = int(validation_cfg.get("grouped_batch_points", 8192))
-    use_grouped_best = save_best_by == "grouped_s2_dice"
+    use_grouped_best = save_best_by.startswith("grouped_")
 
     if args.resume_checkpoint:
         val_metrics = validate(
@@ -1114,24 +1138,47 @@ def main():
             entry["grouped_delta_dice_05"] = grouped_metrics["delta_dice_05"]
             entry["grouped_s2_precision_05"] = grouped_metrics["s2_precision_05"]
             entry["grouped_s2_recall_05"] = grouped_metrics["s2_recall_05"]
+            if save_best_by == "grouped_s2_dice":
+                grouped_score = grouped_metrics["s2_dice_05"]
+            elif save_best_by == "grouped_delta_dice":
+                grouped_score = grouped_metrics["delta_dice_05"]
+            else:
+                grouped_score = grouped_metrics["s2_dice_05"]
+            entry["grouped_score"] = grouped_score
             print(
                 f"[GroupedVal] S2={grouped_metrics['s2_dice_05']:.4f}, "
                 f"FEM={grouped_metrics['fem_dice_05']:.4f}, "
                 f"Delta={grouped_metrics['delta_dice_05']:+.4f}, "
+                f"score={grouped_score:+.4f}, "
                 f"precision={grouped_metrics['s2_precision_05']:.4f}, "
                 f"recall={grouped_metrics['s2_recall_05']:.4f}"
             )
-            if grouped_metrics["s2_dice_05"] > best_grouped + 0.0005:
+            if use_grouped_best and grouped_score > best_grouped + 0.0005:
                 grouped_improved = True
-                best_grouped = grouped_metrics["s2_dice_05"]
-                best_grouped_info = {"epoch": epoch, **grouped_metrics}
-                extra = {"epoch": epoch, "grouped_metrics": grouped_metrics, "sampled_val_metrics": val_metrics}
+                best_grouped = grouped_score
+                best_grouped_info = {"epoch": epoch, "grouped_score": grouped_score, **grouped_metrics}
+                extra = {
+                    "epoch": epoch,
+                    "grouped_metrics": grouped_metrics,
+                    "grouped_score": grouped_score,
+                    "sampled_val_metrics": val_metrics,
+                }
                 group_path = Path(args.checkpoint_dir) / exp_name / "best_grouped.pth"
                 save_stage2_checkpoint(group_path, model, view_encoder, extra=extra)
                 if use_grouped_best:
                     save_stage2_checkpoint(Path(args.checkpoint_dir) / exp_name / "best.pth", model, view_encoder, extra=extra)
+                print(f"  -> Best grouped ckpt saved: score={best_grouped:+.4f} at ep={epoch}")
+                if grouped_metrics["delta_dice_05"] < 0:
+                    print("[GroupedVal][WARN] best grouped checkpoint is still below FEM baseline")
+            if use_grouped_best:
+                if grouped_improved:
                     patience_counter = 0
-                print(f"  -> Best grouped ckpt saved: S2={best_grouped:.4f} at ep={epoch}")
+                else:
+                    patience_counter += 1
+                print(
+                    f"[GroupedVal] patience_counter={patience_counter}/{patience} "
+                    "grouped evaluations"
+                )
 
         train_log.append(entry)
 
@@ -1157,8 +1204,6 @@ def main():
             )
         elif not use_grouped_best:
             patience_counter += 1
-        elif not grouped_improved:
-            patience_counter += 1
 
         # Early stopping
         if patience_counter >= patience and epoch > warmup_epochs:
@@ -1182,10 +1227,13 @@ def main():
         )
     if best_grouped_info is not None:
         print(
-            f"Best grouped S2Dice@0.5: {best_grouped_info['s2_dice_05']:.4f} "
+            f"Best grouped checkpoint: score={best_grouped_info.get('grouped_score', 0.0):+.4f}, "
+            f"S2Dice@0.5={best_grouped_info['s2_dice_05']:.4f} "
             f"(ep={best_grouped_info['epoch']}, FEM={best_grouped_info['fem_dice_05']:.4f}, "
             f"Delta={best_grouped_info['delta_dice_05']:+.4f})"
         )
+        if best_grouped_info["delta_dice_05"] < 0:
+            print("[GroupedVal][WARN] best grouped checkpoint is still below FEM baseline")
     print(f"Best val_loss: {best_val_loss:.6f}")
     print(f"Checkpoints: {Path(args.checkpoint_dir) / exp_name / 'best.pth'}")
     if grouped_interval > 0:

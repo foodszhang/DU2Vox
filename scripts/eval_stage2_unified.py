@@ -39,6 +39,20 @@ METRIC_KEYS = [
     "gt_pos_ratio_05",
     "s2_pos_ratio_05",
     "fem_pos_ratio_05",
+    "residual_gate_mean",
+    "residual_gate_gt_pos_mean",
+    "residual_gate_gt_neg_mean",
+    "residual_mean_gt_pos",
+    "residual_mean_gt_neg",
+    "raw_residual_mean",
+    "raw_residual_abs_mean",
+    "s2_minus_fem_mean",
+    "s2_minus_fem_gt_pos_mean",
+    "s2_minus_fem_gt_neg_mean",
+    "core_gate_mean",
+    "halo_gate_mean",
+    "bg_gate_mean",
+    "proposal_gate_mean",
 ]
 
 ROLE_SUBSETS = ["all", "core", "core_halo", "halo", "proposal", "bg", "non_bg"]
@@ -49,6 +63,18 @@ ROLE_FIELDNAMES = [
     for suffix in ["count", "gt_pos_05", "s2_pos_05", "fem_pos_05", "dice_05"]
     for name in ["bg", "core", "halo", "sentinel", "proposal"]
 ]
+
+
+def get_residual_gate_logit_bias(model_cfg: dict[str, Any], warn_prefix: str = "[Eval]") -> float:
+    if "residual_gate_logit_bias" in model_cfg:
+        return float(model_cfg.get("residual_gate_logit_bias", -2.0))
+    if "residual_gate_init_bias" in model_cfg:
+        print(
+            f"{warn_prefix}[WARN] residual_gate_init_bias is deprecated; "
+            "use residual_gate_logit_bias"
+        )
+        return float(model_cfg.get("residual_gate_init_bias", -2.0))
+    return -2.0
 
 
 def load_split(path: str) -> list[str]:
@@ -176,7 +202,9 @@ def build_model(cfg: dict[str, Any], device: torch.device) -> tuple[torch.nn.Mod
         kwargs["band_embed_dim"] = cfg["model"].get("band_embed_dim", 8)
         kwargs["num_bands"] = cfg["model"].get("num_bands", default_num_bands)
         kwargs["use_residual_gate"] = cfg["model"].get("use_residual_gate", False)
-        kwargs["residual_gate_init_bias"] = cfg["model"].get("residual_gate_init_bias", -2.0)
+        kwargs["residual_gate_logit_bias"] = get_residual_gate_logit_bias(cfg["model"])
+        kwargs["residual_gate_cap"] = cfg["model"].get("residual_gate_cap", "none")
+        kwargs["residual_gate_cap_min"] = cfg["model"].get("residual_gate_cap_min", 0.0)
         kwargs["residual_gate_source"] = cfg["model"].get("residual_gate_source", "prior_view")
     model = model_cls(**kwargs).to(device)
     return model, view_encoder
@@ -321,7 +349,7 @@ def run_model_on_sample(
     batch_points: int,
     role_subset: str,
     device: torch.device,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict[str, np.ndarray]]:
     valid = data["valid_mask"].astype(bool)
     if role_subset != "all":
         if "role" not in data:
@@ -344,11 +372,17 @@ def run_model_on_sample(
             np.zeros((0,), dtype=np.float32),
             np.zeros((0,), dtype=np.float32),
             valid,
+            {
+                "residual_gate": np.zeros((0,), dtype=np.float32),
+                "raw_residual": np.zeros((0,), dtype=np.float32),
+            },
         )
 
     d_hat_chunks = []
     fem_chunks = []
     residual_chunks = []
+    gate_chunks = []
+    raw_residual_chunks = []
     proj_imgs = None
     mcx_valid = None
     if view_encoder is not None:
@@ -373,15 +407,23 @@ def run_model_on_sample(
         d_hat_b = select_stage2_prediction(output, cfg)
         fem_b = output["fem_interp"]
         residual_b = output["residual"]
+        gate_b = output.get("residual_gate", torch.zeros_like(residual_b))
+        raw_residual_b = output.get("raw_residual", residual_b)
         d_hat_chunks.append(d_hat_b.squeeze(0).detach().cpu().float().numpy())
         fem_chunks.append(fem_b.squeeze(0).detach().cpu().float().numpy())
         residual_chunks.append(residual_b.squeeze(0).detach().cpu().float().numpy())
+        gate_chunks.append(gate_b.squeeze(0).detach().cpu().float().numpy())
+        raw_residual_chunks.append(raw_residual_b.squeeze(0).detach().cpu().float().numpy())
 
     return (
         np.concatenate(d_hat_chunks),
         np.concatenate(fem_chunks),
         np.concatenate(residual_chunks),
         valid,
+        {
+            "residual_gate": np.concatenate(gate_chunks),
+            "raw_residual": np.concatenate(raw_residual_chunks),
+        },
     )
 
 
@@ -394,8 +436,31 @@ def evaluate_sample(
     fem: np.ndarray,
     residual: np.ndarray,
     valid: np.ndarray,
+    diagnostics: dict[str, np.ndarray] | None = None,
 ) -> dict[str, Any]:
     gt = data["gt_values"].astype(np.float32)[valid]
+    diagnostics = diagnostics or {}
+    residual_gate = diagnostics.get("residual_gate")
+    if residual_gate is None or len(residual_gate) != len(gt):
+        residual_gate = np.zeros_like(gt, dtype=np.float32)
+    raw_residual = diagnostics.get("raw_residual")
+    if raw_residual is None or len(raw_residual) != len(gt):
+        raw_residual = residual
+    gt_pos = gt >= 0.5
+    gt_neg = ~gt_pos
+    s2_minus_fem = d_hat - fem
+
+    def masked_mean(values: np.ndarray, mask: np.ndarray | None = None, abs_value: bool = False) -> float:
+        if mask is None:
+            selected = values
+        else:
+            selected = values[mask]
+        if len(selected) == 0:
+            return 0.0
+        if abs_value:
+            selected = np.abs(selected)
+        return float(np.mean(selected))
+
     s2_metrics = binary_metrics(d_hat, gt, 0.5)
     fem_metrics = binary_metrics(fem, gt, 0.5)
     row: dict[str, Any] = {
@@ -418,6 +483,16 @@ def evaluate_sample(
         "gt_pos_ratio_05": s2_metrics["gt_pos_ratio"],
         "s2_pos_ratio_05": s2_metrics["pred_pos_ratio"],
         "fem_pos_ratio_05": fem_metrics["pred_pos_ratio"],
+        "residual_gate_mean": masked_mean(residual_gate),
+        "residual_gate_gt_pos_mean": masked_mean(residual_gate, gt_pos),
+        "residual_gate_gt_neg_mean": masked_mean(residual_gate, gt_neg),
+        "residual_mean_gt_pos": masked_mean(residual, gt_pos),
+        "residual_mean_gt_neg": masked_mean(residual, gt_neg),
+        "raw_residual_mean": masked_mean(raw_residual),
+        "raw_residual_abs_mean": masked_mean(raw_residual, abs_value=True),
+        "s2_minus_fem_mean": masked_mean(s2_minus_fem),
+        "s2_minus_fem_gt_pos_mean": masked_mean(s2_minus_fem, gt_pos),
+        "s2_minus_fem_gt_neg_mean": masked_mean(s2_minus_fem, gt_neg),
     }
 
     if "role" in data:
@@ -432,11 +507,13 @@ def evaluate_sample(
                 row[f"{name}_s2_pos_05"] = s2_role["pred_pos_ratio"]
                 row[f"{name}_fem_pos_05"] = fem_role["pred_pos_ratio"]
                 row[f"{name}_dice_05"] = s2_role["dice"]
+                row[f"{name}_gate_mean"] = masked_mean(residual_gate, mask)
             else:
                 row[f"{name}_gt_pos_05"] = ""
                 row[f"{name}_s2_pos_05"] = ""
                 row[f"{name}_fem_pos_05"] = ""
                 row[f"{name}_dice_05"] = ""
+                row[f"{name}_gate_mean"] = ""
     return row
 
 
@@ -522,7 +599,7 @@ def main() -> None:
                 continue
             data = dict(np.load(npz_path, allow_pickle=False))
             num_foci = get_num_foci(precomputed_dir, samples_dir, sample_id)
-            d_hat, fem, residual, valid = run_model_on_sample(
+            d_hat, fem, residual, valid, diagnostics = run_model_on_sample(
                 model=model,
                 view_encoder=view_encoder,
                 cfg=cfg,
@@ -534,7 +611,19 @@ def main() -> None:
                 role_subset=args.role_subset,
                 device=device,
             )
-            rows.append(evaluate_sample(sample_id, args.role_subset, num_foci, data, d_hat, fem, residual, valid))
+            rows.append(
+                evaluate_sample(
+                    sample_id,
+                    args.role_subset,
+                    num_foci,
+                    data,
+                    d_hat,
+                    fem,
+                    residual,
+                    valid,
+                    diagnostics,
+                )
+            )
 
     overall = mean_dict(rows, METRIC_KEYS)
     result = {

@@ -116,7 +116,7 @@ def main() -> None:
                 print(f"[WARN] missing npz: {npz_path}")
                 continue
             data = dict(np.load(npz_path, allow_pickle=False))
-            d_hat, fem, residual, valid = run_model_on_sample(
+            d_hat, fem, residual, valid, diagnostics = run_model_on_sample(
                 model=model,
                 view_encoder=view_encoder,
                 cfg=cfg,
@@ -137,6 +137,7 @@ def main() -> None:
                 fem,
                 residual,
                 valid,
+                diagnostics,
             )
             row.update(sample_groups(samples_dir, sample_id))
             rows.append(row)

@@ -11,6 +11,8 @@ Any extra prior dimensions are treated as coverage-aware CQR metadata.
 
 from __future__ import annotations
 
+import warnings
+
 import torch
 import torch.nn as nn
 
@@ -91,12 +93,28 @@ class CQRResidualINR(nn.Module):
         band_embed_dim: int = 8,
         num_bands: int = 5,
         use_residual_gate: bool = False,
-        residual_gate_init_bias: float = -2.0,
+        residual_gate_logit_bias: float | None = None,
+        residual_gate_init_bias: float | None = None,
+        residual_gate_cap: str = "none",
+        residual_gate_cap_min: float = 0.0,
         residual_gate_source: str = "prior_view",
     ):
         super().__init__()
         if prior_dim < 8:
             raise ValueError("prior_dim must be >= 8")
+        if residual_gate_logit_bias is None:
+            if residual_gate_init_bias is not None:
+                warnings.warn(
+                    "residual_gate_init_bias is deprecated; use residual_gate_logit_bias",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                residual_gate_logit_bias = float(residual_gate_init_bias)
+            else:
+                residual_gate_logit_bias = -2.0
+        residual_gate_cap = str(residual_gate_cap or "none").lower()
+        if residual_gate_cap == "rgl" and prior_dim < 14:
+            raise ValueError("residual_gate_cap='rgl' requires prior_dim >= 14 for residual_indicator at index 13")
 
         self.pe = PositionalEncoding(n_freqs=n_freqs, include_input=True)
         self.prior_dim = prior_dim
@@ -111,7 +129,9 @@ class CQRResidualINR(nn.Module):
         self.band_embed_dim = int(band_embed_dim)
         self.num_bands = int(num_bands)
         self.use_residual_gate = bool(use_residual_gate)
-        self.residual_gate_bias = float(residual_gate_init_bias)
+        self.residual_gate_logit_bias = float(residual_gate_logit_bias)
+        self.residual_gate_cap = residual_gate_cap
+        self.residual_gate_cap_min = float(residual_gate_cap_min)
         self.residual_gate_source = residual_gate_source
         self.hidden_dim = hidden_dim
         self.n_hidden_layers = n_hidden_layers
@@ -193,7 +213,11 @@ class CQRResidualINR(nn.Module):
 
         raw_residual = self.out(x).squeeze(-1) * self.residual_scale
         if self.use_residual_gate:
-            residual_gate = torch.sigmoid(self.gate_out(x).squeeze(-1) - self.residual_gate_bias)
+            residual_gate = torch.sigmoid(self.gate_out(x).squeeze(-1) + self.residual_gate_logit_bias)
+            if self.residual_gate_cap == "rgl":
+                residual_indicator = flat_prior[:, 13].clamp(0.0, 1.0)
+                gate_cap = self.residual_gate_cap_min + (1.0 - self.residual_gate_cap_min) * residual_indicator
+                residual_gate = residual_gate * gate_cap
             residual = residual_gate * raw_residual
         else:
             residual_gate = torch.ones_like(raw_residual)

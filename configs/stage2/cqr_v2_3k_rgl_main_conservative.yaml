@@ -56,7 +56,9 @@ model:
   num_bands: 5
 
   use_residual_gate: true
-  residual_gate_init_bias: 2.0
+  residual_gate_logit_bias: -2.0
+  residual_gate_cap: rgl
+  residual_gate_cap_min: 0.15
   residual_gate_source: prior_view
 
   n_freqs: 10
@@ -98,7 +100,7 @@ training:
 validation:
   grouped_eval_interval: 5
   grouped_eval_split: val
-  save_best_by: grouped_s2_dice
+  save_best_by: grouped_delta_dice
   grouped_batch_points: 8192
 
 loss:
