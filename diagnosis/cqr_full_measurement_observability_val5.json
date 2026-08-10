@@ -1,0 +1,292 @@
+{
+  "schema_version": 1,
+  "split": "val",
+  "sample_count": 5,
+  "measurement_dimension": 7413,
+  "query_count": 2048,
+  "selected_green_node_count": 7547,
+  "mu_values": [
+    "1e-05",
+    "3e-05",
+    "0.0001",
+    "0.0003",
+    "0.001",
+    "0.003"
+  ],
+  "summary_by_mu": {
+    "1e-05": {
+      "effective_observable_dof_mean": 502.6504272460937,
+      "observable_correction_norm_ratio_mean": 0.3163871467113495,
+      "observable_correction_energy_ratio_mean": 0.10593871399760246,
+      "observable_correction_energy_ratio_max": 0.18652603030204773
+    },
+    "3e-05": {
+      "effective_observable_dof_mean": 475.3137939453125,
+      "observable_correction_norm_ratio_mean": 0.2980433076620102,
+      "observable_correction_energy_ratio_mean": 0.09514852538704872,
+      "observable_correction_energy_ratio_max": 0.17794062197208405
+    },
+    "0.0001": {
+      "effective_observable_dof_mean": 442.47218017578126,
+      "observable_correction_norm_ratio_mean": 0.2768898457288742,
+      "observable_correction_energy_ratio_mean": 0.08386128507554531,
+      "observable_correction_energy_ratio_max": 0.1698942482471466
+    },
+    "0.0003": {
+      "effective_observable_dof_mean": 411.17588500976564,
+      "observable_correction_norm_ratio_mean": 0.25486684441566465,
+      "observable_correction_energy_ratio_mean": 0.07359569147229195,
+      "observable_correction_energy_ratio_max": 0.1631430834531784
+    },
+    "0.001": {
+      "effective_observable_dof_mean": 376.1383422851562,
+      "observable_correction_norm_ratio_mean": 0.22978063225746154,
+      "observable_correction_energy_ratio_mean": 0.06368827186524868,
+      "observable_correction_energy_ratio_max": 0.15694119036197662
+    },
+    "0.003": {
+      "effective_observable_dof_mean": 343.92359619140626,
+      "observable_correction_norm_ratio_mean": 0.20935501605272294,
+      "observable_correction_energy_ratio_mean": 0.05670375246554613,
+      "observable_correction_energy_ratio_max": 0.15193364024162292
+    }
+  },
+  "samples": [
+    {
+      "sample_id": "sample_0001",
+      "by_mu": {
+        "1e-05": {
+          "mu_relative": 1e-05,
+          "mu_absolute": 3.6441720112634357e-06,
+          "effective_observable_dof": 499.67449951171875,
+          "observable_correction_norm_ratio": 0.3504018783569336,
+          "observable_correction_energy_ratio": 0.12278147786855698
+        },
+        "3e-05": {
+          "mu_relative": 3e-05,
+          "mu_absolute": 8.932516720960848e-06,
+          "effective_observable_dof": 469.315673828125,
+          "observable_correction_norm_ratio": 0.3221747875213623,
+          "observable_correction_energy_ratio": 0.1037965714931488
+        },
+        "0.0001": {
+          "mu_relative": 0.0001,
+          "mu_absolute": 2.7441721613286063e-05,
+          "effective_observable_dof": 432.38427734375,
+          "observable_correction_norm_ratio": 0.2890421152114868,
+          "observable_correction_energy_ratio": 0.08354534953832626
+        },
+        "0.0003": {
+          "mu_relative": 0.0003,
+          "mu_absolute": 8.032516780076548e-05,
+          "effective_observable_dof": 396.6378479003906,
+          "observable_correction_norm_ratio": 0.25721338391304016,
+          "observable_correction_energy_ratio": 0.0661587342619896
+        },
+        "0.001": {
+          "mu_relative": 0.001,
+          "mu_absolute": 0.0002654172421898693,
+          "effective_observable_dof": 356.17987060546875,
+          "observable_correction_norm_ratio": 0.2220306545495987,
+          "observable_correction_energy_ratio": 0.04929761588573456
+        },
+        "0.003": {
+          "mu_relative": 0.003,
+          "mu_absolute": 0.0007942516822367907,
+          "effective_observable_dof": 319.8651428222656,
+          "observable_correction_norm_ratio": 0.18944169580936432,
+          "observable_correction_energy_ratio": 0.03588815778493881
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0008",
+      "by_mu": {
+        "1e-05": {
+          "mu_relative": 1e-05,
+          "mu_absolute": 3.517566710797837e-06,
+          "effective_observable_dof": 468.34228515625,
+          "observable_correction_norm_ratio": 0.21486085653305054,
+          "observable_correction_energy_ratio": 0.04616517946124077
+        },
+        "3e-05": {
+          "mu_relative": 3e-05,
+          "mu_absolute": 8.552700819564052e-06,
+          "effective_observable_dof": 443.7030944824219,
+          "observable_correction_norm_ratio": 0.19825825095176697,
+          "observable_correction_energy_ratio": 0.03930633142590523
+        },
+        "0.0001": {
+          "mu_relative": 0.0001,
+          "mu_absolute": 2.6175666789640673e-05,
+          "effective_observable_dof": 414.49737548828125,
+          "observable_correction_norm_ratio": 0.17548486590385437,
+          "observable_correction_energy_ratio": 0.030794939026236534
+        },
+        "0.0003": {
+          "mu_relative": 0.0003,
+          "mu_absolute": 7.652700878679752e-05,
+          "effective_observable_dof": 386.5814514160156,
+          "observable_correction_norm_ratio": 0.14589831233024597,
+          "observable_correction_energy_ratio": 0.021286314353346825
+        },
+        "0.001": {
+          "mu_relative": 0.001,
+          "mu_absolute": 0.0002527566975913942,
+          "effective_observable_dof": 354.9903259277344,
+          "observable_correction_norm_ratio": 0.10568617284297943,
+          "observable_correction_energy_ratio": 0.011169565841555595
+        },
+        "0.003": {
+          "mu_relative": 0.003,
+          "mu_absolute": 0.0007562700193375349,
+          "effective_observable_dof": 326.16632080078125,
+          "observable_correction_norm_ratio": 0.0733015164732933,
+          "observable_correction_energy_ratio": 0.005373111926019192
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0013",
+      "by_mu": {
+        "1e-05": {
+          "mu_relative": 1e-05,
+          "mu_absolute": 3.6811375139222946e-06,
+          "effective_observable_dof": 563.3921508789062,
+          "observable_correction_norm_ratio": 0.3326008915901184,
+          "observable_correction_energy_ratio": 0.11062336713075638
+        },
+        "3e-05": {
+          "mu_relative": 3e-05,
+          "mu_absolute": 9.043413228937425e-06,
+          "effective_observable_dof": 535.040771484375,
+          "observable_correction_norm_ratio": 0.3217921853065491,
+          "observable_correction_energy_ratio": 0.10355021804571152
+        },
+        "0.0001": {
+          "mu_relative": 0.0001,
+          "mu_absolute": 2.7811376639874652e-05,
+          "effective_observable_dof": 500.099853515625,
+          "observable_correction_norm_ratio": 0.3094215393066406,
+          "observable_correction_energy_ratio": 0.09574169665575027
+        },
+        "0.0003": {
+          "mu_relative": 0.0003,
+          "mu_absolute": 8.143414015648887e-05,
+          "effective_observable_dof": 465.69525146484375,
+          "observable_correction_norm_ratio": 0.29768654704093933,
+          "observable_correction_energy_ratio": 0.08861728012561798
+        },
+        "0.001": {
+          "mu_relative": 0.001,
+          "mu_absolute": 0.0002691138070076704,
+          "effective_observable_dof": 426.1612548828125,
+          "observable_correction_norm_ratio": 0.2856867015361786,
+          "observable_correction_energy_ratio": 0.08161690831184387
+        },
+        "0.003": {
+          "mu_relative": 0.003,
+          "mu_absolute": 0.0008053413475863636,
+          "effective_observable_dof": 388.9495544433594,
+          "observable_correction_norm_ratio": 0.276524156332016,
+          "observable_correction_energy_ratio": 0.07646560668945312
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0014",
+      "by_mu": {
+        "1e-05": {
+          "mu_relative": 1e-05,
+          "mu_absolute": 4.548879132926231e-06,
+          "effective_observable_dof": 485.5489501953125,
+          "observable_correction_norm_ratio": 0.25218549370765686,
+          "observable_correction_energy_ratio": 0.06359751522541046
+        },
+        "3e-05": {
+          "mu_relative": 3e-05,
+          "mu_absolute": 1.1646637176454533e-05,
+          "effective_observable_dof": 455.95111083984375,
+          "observable_correction_norm_ratio": 0.2261611968278885,
+          "observable_correction_energy_ratio": 0.05114888399839401
+        },
+        "0.0001": {
+          "mu_relative": 0.0001,
+          "mu_absolute": 3.648879282991402e-05,
+          "effective_observable_dof": 421.115234375,
+          "observable_correction_norm_ratio": 0.19831840693950653,
+          "observable_correction_energy_ratio": 0.039330191910266876
+        },
+        "0.0003": {
+          "mu_relative": 0.0003,
+          "mu_absolute": 0.00010746638145064935,
+          "effective_observable_dof": 389.0445556640625,
+          "observable_correction_norm_ratio": 0.16962620615959167,
+          "observable_correction_energy_ratio": 0.028773045167326927
+        },
+        "0.001": {
+          "mu_relative": 0.001,
+          "mu_absolute": 0.0003558879252523184,
+          "effective_observable_dof": 354.2624206542969,
+          "observable_correction_norm_ratio": 0.1393415927886963,
+          "observable_correction_energy_ratio": 0.01941607892513275
+        },
+        "0.003": {
+          "mu_relative": 0.003,
+          "mu_absolute": 0.0010656637605279684,
+          "effective_observable_dof": 322.41741943359375,
+          "observable_correction_norm_ratio": 0.11772105097770691,
+          "observable_correction_energy_ratio": 0.013858245685696602
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0026",
+      "by_mu": {
+        "1e-05": {
+          "mu_relative": 1e-05,
+          "mu_absolute": 3.5438074519333895e-06,
+          "effective_observable_dof": 496.29425048828125,
+          "observable_correction_norm_ratio": 0.43188661336898804,
+          "observable_correction_energy_ratio": 0.18652603030204773
+        },
+        "3e-05": {
+          "mu_relative": 3e-05,
+          "mu_absolute": 8.63142304297071e-06,
+          "effective_observable_dof": 472.5583190917969,
+          "observable_correction_norm_ratio": 0.42183011770248413,
+          "observable_correction_energy_ratio": 0.17794062197208405
+        },
+        "0.0001": {
+          "mu_relative": 0.0001,
+          "mu_absolute": 2.6438074200996198e-05,
+          "effective_observable_dof": 444.26416015625,
+          "observable_correction_norm_ratio": 0.4121823012828827,
+          "observable_correction_energy_ratio": 0.1698942482471466
+        },
+        "0.0003": {
+          "mu_relative": 0.0003,
+          "mu_absolute": 7.73142310208641e-05,
+          "effective_observable_dof": 417.9203186035156,
+          "observable_correction_norm_ratio": 0.4039097726345062,
+          "observable_correction_energy_ratio": 0.1631430834531784
+        },
+        "0.001": {
+          "mu_relative": 0.001,
+          "mu_absolute": 0.0002553807571530342,
+          "effective_observable_dof": 389.09783935546875,
+          "observable_correction_norm_ratio": 0.39615803956985474,
+          "observable_correction_energy_ratio": 0.15694119036197662
+        },
+        "0.003": {
+          "mu_relative": 0.003,
+          "mu_absolute": 0.0007641423144377768,
+          "effective_observable_dof": 362.21954345703125,
+          "observable_correction_norm_ratio": 0.38978666067123413,
+          "observable_correction_energy_ratio": 0.15193364024162292
+        }
+      }
+    }
+  ],
+  "operator_scope": "Full surface measurements on the sampled CQR correction basis"
+}

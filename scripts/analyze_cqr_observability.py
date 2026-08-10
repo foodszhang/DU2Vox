@@ -81,6 +81,9 @@ def correction_information_metrics(
     with torch.no_grad():
         observable = projector.project_observable(correction, a_query)
         adjoint = projector.adjoint_evidence(residual_t, a_query)
+        effective_dof = projector.effective_degrees_of_freedom(a_query)
+        gram = a_query.float() @ a_query.float().transpose(-1, -2)
+        mu = projector.regularization_from_gram(gram)
     correction_norm = torch.linalg.vector_norm(correction)
     observable_norm = torch.linalg.vector_norm(observable)
     gt_norm = torch.linalg.vector_norm(torch.from_numpy(gt[chosen]).to(device))
@@ -101,6 +104,8 @@ def correction_information_metrics(
         "gt_correction_l2": float(correction_norm),
         "observable_target_l2": float(observable_norm),
         "adjoint_evidence_l2": float(torch.linalg.vector_norm(adjoint)),
+        "effective_observable_dof": float(effective_dof),
+        "mu_absolute": float(mu),
     }
 
 
@@ -117,6 +122,13 @@ def main() -> None:
         help="Operator cache to audit; repeat for a rank sweep",
     )
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument(
+        "--mu_relative",
+        action="append",
+        type=float,
+        default=None,
+        help="Projector regularization to audit; repeat for a mu sweep",
+    )
     parser.add_argument("--out_json", default="diagnosis/cqr_observability.json")
     parser.add_argument("--out_md", default="diagnosis/cqr_observability.md")
     args = parser.parse_args()
@@ -131,6 +143,7 @@ def main() -> None:
         operators.append((path, CompressedGreenOperator.load(path)))
     operator = operators[0][1]
     device = torch.device(args.device)
+    mu_values = args.mu_relative or [float(cfg["observability"]["mu_relative"])]
     with np.load(Path(cfg["data"]["shared_dir"]) / "mesh.npz", allow_pickle=False) as mesh:
         elements = mesh["elements"].astype(np.int64)
     ids = load_split(cfg["data"][f"{args.split}_split"])[: args.max_samples]
@@ -217,27 +230,40 @@ def main() -> None:
             * (cell_weight[chosen] * n_valid / len(chosen))[None, :]
         ).float()
         projector = CQRObservabilityProjector(
-            **{key: cfg["observability"][key] for key in ("mu_relative", "jitter")}
+            mu_relative=mu_values[0], jitter=float(cfg["observability"]["jitter"])
         )
         information_by_rank = {}
+        information_by_rank_mu = {}
         for operator_path, rank_operator in operators:
-            information_by_rank[str(rank_operator.rank)] = {
-                "operator_cache": str(operator_path),
-                **correction_information_metrics(
-                    rank_operator,
-                    projector,
-                    elements,
-                    tet_ids,
-                    prior_8d,
-                    gt,
-                    chosen,
-                    cell_weight,
-                    n_valid,
-                    measurement,
-                    coarse,
-                    device,
-                ),
-            }
+            rank_key = str(rank_operator.rank)
+            information_by_rank_mu[rank_key] = {}
+            for mu_relative in mu_values:
+                mu_key = f"{mu_relative:.12g}"
+                swept_projector = CQRObservabilityProjector(
+                    mu_relative=mu_relative,
+                    jitter=float(cfg["observability"]["jitter"]),
+                )
+                information_by_rank_mu[rank_key][mu_key] = {
+                    "operator_cache": str(operator_path),
+                    "mu_relative": mu_relative,
+                    **correction_information_metrics(
+                        rank_operator,
+                        swept_projector,
+                        elements,
+                        tet_ids,
+                        prior_8d,
+                        gt,
+                        chosen,
+                        cell_weight,
+                        n_valid,
+                        measurement,
+                        coarse,
+                        device,
+                    ),
+                }
+            information_by_rank[rank_key] = information_by_rank_mu[rank_key][
+                f"{mu_values[0]:.12g}"
+            ]
         raw = torch.from_numpy(rng.standard_normal(len(chosen))).float().requires_grad_(True)
         observable = projector.project_observable(raw, a_query)
         ambiguous = projector.project_ambiguous(raw, a_query)
@@ -264,6 +290,7 @@ def main() -> None:
                 "ambiguous_measurement_leakage_norm_ratio": ambiguous_leakage,
                 "projector_backward_finite": bool(torch.isfinite(raw.grad).all()),
                 "correction_information_by_rank": information_by_rank,
+                "correction_information_by_rank_mu": information_by_rank_mu,
             }
         )
     metric_names = (
@@ -274,6 +301,7 @@ def main() -> None:
         "adjoint_observable_cosine",
     )
     information_summary = {}
+    information_summary_by_rank_mu = {}
     for _, rank_operator in operators:
         rank_key = str(rank_operator.rank)
         rank_rows = [
@@ -288,6 +316,22 @@ def main() -> None:
             }
             for name in metric_names
         }
+        information_summary_by_rank_mu[rank_key] = {}
+        for mu_relative in mu_values:
+            mu_key = f"{mu_relative:.12g}"
+            mu_rows = [
+                row["correction_information_by_rank_mu"][rank_key][mu_key]
+                for row in records
+            ]
+            information_summary_by_rank_mu[rank_key][mu_key] = {
+                name: {
+                    "mean": float(np.mean([row[name] for row in mu_rows])),
+                    "median": float(np.median([row[name] for row in mu_rows])),
+                    "min": float(np.min([row[name] for row in mu_rows])),
+                    "max": float(np.max([row[name] for row in mu_rows])),
+                }
+                for name in (*metric_names, "effective_observable_dof", "mu_absolute")
+            }
     report = {
         "schema_version": 1,
         "split": args.split,
@@ -299,6 +343,7 @@ def main() -> None:
         },
         "samples": records,
         "correction_information_summary_by_rank": information_summary,
+        "correction_information_summary_by_rank_mu": information_summary_by_rank_mu,
         "operator_scope": "CQR candidate-supported correction operator; not full-volume quadrature",
     }
     out_json = REPO_ROOT / args.out_json
@@ -314,17 +359,20 @@ def main() -> None:
         "",
         "## Residual and oracle correction information",
         "",
-        "| rank | residual / y | GT correction / GT | observable norm fraction | observable energy | adjoint cosine |",
-        "| ---: | ---: | ---: | ---: | ---: | ---: |",
+        "| rank | mu_rel | effective dof | residual / y | GT correction / GT | observable norm fraction | observable energy | adjoint cosine |",
+        "| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
-    for rank, values in information_summary.items():
-        lines.append(
-            f"| {rank} | {values['measurement_residual_ratio']['mean']:.4f} | "
-            f"{values['gt_correction_relative_norm']['mean']:.4f} | "
-            f"{values['observable_correction_norm_ratio']['mean']:.4f} | "
-            f"{values['observable_correction_energy_ratio']['mean']:.4f} | "
-            f"{values['adjoint_observable_cosine']['mean']:.4f} |"
-        )
+    for rank, mu_rows in information_summary_by_rank_mu.items():
+        for mu_relative, values in mu_rows.items():
+            lines.append(
+                f"| {rank} | {mu_relative} | "
+                f"{values['effective_observable_dof']['mean']:.2f} | "
+                f"{values['measurement_residual_ratio']['mean']:.4f} | "
+                f"{values['gt_correction_relative_norm']['mean']:.4f} | "
+                f"{values['observable_correction_norm_ratio']['mean']:.4f} | "
+                f"{values['observable_correction_energy_ratio']['mean']:.4f} | "
+                f"{values['adjoint_observable_cosine']['mean']:.4f} |"
+            )
     lines.extend(["", "## Per sample", ""])
     for row in records:
         lines.append(

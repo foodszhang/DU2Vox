@@ -313,6 +313,7 @@ def train_step(
     amp_dtype: torch.dtype = torch.float16,
     accumulation_steps: int = 1,
     step_optimizer: bool = True,
+    measurement_consistency_weight: float = 0.0,
 ) -> dict:
     """
     Train one batch. Supports both DE-only and multiview modes.
@@ -353,8 +354,20 @@ def train_step(
         "ambiguous_activity": torch.tensor(0.0, device=coords.device),
         "observable_projection_ratio": torch.tensor(0.0, device=coords.device),
         "ambiguous_projection_ratio": torch.tensor(0.0, device=coords.device),
+        "observable_target_cosine": torch.tensor(0.0, device=coords.device),
+        "ambiguous_target_cosine": torch.tensor(0.0, device=coords.device),
+        "raw_observable_norm": torch.tensor(0.0, device=coords.device),
+        "observable_norm": torch.tensor(0.0, device=coords.device),
+        "raw_ambiguous_norm": torch.tensor(0.0, device=coords.device),
+        "ambiguous_norm": torch.tensor(0.0, device=coords.device),
+        "observable_energy_fraction": torch.tensor(0.0, device=coords.device),
+        "ambiguous_energy_fraction": torch.tensor(0.0, device=coords.device),
+        "data_relative_before": torch.tensor(1.0, device=coords.device),
+        "data_relative_after": torch.tensor(1.0, device=coords.device),
+        "data_nonworse": torch.tensor(0.0, device=coords.device),
+        "data_nonworse_robust": torch.tensor(0.0, device=coords.device),
+        "correction_physics_relative": torch.tensor(0.0, device=coords.device),
     }
-
     with torch.amp.autocast("cuda", enabled=use_amp, dtype=amp_dtype):
         if is_multiview:
             coords_world = batch["coords_world"].cuda()  # [B, N, 3] — world mm for projection
@@ -654,7 +667,17 @@ def train_step(
                     batch["physics_quadrature_weight"].cuda(),
                     role=batch.get("physics_role", batch["physics_correction_band"]).cuda(),
                 )
-                observable_residual = (1.0 - output["observable_residual_reduction"]).mean()
+                data_relative_before = output["data_relative_before"].mean()
+                data_relative_after = output["data_relative_after"].mean()
+                data_excess = torch.relu(output["data_relative_after"] - 1.0)
+                data_nonworse = data_excess.square().mean()
+                data_nonworse_robust = torch.log1p(data_excess).square().mean()
+                nonworse_loss = (
+                    data_nonworse_robust
+                    if cfg_loss.get("nonworse_loss", "squared_ratio") == "log_ratio"
+                    else data_nonworse
+                )
+                observable_residual = data_relative_after
                 ambiguous_leakage = output["ambiguous_measurement_leakage"].mean()
                 correction_l2 = (
                     (output["observable_correction"].square() + output["ambiguous_correction"].square())
@@ -671,6 +694,15 @@ def train_step(
                 def weighted_abs_mean(value: torch.Tensor) -> torch.Tensor:
                     return (value.abs() * full_weight).sum() / weight_sum
 
+                def weighted_rms(value: torch.Tensor) -> torch.Tensor:
+                    return torch.sqrt((value.square() * full_weight).sum() / weight_sum + eps)
+
+                def weighted_cosine(left: torch.Tensor, right: torch.Tensor) -> torch.Tensor:
+                    dot = (left * right * full_weight).sum()
+                    left_norm = torch.sqrt((left.square() * full_weight).sum() + eps)
+                    right_norm = torch.sqrt((right.square() * full_weight).sum() + eps)
+                    return dot / (left_norm * right_norm + eps)
+
                 observable_target_loss = weighted_abs_mean(
                     output["observable_correction"] - observable_target
                 )
@@ -685,6 +717,12 @@ def train_step(
                 ambiguous_target_relative = ambiguous_target_loss / (
                     ambiguous_target_scale + eps
                 )
+                observable_target_cosine = weighted_cosine(
+                    output["observable_correction"], observable_target
+                )
+                ambiguous_target_cosine = weighted_cosine(
+                    output["ambiguous_correction"], ambiguous_target
+                )
                 raw_observable_activity = weighted_abs_mean(output["raw_observable"])
                 observable_activity = weighted_abs_mean(output["observable_correction"])
                 raw_ambiguous_activity = weighted_abs_mean(output["raw_ambiguous"])
@@ -695,35 +733,88 @@ def train_step(
                 ambiguous_projection_ratio = ambiguous_activity / (
                     raw_ambiguous_activity + eps
                 )
+                raw_observable_norm = weighted_rms(output["raw_observable"])
+                observable_norm = weighted_rms(output["observable_correction"])
+                raw_ambiguous_norm = weighted_rms(output["raw_ambiguous"])
+                ambiguous_norm = weighted_rms(output["ambiguous_correction"])
+                combined_correction = (
+                    output["observable_correction"] + output["ambiguous_correction"]
+                )
+                combined_energy = (combined_correction.square() * full_weight).sum() + eps
+                observable_energy_fraction = (
+                    output["observable_correction"].square() * full_weight
+                ).sum() / combined_energy
+                ambiguous_energy_fraction = (
+                    output["ambiguous_correction"].square() * full_weight
+                ).sum() / combined_energy
+                predicted_correction_modes = (
+                    output["a_query"].float() @ combined_correction.float().unsqueeze(-1)
+                ).squeeze(-1)
+                target_correction_modes = (
+                    output["a_query"].float()
+                    @ gt_correction_target.float().unsqueeze(-1)
+                ).squeeze(-1)
+                correction_physics_relative = (
+                    (predicted_correction_modes - target_correction_modes)
+                    .square()
+                    .sum(dim=-1)
+                    / (target_correction_modes.square().sum(dim=-1) + eps)
+                ).mean()
                 phase = getattr(model, "training_phase", "lifter")
-                loss = (
+                lifter_loss = (
                     reconstruction_loss
                     + float(cfg_loss.get("lambda_transport", 1.0)) * transport_loss
                     + float(cfg_loss.get("lambda_alpha_anchor", 0.01)) * alpha_anchor
                 )
-                if phase in {"observable", "full"}:
+                observable_supervision = (
+                    float(
+                        cfg_loss.get(
+                            "lambda_obs_target_relative",
+                            cfg_loss.get("lambda_obs_target", 1.0),
+                        )
+                    )
+                    * observable_target_relative
+                    + float(cfg_loss.get("lambda_obs_target_cosine", 0.0))
+                    * (1.0 - observable_target_cosine)
+                )
+                ambiguous_supervision = (
+                    float(
+                        cfg_loss.get(
+                            "lambda_amb_target_relative",
+                            cfg_loss.get("lambda_amb_target", 1.0),
+                        )
+                    )
+                    * ambiguous_target_relative
+                    + float(cfg_loss.get("lambda_amb_target_cosine", 0.0))
+                    * (1.0 - ambiguous_target_cosine)
+                )
+                if phase == "lifter":
+                    loss = lifter_loss
+                elif phase == "observable_pretrain":
+                    loss = observable_supervision
+                elif phase == "ambiguous_pretrain":
+                    loss = ambiguous_supervision
+                else:
                     loss = (
                         float(cfg_loss.get("lambda_recon", 1.0)) * reconstruction_loss
                         + float(cfg_loss.get("lambda_transport", 1.0)) * transport_loss
                         + float(cfg_loss.get("lambda_alpha_anchor", 0.01)) * alpha_anchor
-                        + float(cfg_loss.get("lambda_obs_target", 0.0))
-                        * observable_target_loss
-                        + float(cfg_loss.get("lambda_correction_l2", 0.0)) * correction_l2
-                        + float(
-                            cfg_loss.get(
-                                "lambda_data",
-                                cfg_loss.get("lambda_observable_residual", 0.1),
-                            )
+                        + observable_supervision
+                        + (
+                            ambiguous_supervision
+                            if phase in {"full", "joint"}
+                            else torch.zeros_like(ambiguous_supervision)
                         )
-                        * observable_residual
+                        + float(cfg_loss.get("lambda_correction_l2", 0.0)) * correction_l2
+                        + float(cfg_loss.get("lambda_correction_physics", 0.0))
+                        * correction_physics_relative
                     )
                 if phase == "full":
                     loss = (
                         loss
-                        + float(cfg_loss.get("lambda_amb_target", 0.0))
-                        * ambiguous_target_loss
                         + float(cfg_loss.get("lambda_ambiguous_leakage", 0.1))
                         * ambiguous_leakage
+                        + float(measurement_consistency_weight) * nonworse_loss
                     )
                 loss_components["transport"] = transport_loss.detach()
                 loss_components["alpha_anchor"] = alpha_anchor.detach()
@@ -746,6 +837,25 @@ def train_step(
                 )
                 loss_components["ambiguous_projection_ratio"] = (
                     ambiguous_projection_ratio.detach()
+                )
+                loss_components["observable_target_cosine"] = observable_target_cosine.detach()
+                loss_components["ambiguous_target_cosine"] = ambiguous_target_cosine.detach()
+                loss_components["raw_observable_norm"] = raw_observable_norm.detach()
+                loss_components["observable_norm"] = observable_norm.detach()
+                loss_components["raw_ambiguous_norm"] = raw_ambiguous_norm.detach()
+                loss_components["ambiguous_norm"] = ambiguous_norm.detach()
+                loss_components["observable_energy_fraction"] = (
+                    observable_energy_fraction.detach()
+                )
+                loss_components["ambiguous_energy_fraction"] = (
+                    ambiguous_energy_fraction.detach()
+                )
+                loss_components["data_relative_before"] = data_relative_before.detach()
+                loss_components["data_relative_after"] = data_relative_after.detach()
+                loss_components["data_nonworse"] = data_nonworse.detach()
+                loss_components["data_nonworse_robust"] = data_nonworse_robust.detach()
+                loss_components["correction_physics_relative"] = (
+                    correction_physics_relative.detach()
                 )
         else:
             loss = torch.tensor(0.0, device=coords.device)
@@ -863,7 +973,48 @@ def train_step(
         ).item()
         if valid_mask.sum() > 0
         else 0.0,
+        **{
+            key: loss_components.get(key, torch.tensor(0.0)).item()
+            if valid_mask.sum() > 0
+            else 0.0
+            for key in (
+                "observable_target_cosine",
+                "ambiguous_target_cosine",
+                "raw_observable_norm",
+                "observable_norm",
+                "raw_ambiguous_norm",
+                "ambiguous_norm",
+                "observable_energy_fraction",
+                "ambiguous_energy_fraction",
+                "data_relative_before",
+                "data_relative_after",
+                "data_nonworse",
+                "data_nonworse_robust",
+                "correction_physics_relative",
+            )
+        },
     }
+
+
+def scheduled_measurement_consistency_weight(training_cfg: dict, epoch: int) -> float:
+    """Piecewise-linear non-worsening weight for target-first training."""
+
+    schedule = training_cfg.get("measurement_consistency_schedule", []) or []
+    if not schedule:
+        return float(training_cfg.get("measurement_consistency_weight", 0.0))
+    points = sorted(
+        (int(item["epoch"]), float(item["weight"])) for item in schedule
+    )
+    if epoch <= points[0][0]:
+        return points[0][1]
+    for (left_epoch, left_weight), (right_epoch, right_weight) in zip(
+        points, points[1:], strict=False
+    ):
+        if epoch <= right_epoch:
+            span = max(right_epoch - left_epoch, 1)
+            fraction = (epoch - left_epoch) / span
+            return left_weight + fraction * (right_weight - left_weight)
+    return points[-1][1]
 
 
 def compute_dice(pred: torch.Tensor, target: torch.Tensor, threshold: float = 0.5) -> float:
@@ -1094,7 +1245,18 @@ def main():
     parser.add_argument("--experiment_name", type=str, default=None)
     parser.add_argument("--checkpoint_dir", type=str, default="checkpoints/stage2")
     parser.add_argument("--resume_checkpoint", type=str, default=None)
-    parser.add_argument("--phase", choices=("lifter", "observable", "full"), default=None)
+    parser.add_argument(
+        "--phase",
+        choices=(
+            "lifter",
+            "observable",
+            "full",
+            "observable_pretrain",
+            "ambiguous_pretrain",
+            "joint",
+        ),
+        default=None,
+    )
     parser.add_argument("--learning_rate", type=float, default=None)
     parser.add_argument("--grad_accum_steps", type=int, default=None)
     parser.add_argument("--early_stopping_patience", type=int, default=None)
@@ -1412,6 +1574,19 @@ def main():
             "ambiguous_activity",
             "observable_projection_ratio",
             "ambiguous_projection_ratio",
+            "observable_target_cosine",
+            "ambiguous_target_cosine",
+            "raw_observable_norm",
+            "observable_norm",
+            "raw_ambiguous_norm",
+            "ambiguous_norm",
+            "observable_energy_fraction",
+            "ambiguous_energy_fraction",
+            "data_relative_before",
+            "data_relative_after",
+            "data_nonworse",
+            "data_nonworse_robust",
+            "correction_physics_relative",
         )
         epoch_branch_metrics = {key: 0.0 for key in branch_metric_keys}
         epoch_valid = 0
@@ -1428,6 +1603,12 @@ def main():
 
         if hasattr(train_loader.dataset, "set_epoch"):
             train_loader.dataset.set_epoch(epoch)
+
+        consistency_weight = (
+            scheduled_measurement_consistency_weight(cfg.get("training", {}), epoch)
+            if cfg.get("training", {}).get("phase") == "full"
+            else 0.0
+        )
 
         for batch_idx, batch in enumerate(train_loader):
             step_optimizer = ((batch_idx + 1) % grad_accum_steps == 0) or (batch_idx + 1 == len(train_loader))
@@ -1447,6 +1628,7 @@ def main():
                 amp_dtype=amp_dtype,
                 accumulation_steps=grad_accum_steps,
                 step_optimizer=step_optimizer,
+                measurement_consistency_weight=consistency_weight,
             )
             epoch_loss += metrics["loss"]
             epoch_fem += metrics["fem_baseline_loss"]
@@ -1513,6 +1695,7 @@ def main():
             "valid_count": epoch_valid,
             "elapsed_s": elapsed,
             "lr": optimizer.param_groups[0]["lr"],
+            "measurement_consistency_weight": consistency_weight,
         }
         # Log every epoch
         print(
@@ -1546,6 +1729,24 @@ def main():
                 f"raw_amb={avg_branch_metrics['raw_ambiguous_activity']:.3e}  "
                 f"proj_amb={avg_branch_metrics['ambiguous_activity']:.3e}  "
                 f"k_amb={avg_branch_metrics['ambiguous_projection_ratio']:.3e}"
+            )
+            print(
+                "         "
+                f"obs_rel={avg_branch_metrics['observable_target_relative']:.3e}  "
+                f"obs_cos={avg_branch_metrics['observable_target_cosine']:.3f}  "
+                f"amb_rel={avg_branch_metrics['ambiguous_target_relative']:.3e}  "
+                f"amb_cos={avg_branch_metrics['ambiguous_target_cosine']:.3f}  "
+                f"E_obs={avg_branch_metrics['observable_energy_fraction']:.3e}  "
+                f"E_amb={avg_branch_metrics['ambiguous_energy_fraction']:.3e}"
+            )
+            print(
+                "         "
+                f"data_before={avg_branch_metrics['data_relative_before']:.3e}  "
+                f"data_after={avg_branch_metrics['data_relative_after']:.3e}  "
+                f"nonworse={avg_branch_metrics['data_nonworse']:.3e}  "
+                f"nonworse_log={avg_branch_metrics['data_nonworse_robust']:.3e}  "
+                f"corr_phys={avg_branch_metrics['correction_physics_relative']:.3e}  "
+                f"lambda_nonworse={consistency_weight:.3e}"
             )
 
         grouped_metrics = None

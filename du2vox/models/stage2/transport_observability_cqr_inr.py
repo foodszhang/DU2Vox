@@ -106,15 +106,27 @@ class TransportObservabilityCQRINR(nn.Module):
         self.ambiguous_head = _CorrectionHead(input_dim, hidden_dim, n_hidden_layers)
 
     def set_phase(self, phase: str, freeze_lifter_after_phase_a: bool = False) -> None:
-        if phase not in {"lifter", "observable", "full"}:
+        valid_phases = {
+            "lifter",
+            "observable",
+            "full",
+            "observable_pretrain",
+            "ambiguous_pretrain",
+            "joint",
+        }
+        if phase not in valid_phases:
             raise ValueError(f"Unknown training phase: {phase}")
         train_lifter = phase == "lifter" or not freeze_lifter_after_phase_a
         for parameter in self.lifter.parameters():
             parameter.requires_grad_(train_lifter)
         for parameter in self.observable_head.parameters():
-            parameter.requires_grad_(phase in {"observable", "full"})
+            parameter.requires_grad_(
+                phase in {"observable", "full", "observable_pretrain", "joint"}
+            )
         for parameter in self.ambiguous_head.parameters():
-            parameter.requires_grad_(phase == "full")
+            parameter.requires_grad_(
+                phase in {"full", "ambiguous_pretrain", "joint"}
+            )
         self.training_phase = phase
 
     def build_query_operator(
@@ -227,10 +239,16 @@ class TransportObservabilityCQRINR(nn.Module):
 
         observable_modes = (a_query.float() @ observable.float().unsqueeze(-1)).squeeze(-1)
         ambiguous_modes = (a_query.float() @ ambiguous.float().unsqueeze(-1)).squeeze(-1)
-        residual_energy = residual_modes.square().sum(dim=-1) + 1e-8
-        observable_reduction = 1.0 - (
-            (residual_modes - observable_modes).square().sum(dim=-1) / residual_energy
+        # least_squares_stage1_scale places the relative-density correction in
+        # the same measurement units as the scaled Stage 1 forward prediction.
+        correction_modes = measurement_scale.unsqueeze(-1) * (
+            observable_modes + ambiguous_modes
         )
+        residual_energy = residual_modes.square().sum(dim=-1) + 1e-8
+        data_relative_after = (
+            (residual_modes - correction_modes).square().sum(dim=-1) / residual_energy
+        )
+        observable_reduction = 1.0 - data_relative_after
         ambiguous_leakage = ambiguous_modes.square().sum(dim=-1) / (
             ambiguous.float().square().sum(dim=-1) + 1e-8
         )
@@ -262,6 +280,9 @@ class TransportObservabilityCQRINR(nn.Module):
             "observable_residual_reduction": observable_reduction,
             "ambiguous_measurement_leakage": ambiguous_leakage,
             "measurement_scale": measurement_scale,
+            "measurement_residual_modes": residual_modes,
+            "data_relative_before": torch.ones_like(data_relative_after),
+            "data_relative_after": data_relative_after,
             "a_query": a_query,
         }
 

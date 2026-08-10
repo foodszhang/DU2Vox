@@ -38,3 +38,15 @@ def test_adjoint_evidence_matches_regularized_rank_space_solve():
         gram + (mu + projector.jitter) * torch.eye(gram.shape[0]), residual
     )
     torch.testing.assert_close(actual, expected)
+
+
+def test_effective_dof_is_finite_and_decreases_with_mu():
+    torch.manual_seed(19)
+    a_query = torch.randn(8, 31)
+    weak = CQRObservabilityProjector(mu_relative=1e-5, jitter=1e-8)
+    strong = CQRObservabilityProjector(mu_relative=3e-3, jitter=1e-8)
+    weak_dof = weak.effective_degrees_of_freedom(a_query)
+    strong_dof = strong.effective_degrees_of_freedom(a_query)
+    assert torch.isfinite(weak_dof)
+    assert torch.isfinite(strong_dof)
+    assert 0 < strong_dof < weak_dof <= a_query.shape[0]

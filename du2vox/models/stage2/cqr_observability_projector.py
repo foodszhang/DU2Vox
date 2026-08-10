@@ -30,12 +30,30 @@ class CQRObservabilityProjector(nn.Module):
             b = rhs.float()
             gram = a @ a.transpose(-1, -2)
             rank = gram.shape[-1]
-            trace = gram.diagonal(dim1=-2, dim2=-1).sum(dim=-1)
-            mu = self.mu_relative * trace / max(rank, 1)
+            mu = self.regularization_from_gram(gram)
             regularization = (mu + self.jitter).view(-1, 1, 1)
             eye = torch.eye(rank, device=a.device, dtype=a.dtype).expand_as(gram)
             solution = torch.linalg.solve(gram + regularization * eye, b.unsqueeze(-1)).squeeze(-1)
         return solution.squeeze(0) if squeezed else solution
+
+    def regularization_from_gram(self, gram: torch.Tensor) -> torch.Tensor:
+        """Return the relative Tikhonov scale used by the rank-space solve."""
+
+        rank = gram.shape[-1]
+        trace = gram.diagonal(dim1=-2, dim2=-1).sum(dim=-1)
+        return self.mu_relative * trace / max(rank, 1)
+
+    @torch.no_grad()
+    def effective_degrees_of_freedom(self, a_query: torch.Tensor) -> torch.Tensor:
+        """Compute ``sum sigma^2 / (sigma^2 + mu)`` for diagnostics."""
+
+        a, squeezed = self._batched(a_query)
+        with torch.amp.autocast(a.device.type, enabled=False):
+            gram = a.float() @ a.float().transpose(-1, -2)
+            eigenvalues = torch.linalg.eigvalsh(gram).clamp_min(0.0)
+            mu = self.regularization_from_gram(gram) + self.jitter
+            result = (eigenvalues / (eigenvalues + mu.unsqueeze(-1))).sum(dim=-1)
+        return result.squeeze(0) if squeezed else result
 
     def project_observable(self, z: torch.Tensor, a_query: torch.Tensor) -> torch.Tensor:
         a, squeezed = self._batched(a_query)

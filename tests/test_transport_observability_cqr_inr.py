@@ -46,6 +46,8 @@ def test_model_zero_init_is_p1_and_backward_finite():
     expected = (inputs["prior_lift"][..., :4] * inputs["prior_lift"][..., 4:8]).sum(-1)
     torch.testing.assert_close(output["rho0"], expected, atol=1e-6, rtol=1e-6)
     torch.testing.assert_close(output["d_hat"], expected, atol=1e-6, rtol=1e-6)
+    torch.testing.assert_close(output["data_relative_before"], torch.ones(1))
+    torch.testing.assert_close(output["data_relative_after"], torch.ones(1))
     assert torch.isfinite(output["transport_error"]).all()
     output["d_hat"].sum().backward()
     assert all(parameter.grad is None or torch.isfinite(parameter.grad).all() for parameter in model.parameters())
@@ -61,6 +63,16 @@ def test_phase_curriculum_can_freeze_lifter_and_select_branch_heads():
     assert not any(parameter.requires_grad for parameter in model.ambiguous_head.parameters())
 
     model.set_phase("full", freeze_lifter_after_phase_a=True)
+    assert not any(parameter.requires_grad for parameter in model.lifter.parameters())
+    assert all(parameter.requires_grad for parameter in model.observable_head.parameters())
+    assert all(parameter.requires_grad for parameter in model.ambiguous_head.parameters())
+
+    model.set_phase("ambiguous_pretrain", freeze_lifter_after_phase_a=True)
+    assert not any(parameter.requires_grad for parameter in model.lifter.parameters())
+    assert not any(parameter.requires_grad for parameter in model.observable_head.parameters())
+    assert all(parameter.requires_grad for parameter in model.ambiguous_head.parameters())
+
+    model.set_phase("joint", freeze_lifter_after_phase_a=True)
     assert not any(parameter.requires_grad for parameter in model.lifter.parameters())
     assert all(parameter.requires_grad for parameter in model.observable_head.parameters())
     assert all(parameter.requires_grad for parameter in model.ambiguous_head.parameters())

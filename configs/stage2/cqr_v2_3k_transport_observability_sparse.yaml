@@ -108,6 +108,11 @@ training:
   early_stopping_patience: 25
   grad_clip_norm: 1.0
   num_workers: 2
+  measurement_consistency_schedule:
+    - {epoch: 1, weight: 0.0}
+    - {epoch: 5, weight: 0.0}
+    - {epoch: 10, weight: 0.005}
+    - {epoch: 20, weight: 0.02}
   scheduler:
     type: CosineAnnealingLR
     T_max: 120
@@ -124,12 +129,14 @@ loss:
   lambda_transport: 1.0
   lambda_alpha_anchor: 0.01
   lambda_recon: 0.5
-  lambda_obs_target: 1.0
-  lambda_amb_target: 1.0
-  lambda_data: 0.02
+  lambda_obs_target_relative: 1.0
+  lambda_obs_target_cosine: 0.1
+  lambda_amb_target_relative: 1.0
+  lambda_amb_target_cosine: 0.1
+  lambda_correction_physics: 0.1
   lambda_correction_l2: 0.0
-  lambda_observable_residual: 0.02
-  lambda_ambiguous_leakage: 0.02
+  lambda_ambiguous_leakage: 0.0
+  nonworse_loss: log_ratio
 
 logging:
   print_every: 1

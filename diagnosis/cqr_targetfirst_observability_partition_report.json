@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "branch": "feat/cqr-transport-observability",
+  "implementation_base_commit": "9f743ab182cb42a61a6b0d35b2917082e2c74497",
+  "dataset": "fmt_simgen_v2_3k_20k",
+  "mu_sweep_rank64_val25": {
+    "1e-5": {"effective_dof": 63.9922, "observable_gt_energy": 0.0126173},
+    "3e-5": {"effective_dof": 63.9776, "observable_gt_energy": 0.0126074},
+    "1e-4": {"effective_dof": 63.9266, "observable_gt_energy": 0.0125732},
+    "3e-4": {"effective_dof": 63.7836, "observable_gt_energy": 0.0124789},
+    "1e-3": {"effective_dof": 63.3079, "observable_gt_energy": 0.0121821},
+    "3e-3": {"effective_dof": 62.1066, "observable_gt_energy": 0.0115207}
+  },
+  "full_measurement_val5": {
+    "measurement_dimension": 7413,
+    "query_count": 2048,
+    "1e-5": {"effective_dof": 502.6504, "observable_gt_energy": 0.1059387},
+    "1e-3": {"effective_dof": 376.1383, "observable_gt_energy": 0.0636883},
+    "3e-3": {"effective_dof": 343.9236, "observable_gt_energy": 0.0567038}
+  },
+  "pilot": {
+    "train_samples": 100,
+    "val_samples": 25,
+    "test_samples": 25,
+    "observable_pretrain": {
+      "best_relative_l1": 0.9970166,
+      "final_cosine": 0.2772403,
+      "conclusion": "direction learned weakly; target amplitude was not fitted across 100 resampled samples"
+    },
+    "ambiguous_pretrain": {
+      "best_epoch": 7,
+      "sampled_val_delta_dice": 0.0165437,
+      "ambiguous_target_relative": 0.9086057,
+      "ambiguous_target_cosine": 0.2540021,
+      "ambiguous_energy_fraction": 0.9992033
+    },
+    "joint_target_first": {
+      "best_epoch": 9,
+      "checkpoint": "checkpoints/stage2/cqr_targetfirst_joint100_e20/best.pth",
+      "sampled_val_delta_dice": 0.0196944,
+      "unified_val": {"stage2_dice": 0.5497403, "fem_dice": 0.5334394, "delta": 0.0163008},
+      "unified_test": {"stage2_dice": 0.5823825, "fem_dice": 0.5785933, "delta": 0.0037891},
+      "observable_energy_fraction": 0.0334163,
+      "ambiguous_energy_fraction": 0.9578757
+    },
+    "robust_nonworse_latest": {
+      "checkpoint": "checkpoints/stage2/cqr_targetfirst_full_robust100_e20/latest.pth",
+      "unified_val": {"stage2_dice": 0.5503879, "fem_dice": 0.5334394, "delta": 0.0169485},
+      "unified_test": {"stage2_dice": 0.5800160, "fem_dice": 0.5785933, "delta": 0.0014226},
+      "data_relative_after_train_mean": 41.2190,
+      "squared_nonworse_train_mean": 14622.3568,
+      "log_nonworse_train_mean": 6.3578,
+      "conclusion": "robust penalty preserves most Dice but does not improve measurement agreement"
+    }
+  },
+  "recommend_full_2400_training": false,
+  "reason": "Val and test both improve for the joint checkpoint, but the test gain is small and neither correction-physics nor measurement non-worsening is yet controlled."
+}
