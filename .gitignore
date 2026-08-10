@@ -19,4 +19,7 @@ logs/
 results/
 runs/
 precomputed/
+physics_cache/
+diagnosis/cqr_adjoint_evidence/
+diagnosis/cqr_gt_decomposition/
 .worktrees/
