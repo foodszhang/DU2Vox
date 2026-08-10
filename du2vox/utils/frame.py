@@ -1,6 +1,7 @@
 """DU2Vox side frame utilities — read manifest produced by FMT-SimGen."""
 import json
 import os
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -74,12 +75,20 @@ def get_frame_constants(shared_dir: Optional[str | Path] = None) -> dict:
     # since that scenario leaves a fresh mtime).
     import time
     age_days = (time.time() - current_mtime) / 86400.0
-    if age_days > STALE_THRESHOLD_DAYS:
+    allow_stale = os.environ.get("DU2VOX_ALLOW_STALE_FRAME_MANIFEST", "0") == "1"
+    if age_days > STALE_THRESHOLD_DAYS and not allow_stale:
         raise RuntimeError(
             f"frame_manifest.json at {manifest_path} is {age_days:.1f} days old "
             f"(threshold={STALE_THRESHOLD_DAYS} days). "
             f"FMT-SimGen frame_contract may have changed — "
             f"re-run build_shared_assets() before using DU2Vox."
+        )
+    if age_days > STALE_THRESHOLD_DAYS and allow_stale:
+        warnings.warn(
+            f"Using explicitly allowed stale frame manifest at {manifest_path} "
+            f"(age={age_days:.1f} days); verify its coordinate contract before production",
+            RuntimeWarning,
+            stacklevel=2,
         )
 
     # Prefer frame_contract section (v2 manifest); fall back to legacy layout

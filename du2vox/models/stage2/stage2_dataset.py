@@ -220,6 +220,10 @@ class Stage2DatasetPrecomputed(Dataset):
         resample_queries_each_epoch: bool = False,
         query_epoch_seed_stride: int = 1000003,
         base_seed: int = 0,
+        transport_sidecar_dir: str | None = None,
+        physics_quadrature_dir: str | None = None,
+        bridge_dir: str | None = None,
+        samples_dir: str | None = None,
     ):
         self.precomputed_dir = Path(precomputed_dir)
         self.sample_ids = sample_ids
@@ -230,10 +234,80 @@ class Stage2DatasetPrecomputed(Dataset):
         self.query_epoch_seed_stride = int(query_epoch_seed_stride)
         self.base_seed = int(base_seed)
         self.current_epoch = 0
+        self.transport_sidecar_dir = Path(transport_sidecar_dir) if transport_sidecar_dir else None
+        self.physics_quadrature_dir = Path(physics_quadrature_dir) if physics_quadrature_dir else None
+        self.bridge_dir = Path(bridge_dir) if bridge_dir else None
+        self.transport_samples_dir = Path(samples_dir) if samples_dir else None
 
         # LRU cache: sid -> loaded npz arrays
         self._npz_cache: dict[str, dict] = {}
         self._cache_order: list[str] = []
+        self._transport_cache: dict[str, dict] = {}
+
+    def _attach_transport_fields(
+        self,
+        item: dict,
+        data: dict[str, np.ndarray],
+        chosen: np.ndarray,
+        sid: str,
+    ) -> None:
+        item["pool_index"] = torch.from_numpy(chosen.copy().astype(np.int64))
+        tet_key = "tet_ids" if "tet_ids" in data else "tet_id" if "tet_id" in data else None
+        if tet_key is not None:
+            item["tet_ids"] = torch.from_numpy(data[tet_key][chosen].copy().astype(np.int64))
+        if "query_src_tag" in data:
+            item["query_src_tag"] = torch.from_numpy(
+                data["query_src_tag"][chosen].copy().astype(np.int64)
+            )
+        if "role" in data:
+            item["role"] = torch.from_numpy(data["role"][chosen].copy().astype(np.int64))
+
+        if self.transport_sidecar_dir is not None:
+            if sid not in self._transport_cache:
+                path = self.transport_sidecar_dir / f"{sid}.npz"
+                if path.exists():
+                    with np.load(path, allow_pickle=False) as loaded:
+                        self._transport_cache[sid] = {key: loaded[key] for key in loaded.files}
+            sidecar = self._transport_cache.get(sid)
+            if sidecar is not None:
+                item["candidate_cell_weight"] = torch.from_numpy(
+                    sidecar["candidate_cell_weight"][chosen].copy().astype(np.float32)
+                )
+                item["candidate_valid_physics_mask"] = torch.from_numpy(
+                    sidecar["candidate_valid_physics_mask"][chosen].copy().astype(np.bool_)
+                )
+                item["n_valid_candidate_pool"] = torch.as_tensor(
+                    int(sidecar["n_valid_candidate_pool"]), dtype=torch.long
+                )
+
+        if self.bridge_dir is not None:
+            coarse_path = self.bridge_dir / sid / "coarse_d.npy"
+            if coarse_path.exists():
+                item["coarse_d"] = torch.from_numpy(
+                    np.load(coarse_path).reshape(-1).astype(np.float32)
+                )
+        if self.transport_samples_dir is not None:
+            measurement_path = self.transport_samples_dir / sid / "measurement_b.npy"
+            if measurement_path.exists():
+                item["measurement_b"] = torch.from_numpy(
+                    np.load(measurement_path).reshape(-1).astype(np.float32)
+                )
+
+        if self.physics_quadrature_dir is not None:
+            path = self.physics_quadrature_dir / f"{sid}.npz"
+            if path.exists():
+                with np.load(path, allow_pickle=False) as quad:
+                    item["physics_prior_lift"] = torch.from_numpy(
+                        quad["prior_lift"].astype(np.float32)
+                    )
+                    item["physics_tet_ids"] = torch.from_numpy(quad["tet_id"].astype(np.int64))
+                    item["physics_correction_band"] = torch.from_numpy(
+                        quad["correction_band"].astype(np.int64)
+                    )
+                    item["physics_role"] = torch.from_numpy(quad["role"].astype(np.int64))
+                    item["physics_quadrature_weight"] = torch.from_numpy(
+                        quad["quadrature_weight"].astype(np.float32)
+                    )
 
     def set_epoch(self, epoch: int) -> None:
         self.current_epoch = int(epoch)
@@ -342,6 +416,7 @@ class Stage2DatasetPrecomputed(Dataset):
             item["residual_indicator"] = torch.from_numpy(
                 data["residual_indicator"][chosen].copy().astype(np.float32)
             )
+        self._attach_transport_fields(item, data, chosen, sid)
         return item
 
 
@@ -378,6 +453,9 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
         projection_norm: str = "none",
         projection_eps: float = 1.0e-8,
         projection_transform: str = "none",
+        transport_sidecar_dir: str | None = None,
+        physics_quadrature_dir: str | None = None,
+        bridge_dir: str | None = None,
     ):
         super().__init__(
             precomputed_dir=precomputed_dir,
@@ -388,6 +466,10 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
             resample_queries_each_epoch=resample_queries_each_epoch,
             query_epoch_seed_stride=query_epoch_seed_stride,
             base_seed=base_seed,
+            transport_sidecar_dir=transport_sidecar_dir,
+            physics_quadrature_dir=physics_quadrature_dir,
+            bridge_dir=bridge_dir,
+            samples_dir=samples_dir,
         )
         self.samples_dir = Path(samples_dir)
         self.projection_file = projection_file
@@ -505,4 +587,5 @@ class Stage2DatasetPrecomputedMultiview(Stage2DatasetPrecomputed):
             item["residual_indicator"] = torch.from_numpy(
                 data["residual_indicator"][chosen].copy().astype(np.float32)
             )
+        self._attach_transport_fields(item, data, chosen, sid)
         return item

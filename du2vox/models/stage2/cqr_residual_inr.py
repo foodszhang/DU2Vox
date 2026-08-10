@@ -11,6 +11,7 @@ Any extra prior dimensions are treated as coverage-aware CQR metadata.
 
 from __future__ import annotations
 
+from collections import OrderedDict
 import warnings
 
 import torch
@@ -109,12 +110,12 @@ class CQRResidualINR(nn.Module):
                     DeprecationWarning,
                     stacklevel=2,
                 )
-                residual_gate_logit_bias = float(residual_gate_init_bias)
+                residual_gate_logit_bias = -float(residual_gate_init_bias)
             else:
                 residual_gate_logit_bias = -2.0
         residual_gate_cap = str(residual_gate_cap or "none").lower()
-        if residual_gate_cap == "rgl" and prior_dim < 14:
-            raise ValueError("residual_gate_cap='rgl' requires prior_dim >= 14 for residual_indicator at index 13")
+        if residual_gate_cap == "rgl" and prior_dim != 15:
+            raise ValueError("residual_gate_cap='rgl' requires prior_dim == 15 with prior_lift layout")
 
         self.pe = PositionalEncoding(n_freqs=n_freqs, include_input=True)
         self.prior_dim = prior_dim
@@ -174,6 +175,32 @@ class CQRResidualINR(nn.Module):
         if self.support_head:
             self.support_out = nn.Linear(hidden_dim, 1)
         self.act = nn.ReLU(inplace=True)
+
+    def load_state_dict(self, state_dict, strict: bool = True, assign: bool = False):
+        """Load old four-band checkpoints into the proposal-aware five-band model.
+
+        Only the number of band rows may differ.  Shared rows are copied and any
+        newly introduced role (currently proposal) starts from a neutral zero
+        embedding.  All other parameter contracts remain strict.
+        """
+
+        state_dict = OrderedDict(state_dict)
+        key = "band_embedding.weight"
+        if self.use_band_embedding and key in state_dict:
+            saved = state_dict[key]
+            current = self.band_embedding.weight
+            if saved.shape != current.shape and saved.ndim == 2 and saved.shape[1] == current.shape[1]:
+                migrated = torch.zeros_like(current, device=saved.device)
+                common = min(saved.shape[0], current.shape[0])
+                migrated[:common] = saved[:common]
+                state_dict[key] = migrated
+                warnings.warn(
+                    f"Migrated CQR band embedding from {saved.shape[0]} to {current.shape[0]} roles; "
+                    "new role rows were zero-initialized",
+                    UserWarning,
+                    stacklevel=2,
+                )
+        return super().load_state_dict(state_dict, strict=strict, assign=assign)
 
     def forward(
         self,

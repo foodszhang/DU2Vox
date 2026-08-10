@@ -440,7 +440,7 @@ class ViewEncoderModule(nn.Module):
         fusion_method: str = "attn",
         encoder_out_channels: int = 32,
         encoder_base_channels: int = 32,
-        projection_transform: str = "log1p",
+        projection_transform: str = "none",
         multiscale_cfg: dict | None = None,
     ):
         super().__init__()

@@ -33,6 +33,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from du2vox.models.stage2.residual_inr import ResidualINR
 from du2vox.models.stage2.cqr_residual_inr import CQRResidualINR
+from du2vox.models.stage2.transport_observability_cqr_inr import (
+    TransportObservabilityCQRINR,
+)
+from du2vox.physics.compressed_green_operator import CompressedGreenOperator
 from du2vox.models.stage2.stage2_dataset import (
     Stage2Dataset,
     Stage2DatasetPrecomputed,
@@ -48,8 +52,20 @@ def get_residual_gate_logit_bias(model_cfg: dict, warn_prefix: str = "[Stage2]")
             f"{warn_prefix}[WARN] residual_gate_init_bias is deprecated; "
             "use residual_gate_logit_bias"
         )
-        return float(model_cfg.get("residual_gate_init_bias", -2.0))
+        return -float(model_cfg.get("residual_gate_init_bias", 2.0))
     return -2.0
+
+
+def validate_residual_gate_contract(model_cfg: dict) -> None:
+    if str(model_cfg.get("residual_gate_cap", "none")).lower() != "rgl":
+        return
+    prior_source = model_cfg.get("prior_source", "prior_ext")
+    prior_dim = int(model_cfg.get("prior_dim", 8))
+    if prior_source != "prior_lift" or prior_dim != 15:
+        raise ValueError(
+            "residual_gate_cap='rgl' requires model.prior_source='prior_lift' "
+            "and model.prior_dim=15"
+        )
 
 
 def build_stage2_model(ModelCls, cfg: dict, prior_dim: int, view_feat_dim: int = 0) -> nn.Module:
@@ -63,7 +79,36 @@ def build_stage2_model(ModelCls, cfg: dict, prior_dim: int, view_feat_dim: int =
         skip_connection=cfg["model"]["skip_connection"],
         view_feat_dim=view_feat_dim,
     )
+    if ModelCls is TransportObservabilityCQRINR:
+        transport_cfg = cfg.get("transport", {}) or {}
+        operator = CompressedGreenOperator.load(transport_cfg["operator_cache"])
+        with np.load(Path(cfg["data"]["shared_dir"]) / "mesh.npz", allow_pickle=False) as mesh:
+            elements = mesh["elements"].copy()
+        observability_cfg = cfg.get("observability", {}) or {}
+        model = ModelCls(
+            green_node_modes=operator.green_node_modes,
+            elements=elements,
+            measurement_basis=operator.measurement_basis,
+            projected_forward_modes=operator.projected_forward_modes,
+            n_freqs=cfg["model"]["n_freqs"],
+            hidden_dim=cfg["model"]["hidden_dim"],
+            n_hidden_layers=cfg["model"]["n_hidden_layers"],
+            prior_dim=prior_dim,
+            view_feat_dim=view_feat_dim,
+            use_band_embedding=cfg["model"].get("use_band_embedding", True),
+            band_embed_dim=cfg["model"].get("band_embed_dim", 8),
+            num_bands=cfg["model"].get("num_bands", default_num_bands),
+            max_logit_delta=transport_cfg.get("max_logit_delta", 2.0),
+            mu_relative=observability_cfg.get("mu_relative", 1e-3),
+            jitter=observability_cfg.get("jitter", 1e-6),
+            measurement_normalization=transport_cfg.get(
+                "measurement_normalization", "least_squares_stage1_scale"
+            ),
+        )
+        model.set_phase(cfg.get("training", {}).get("phase", "lifter"))
+        return model
     if ModelCls is CQRResidualINR:
+        validate_residual_gate_contract(cfg["model"])
         kwargs["residual_scale"] = cfg["model"].get("residual_scale", 1.0)
         kwargs["support_head"] = cfg["model"].get("support_head", False)
         kwargs["use_prolongation_adapter"] = cfg["model"].get("use_prolongation_adapter", False)
@@ -135,11 +180,17 @@ def build_dataloader(
     precomputed_dir: str | None = None,
     bridge_dir: str | None = None,
     deterministic: bool = False,
+    split: str | None = None,
 ) -> DataLoader:
     """Build a DataLoader. Selects dataset type based on config."""
     batch_size = cfg["training"]["batch_size"]
     num_workers = cfg["training"].get("num_workers", 4)
     n_query = cfg["data"]["n_query_points"]
+    transport_cfg = cfg.get("transport", {}) or {}
+    sidecar_root = transport_cfg.get("sidecar_root")
+    quadrature_root = transport_cfg.get("quadrature_root")
+    sidecar_dir = str(Path(sidecar_root) / split) if sidecar_root and split else None
+    quadrature_dir = str(Path(quadrature_root) / split) if quadrature_root and split else None
 
     if precomputed_dir and Path(precomputed_dir).exists():
         resample_train = bool(cfg["data"].get("resample_queries_each_epoch", False)) and not deterministic
@@ -160,6 +211,9 @@ def build_dataloader(
                 projection_norm=cfg["data"].get("projection_norm", "none"),
                 projection_eps=cfg["data"].get("projection_eps", 1.0e-8),
                 projection_transform=cfg["data"].get("projection_transform", "none"),
+                transport_sidecar_dir=sidecar_dir,
+                physics_quadrature_dir=quadrature_dir,
+                bridge_dir=bridge_dir,
             )
         else:
             dataset = Stage2DatasetPrecomputed(
@@ -170,6 +224,10 @@ def build_dataloader(
                 resample_queries_each_epoch=resample_train,
                 query_epoch_seed_stride=cfg["data"].get("query_epoch_seed_stride", 1000003),
                 base_seed=cfg["data"].get("query_base_seed", 0),
+                transport_sidecar_dir=sidecar_dir,
+                physics_quadrature_dir=quadrature_dir,
+                bridge_dir=bridge_dir,
+                samples_dir=cfg["data"].get("samples_dir"),
             )
         return DataLoader(
             dataset,
@@ -196,6 +254,42 @@ def build_dataloader(
             num_workers=0,  # FEM bridge is not fork-safe
             pin_memory=True,
         )
+
+
+def transport_forward_kwargs(batch: dict) -> dict:
+    names = (
+        "tet_ids",
+        "role",
+        "query_src_tag",
+        "candidate_cell_weight",
+        "n_valid_candidate_pool",
+        "measurement_b",
+        "coarse_d",
+    )
+    return {name: batch[name].cuda() for name in names if name in batch}
+
+
+def forward_stage2_model(
+    model: nn.Module,
+    coords: torch.Tensor,
+    prior: torch.Tensor,
+    correction_band: torch.Tensor | None,
+    batch: dict,
+    view_feat: torch.Tensor | None = None,
+):
+    if isinstance(model, TransportObservabilityCQRINR):
+        if correction_band is None:
+            raise ValueError("transport_observability_cqr_inr requires correction_band")
+        return model(
+            coords,
+            prior,
+            view_feat,
+            correction_band=correction_band,
+            **transport_forward_kwargs(batch),
+        )
+    if view_feat is not None:
+        return model(coords, prior, view_feat, correction_band=correction_band)
+    return model(coords, prior, correction_band=correction_band)
 
 
 def train_step(
@@ -240,6 +334,10 @@ def train_step(
         "focal_tv": torch.tensor(0.0, device=coords.device),
         "anchor": torch.tensor(0.0, device=coords.device),
         "gate_l1": torch.tensor(0.0, device=coords.device),
+        "transport": torch.tensor(0.0, device=coords.device),
+        "alpha_anchor": torch.tensor(0.0, device=coords.device),
+        "observable_residual": torch.tensor(0.0, device=coords.device),
+        "ambiguous_leakage": torch.tensor(0.0, device=coords.device),
     }
 
     with torch.amp.autocast("cuda", enabled=use_amp, dtype=amp_dtype):
@@ -262,9 +360,13 @@ def train_step(
             if "mcx_valid" in batch:
                 mcx_valid = batch["mcx_valid"].cuda()  # [B, N]
                 view_feat = view_feat * mcx_valid.unsqueeze(-1).float()
-            output = unpack_model_output(model(coords, prior, view_feat, correction_band=correction_band))
+            output = unpack_model_output(
+                forward_stage2_model(model, coords, prior, correction_band, batch, view_feat)
+            )
         else:
-            output = unpack_model_output(model(coords, prior, correction_band=correction_band))
+            output = unpack_model_output(
+                forward_stage2_model(model, coords, prior, correction_band, batch)
+            )
         d_hat = output["d_hat"]
         fem_interp = output["fem_interp"]
         residual = output["residual"]
@@ -508,6 +610,57 @@ def train_step(
                         "sparse": sparse_loss.detach(),
                         "focal_tv": torch.tensor(0.0),
                     }
+            if isinstance(model, TransportObservabilityCQRINR):
+                cfg_loss = loss_cfg or {}
+                alpha_target = prior[..., 4:8]
+                alpha_each = torch.abs(output["alpha"] - alpha_target).mean(dim=-1)
+                full_weight = torch.ones_like(alpha_each)
+                if "query_weight" in batch:
+                    full_weight = full_weight * batch["query_weight"].cuda()
+                if "residual_indicator" in batch:
+                    full_weight = full_weight * (
+                        1.0
+                        + float(cfg_loss.get("residual_indicator_weight", 0.5))
+                        * batch["residual_indicator"].cuda()
+                    )
+                full_weight = full_weight / (full_weight.mean().detach() + 1e-6)
+                alpha_anchor = (alpha_each * full_weight).mean()
+                if "physics_prior_lift" not in batch:
+                    raise ValueError(
+                        "transport model requires fixed physics quadrature fields from the dataset"
+                    )
+                transport_loss = model.fixed_quadrature_transport_loss(
+                    batch["physics_prior_lift"].cuda(),
+                    batch["physics_tet_ids"].cuda(),
+                    batch["physics_correction_band"].cuda(),
+                    batch["physics_quadrature_weight"].cuda(),
+                    role=batch.get("physics_role", batch["physics_correction_band"]).cuda(),
+                )
+                observable_residual = (1.0 - output["observable_residual_reduction"]).mean()
+                ambiguous_leakage = output["ambiguous_measurement_leakage"].mean()
+                correction_l2 = (
+                    (output["observable_correction"].square() + output["ambiguous_correction"].square())
+                    * full_weight
+                ).mean()
+                phase = getattr(model, "training_phase", "lifter")
+                loss = (
+                    loss
+                    + float(cfg_loss.get("lambda_transport", 1.0)) * transport_loss
+                    + float(cfg_loss.get("lambda_alpha_anchor", 0.01)) * alpha_anchor
+                )
+                if phase in {"observable", "full"}:
+                    loss = (
+                        loss
+                        + float(cfg_loss.get("lambda_data", 0.1)) * correction_l2
+                        + float(cfg_loss.get("lambda_observable_residual", 0.1))
+                        * observable_residual
+                    )
+                if phase == "full":
+                    loss = loss + float(cfg_loss.get("lambda_ambiguous_leakage", 0.1)) * ambiguous_leakage
+                loss_components["transport"] = transport_loss.detach()
+                loss_components["alpha_anchor"] = alpha_anchor.detach()
+                loss_components["observable_residual"] = observable_residual.detach()
+                loss_components["ambiguous_leakage"] = ambiguous_leakage.detach()
         else:
             loss = torch.tensor(0.0, device=coords.device)
 
@@ -558,6 +711,22 @@ def train_step(
         "gate_l1": loss_components.get("gate_l1", torch.tensor(0.0)).item()
         if valid_mask.sum() > 0
         else 0.0,
+        "transport": loss_components.get("transport", torch.tensor(0.0)).item()
+        if valid_mask.sum() > 0
+        else 0.0,
+        "alpha_anchor": loss_components.get("alpha_anchor", torch.tensor(0.0)).item()
+        if valid_mask.sum() > 0
+        else 0.0,
+        "observable_residual": loss_components.get(
+            "observable_residual", torch.tensor(0.0)
+        ).item()
+        if valid_mask.sum() > 0
+        else 0.0,
+        "ambiguous_leakage": loss_components.get(
+            "ambiguous_leakage", torch.tensor(0.0)
+        ).item()
+        if valid_mask.sum() > 0
+        else 0.0,
     }
 
 
@@ -606,9 +775,13 @@ def validate(
                 if "mcx_valid" in batch:
                     mcx_valid = batch["mcx_valid"].cuda()
                     view_feat = view_feat * mcx_valid.unsqueeze(-1).float()
-                output = unpack_model_output(model(coords, prior, view_feat, correction_band=correction_band))
+                output = unpack_model_output(
+                    forward_stage2_model(model, coords, prior, correction_band, batch, view_feat)
+                )
             else:
-                output = unpack_model_output(model(coords, prior, correction_band=correction_band))
+                output = unpack_model_output(
+                    forward_stage2_model(model, coords, prior, correction_band, batch)
+                )
             if cfg is not None:
                 d_hat = select_stage2_prediction(output, cfg)
             else:
@@ -687,13 +860,20 @@ def save_stage2_checkpoint(
     extra: dict | None = None,
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    extra = dict(extra or {})
+    if isinstance(model, TransportObservabilityCQRINR):
+        extra["transport_metadata"] = {
+            "model_type": "transport_observability_cqr_inr",
+            "phase": getattr(model, "training_phase", None),
+            "measurement_normalization": model.measurement_normalization,
+            "rank": int(model.lifter.green_node_modes.shape[0]),
+        }
     if view_encoder is not None:
         payload = {
             "residual_inr": model.state_dict(),
             "view_encoder": view_encoder.state_dict(),
         }
-        if extra:
-            payload.update(extra)
+        payload.update(extra)
         torch.save(payload, path)
     else:
         if extra:
@@ -778,12 +958,18 @@ def main():
     parser.add_argument("--experiment_name", type=str, default=None)
     parser.add_argument("--checkpoint_dir", type=str, default="checkpoints/stage2")
     parser.add_argument("--resume_checkpoint", type=str, default=None)
+    parser.add_argument("--phase", choices=("lifter", "observable", "full"), default=None)
     args = parser.parse_args()
 
     with open(args.config) as f:
         cfg = yaml.safe_load(f)
+    if args.phase is not None:
+        cfg.setdefault("training", {})["phase"] = args.phase
     if cfg.get("data", {}).get("shared_dir"):
         os.environ["DU2VOX_SHARED_DIR"] = str(cfg["data"]["shared_dir"])
+    if cfg.get("data", {}).get("allow_stale_frame_manifest", False):
+        os.environ["DU2VOX_ALLOW_STALE_FRAME_MANIFEST"] = "1"
+        print("[Stage2][WARN] stale frame manifest explicitly allowed by config")
 
     exp_name = args.experiment_name or cfg["experiment"]["name"]
     max_epochs = args.max_epochs or cfg["training"]["max_epochs"]
@@ -808,8 +994,12 @@ def main():
     prior_source = cfg["model"].get("prior_source", "prior_ext")
     expected_prior_dim = 8 if prior_source == "prior_8d" else prior_dim
     model_type = cfg["model"].get("model_type", "")
-    use_cqr_model = (model_type == "cqr_residual_inr") or (prior_dim > 8)
-    ModelCls = CQRResidualINR if use_cqr_model else ResidualINR
+    use_transport_model = model_type == "transport_observability_cqr_inr"
+    use_cqr_model = use_transport_model or (model_type == "cqr_residual_inr") or (prior_dim > 8)
+    if use_transport_model:
+        ModelCls = TransportObservabilityCQRINR
+    else:
+        ModelCls = CQRResidualINR if use_cqr_model else ResidualINR
 
     if precomputed_train:
         print(f"[Stage2] Mode: precomputed (train={precomputed_train}, val={precomputed_val})")
@@ -883,7 +1073,7 @@ def main():
             fusion_method=cfg["model"].get("fusion_method", "attn"),
             encoder_out_channels=cfg["model"].get("encoder_out_channels", 32),
             encoder_base_channels=cfg["model"].get("encoder_base_channels", 32),
-            projection_transform=cfg["model"].get("view_projection_transform", "log1p"),
+            projection_transform=cfg["model"].get("view_projection_transform", "none"),
             multiscale_cfg=cfg["model"].get("view_multiscale", {}),
         ).cuda()
         freeze_view_encoder = bool(cfg["model"].get("freeze_view_encoder", False))
@@ -958,6 +1148,7 @@ def main():
         shuffle=True,
         precomputed_dir=precomputed_train,
         bridge_dir=cfg["data"].get("train_bridge_dir", cfg["data"].get("bridge_dir", "")),
+        split="train",
     )
     val_loader = build_dataloader(
         cfg,
@@ -966,6 +1157,7 @@ def main():
         precomputed_dir=precomputed_val,
         bridge_dir=cfg["data"].get("val_bridge_dir", cfg["data"].get("bridge_dir", "")),
         deterministic=True,
+        split="val",
     )
 
     # Training loop
@@ -1025,6 +1217,10 @@ def main():
         epoch_focal_tv = 0.0
         epoch_anchor = 0.0
         epoch_gate_l1 = 0.0
+        epoch_transport = 0.0
+        epoch_alpha_anchor = 0.0
+        epoch_observable_residual = 0.0
+        epoch_ambiguous_leakage = 0.0
         epoch_valid = 0
         n_steps = 0
         optimizer.zero_grad(set_to_none=True)
@@ -1067,6 +1263,10 @@ def main():
             epoch_focal_tv += metrics["focal_tv"]
             epoch_anchor += metrics["anchor"]
             epoch_gate_l1 += metrics["gate_l1"]
+            epoch_transport += metrics["transport"]
+            epoch_alpha_anchor += metrics["alpha_anchor"]
+            epoch_observable_residual += metrics["observable_residual"]
+            epoch_ambiguous_leakage += metrics["ambiguous_leakage"]
             epoch_valid += metrics["valid_count"]
             n_steps += 1
 
@@ -1087,6 +1287,10 @@ def main():
         avg_focal_tv = epoch_focal_tv / max(n_steps, 1)
         avg_anchor = epoch_anchor / max(n_steps, 1)
         avg_gate_l1 = epoch_gate_l1 / max(n_steps, 1)
+        avg_transport = epoch_transport / max(n_steps, 1)
+        avg_alpha_anchor = epoch_alpha_anchor / max(n_steps, 1)
+        avg_observable_residual = epoch_observable_residual / max(n_steps, 1)
+        avg_ambiguous_leakage = epoch_ambiguous_leakage / max(n_steps, 1)
 
         entry = {
             "epoch": epoch,
@@ -1103,6 +1307,10 @@ def main():
             "focal_tv": avg_focal_tv,
             "anchor": avg_anchor,
             "gate_l1": avg_gate_l1,
+            "transport_loss": avg_transport,
+            "alpha_anchor": avg_alpha_anchor,
+            "observable_residual_loss": avg_observable_residual,
+            "ambiguous_leakage": avg_ambiguous_leakage,
             "valid_count": epoch_valid,
             "elapsed_s": elapsed,
             "lr": optimizer.param_groups[0]["lr"],
@@ -1119,6 +1327,11 @@ def main():
             f"         bce={avg_bce:.4f}  sp={avg_sparse:.4f}  ft={avg_focal_tv:.4f}  "
             f"anchor={avg_anchor:.4f}  gate={avg_gate_l1:.4f}"
         )
+        if isinstance(model, TransportObservabilityCQRINR):
+            print(
+                f"         transport={avg_transport:.3e}  alpha={avg_alpha_anchor:.3e}  "
+                f"obs_res={avg_observable_residual:.3e}  amb_leak={avg_ambiguous_leakage:.3e}"
+            )
 
         grouped_metrics = None
         grouped_improved = False
@@ -1238,6 +1451,11 @@ def main():
     print(f"Checkpoints: {Path(args.checkpoint_dir) / exp_name / 'best.pth'}")
     if grouped_interval > 0:
         print(f"Grouped checkpoint: {Path(args.checkpoint_dir) / exp_name / 'best_grouped.pth'}")
+    if torch.cuda.is_available():
+        print(
+            f"[Stage2] GPU peak allocated={torch.cuda.max_memory_allocated() / 2**20:.1f} MiB, "
+            f"peak reserved={torch.cuda.max_memory_reserved() / 2**20:.1f} MiB"
+        )
 
 
 if __name__ == "__main__":

@@ -72,3 +72,11 @@ mesh.nodes / gt_nodes 的隐式坐标 / gt_voxels offset / tumor_params.foci[i].
 4. `|foci.center - gt_voxels 非零重心| < 0.5mm`（以 offset 还原后）
 5. MCX `.jnii` 非零 bbox 包含所有 foci.center（球半径内）
 6. `proj.npz` 非零像素占比 ∈ [10%, 60%]
+
+## 6. Manifest freshness override
+
+`get_frame_constants()` 默认拒绝超过 30 天的 manifest。只有在已经审计 manifest
+内容、mesh bounds、measurement/shared 资产来自同一版本时，才可显式设置
+`DU2VOX_ALLOW_STALE_FRAME_MANIFEST=1`（训练配置对应
+`data.allow_stale_frame_manifest: true`）。该开关只忽略 mtime 门禁，不改变任何坐标值；
+正式数据重建后应移除此开关。

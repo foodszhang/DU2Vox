@@ -85,6 +85,8 @@ def main() -> None:
         cfg = yaml.safe_load(f)
     if cfg.get("data", {}).get("shared_dir"):
         os.environ["DU2VOX_SHARED_DIR"] = str(cfg["data"]["shared_dir"])
+    if cfg.get("data", {}).get("allow_stale_frame_manifest", False):
+        os.environ["DU2VOX_ALLOW_STALE_FRAME_MANIFEST"] = "1"
 
     split_file = cfg["data"][f"{args.split}_split"]
     sample_ids = load_split(split_file)

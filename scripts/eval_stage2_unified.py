@@ -17,7 +17,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from du2vox.models.stage2.cqr_residual_inr import CQRResidualINR
 from du2vox.models.stage2.residual_inr import ResidualINR
+from du2vox.models.stage2.transport_observability_cqr_inr import (
+    TransportObservabilityCQRINR,
+)
 from du2vox.models.stage2.stage2_dataset import load_projection_stack
+from du2vox.physics.compressed_green_operator import CompressedGreenOperator
 from du2vox.utils.frame import FrameManifest
 
 
@@ -60,7 +64,7 @@ ROLE_SUBSETS = ["all", "core", "core_halo", "halo", "proposal", "bg", "non_bg"]
 BASE_FIELDNAMES = ["sample_id", "role_subset", "num_foci", "n_valid", *METRIC_KEYS]
 ROLE_FIELDNAMES = [
     f"{name}_{suffix}"
-    for suffix in ["count", "gt_pos_05", "s2_pos_05", "fem_pos_05", "dice_05"]
+    for suffix in ["count", "gt_pos_05", "s2_pos_05", "fem_pos_05", "dice_05", "gate_mean"]
     for name in ["bg", "core", "halo", "sentinel", "proposal"]
 ]
 
@@ -73,8 +77,20 @@ def get_residual_gate_logit_bias(model_cfg: dict[str, Any], warn_prefix: str = "
             f"{warn_prefix}[WARN] residual_gate_init_bias is deprecated; "
             "use residual_gate_logit_bias"
         )
-        return float(model_cfg.get("residual_gate_init_bias", -2.0))
+        return -float(model_cfg.get("residual_gate_init_bias", 2.0))
     return -2.0
+
+
+def validate_residual_gate_contract(model_cfg: dict[str, Any]) -> None:
+    if str(model_cfg.get("residual_gate_cap", "none")).lower() != "rgl":
+        return
+    prior_source = model_cfg.get("prior_source", "prior_ext")
+    prior_dim = int(model_cfg.get("prior_dim", 8))
+    if prior_source != "prior_lift" or prior_dim != 15:
+        raise ValueError(
+            "residual_gate_cap='rgl' requires model.prior_source='prior_lift' "
+            "and model.prior_dim=15"
+        )
 
 
 def load_split(path: str) -> list[str]:
@@ -163,8 +179,12 @@ def get_num_foci(precomputed_dir: Path, samples_dir: Path | None, sample_id: str
 def build_model(cfg: dict[str, Any], device: torch.device) -> tuple[torch.nn.Module, torch.nn.Module | None]:
     prior_dim = int(cfg["model"].get("prior_dim", 8))
     model_type = cfg["model"].get("model_type", "")
-    use_cqr_model = (model_type == "cqr_residual_inr") or (prior_dim > 8)
-    model_cls = CQRResidualINR if use_cqr_model else ResidualINR
+    use_transport_model = model_type == "transport_observability_cqr_inr"
+    use_cqr_model = use_transport_model or (model_type == "cqr_residual_inr") or (prior_dim > 8)
+    if use_transport_model:
+        model_cls = TransportObservabilityCQRINR
+    else:
+        model_cls = CQRResidualINR if use_cqr_model else ResidualINR
     cqr_ratios = cfg.get("cqr", {}).get("ratios", {}) or {}
     default_num_bands = 5 if float(cqr_ratios.get("proposal", 0.0)) > 0.0 else 4
 
@@ -179,7 +199,7 @@ def build_model(cfg: dict[str, Any], device: torch.device) -> tuple[torch.nn.Mod
             fusion_method=cfg["model"].get("fusion_method", "attn"),
             encoder_out_channels=cfg["model"].get("encoder_out_channels", 32),
             encoder_base_channels=cfg["model"].get("encoder_base_channels", 32),
-            projection_transform=cfg["model"].get("view_projection_transform", "log1p"),
+            projection_transform=cfg["model"].get("view_projection_transform", "none"),
             multiscale_cfg=cfg["model"].get("view_multiscale", {}),
         ).to(device)
 
@@ -191,7 +211,34 @@ def build_model(cfg: dict[str, Any], device: torch.device) -> tuple[torch.nn.Mod
         skip_connection=cfg["model"]["skip_connection"],
         view_feat_dim=view_feat_dim,
     )
+    if model_cls is TransportObservabilityCQRINR:
+        transport = cfg.get("transport", {}) or {}
+        operator = CompressedGreenOperator.load(transport["operator_cache"])
+        with np.load(Path(cfg["data"]["shared_dir"]) / "mesh.npz", allow_pickle=False) as mesh:
+            elements = mesh["elements"].copy()
+        model = model_cls(
+            green_node_modes=operator.green_node_modes,
+            elements=elements,
+            measurement_basis=operator.measurement_basis,
+            projected_forward_modes=operator.projected_forward_modes,
+            n_freqs=cfg["model"]["n_freqs"],
+            hidden_dim=cfg["model"]["hidden_dim"],
+            n_hidden_layers=cfg["model"]["n_hidden_layers"],
+            prior_dim=prior_dim,
+            view_feat_dim=view_feat_dim,
+            use_band_embedding=cfg["model"].get("use_band_embedding", True),
+            band_embed_dim=cfg["model"].get("band_embed_dim", 8),
+            num_bands=cfg["model"].get("num_bands", default_num_bands),
+            max_logit_delta=transport.get("max_logit_delta", 2.0),
+            mu_relative=cfg.get("observability", {}).get("mu_relative", 1e-3),
+            jitter=cfg.get("observability", {}).get("jitter", 1e-6),
+            measurement_normalization=transport.get(
+                "measurement_normalization", "least_squares_stage1_scale"
+            ),
+        ).to(device)
+        return model, view_encoder
     if model_cls is CQRResidualINR:
+        validate_residual_gate_contract(cfg["model"])
         kwargs["residual_scale"] = cfg["model"].get("residual_scale", 1.0)
         kwargs["support_head"] = cfg["model"].get("support_head", False)
         kwargs["use_prolongation_adapter"] = cfg["model"].get("use_prolongation_adapter", False)
@@ -338,6 +385,41 @@ def mcx_valid_mask(frame: FrameManifest | None, coords_world: np.ndarray) -> np.
     )
 
 
+def load_transport_eval_arrays(
+    cfg: dict[str, Any],
+    data: dict[str, np.ndarray],
+    valid: np.ndarray,
+    samples_dir: Path | None,
+    sample_id: str,
+) -> dict[str, Any]:
+    sidecar_root = Path(cfg["transport"]["sidecar_root"])
+    sidecar_path = next(
+        (
+            sidecar_root / split / f"{sample_id}.npz"
+            for split in ("train", "val", "test")
+            if (sidecar_root / split / f"{sample_id}.npz").exists()
+        ),
+        None,
+    )
+    if sidecar_path is None:
+        raise FileNotFoundError(f"No physics sidecar found for {sample_id}")
+    with np.load(sidecar_path, allow_pickle=False) as sidecar:
+        output = {
+            "candidate_cell_weight": sidecar["candidate_cell_weight"][valid],
+            "n_valid_candidate_pool": int(sidecar["n_valid_candidate_pool"]),
+        }
+    output["tet_ids"] = data["tet_ids"][valid]
+    output["role"] = data["role"][valid]
+    output["query_src_tag"] = data["query_src_tag"][valid]
+    split_name = sidecar_path.parent.name
+    bridge_dir = Path(cfg["data"][f"{split_name}_bridge_dir"])
+    output["coarse_d"] = np.load(bridge_dir / sample_id / "coarse_d.npy").reshape(-1)
+    if samples_dir is None:
+        raise ValueError("samples_dir is required for transport evaluation")
+    output["measurement_b"] = np.load(samples_dir / sample_id / "measurement_b.npy").reshape(-1)
+    return output
+
+
 def run_model_on_sample(
     model: torch.nn.Module,
     view_encoder: torch.nn.Module | None,
@@ -391,12 +473,65 @@ def run_model_on_sample(
         proj_imgs = torch.from_numpy(load_proj_imgs(samples_dir, sample_id, cfg)).unsqueeze(0).to(device)
         mcx_valid = mcx_valid_mask(frame, coords_world)
 
+    transport_model = isinstance(model, TransportObservabilityCQRINR)
+    transport_arrays = None
+    if transport_model:
+        transport_arrays = load_transport_eval_arrays(cfg, data, valid, samples_dir, sample_id)
+        # The low-rank projection couples all evaluated queries and must not be
+        # recomputed independently on arbitrary inference chunks.
+        batch_points = len(coords_norm)
+
     for start in range(0, len(coords_norm), batch_points):
         end = min(start + batch_points, len(coords_norm))
         coords_b = torch.from_numpy(coords_norm[start:end]).unsqueeze(0).to(device)
         prior_b = torch.from_numpy(prior[start:end]).unsqueeze(0).to(device)
         band_b = torch.from_numpy(correction_band[start:end]).unsqueeze(0).to(device)
-        if view_encoder is None:
+        if transport_model:
+            assert transport_arrays is not None
+            transport_kwargs = {
+                "tet_ids": torch.from_numpy(transport_arrays["tet_ids"][start:end])
+                .unsqueeze(0)
+                .to(device),
+                "role": torch.from_numpy(transport_arrays["role"][start:end])
+                .unsqueeze(0)
+                .to(device),
+                "query_src_tag": torch.from_numpy(transport_arrays["query_src_tag"][start:end])
+                .unsqueeze(0)
+                .to(device),
+                "candidate_cell_weight": torch.from_numpy(
+                    transport_arrays["candidate_cell_weight"][start:end]
+                )
+                .unsqueeze(0)
+                .to(device),
+                "n_valid_candidate_pool": torch.tensor(
+                    [transport_arrays["n_valid_candidate_pool"]], device=device
+                ),
+                "coarse_d": torch.from_numpy(transport_arrays["coarse_d"])
+                .unsqueeze(0)
+                .to(device),
+                "measurement_b": torch.from_numpy(transport_arrays["measurement_b"])
+                .unsqueeze(0)
+                .to(device),
+            }
+            if view_encoder is None:
+                output = unpack_model_output(
+                    model(coords_b, prior_b, correction_band=band_b, **transport_kwargs)
+                )
+            else:
+                world_b = torch.from_numpy(coords_world[start:end]).unsqueeze(0).to(device)
+                view_feat, _ = view_encoder(proj_imgs, world_b, coords_vox_norm=None)
+                valid_b = torch.from_numpy(mcx_valid[start:end]).unsqueeze(0).to(device)
+                view_feat = view_feat * valid_b.unsqueeze(-1).float()
+                output = unpack_model_output(
+                    model(
+                        coords_b,
+                        prior_b,
+                        view_feat,
+                        correction_band=band_b,
+                        **transport_kwargs,
+                    )
+                )
+        elif view_encoder is None:
             output = unpack_model_output(model(coords_b, prior_b, correction_band=band_b))
         else:
             world_b = torch.from_numpy(coords_world[start:end]).unsqueeze(0).to(device)
@@ -526,6 +661,7 @@ def summarize_roles(rows: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
             f"{name}_s2_pos_05",
             f"{name}_fem_pos_05",
             f"{name}_dice_05",
+            f"{name}_gate_mean",
         ]
         out[name] = mean_dict(rows, keys)
     return out
@@ -565,6 +701,8 @@ def main() -> None:
         cfg = yaml.safe_load(f)
     if cfg.get("data", {}).get("shared_dir"):
         os.environ["DU2VOX_SHARED_DIR"] = str(cfg["data"]["shared_dir"])
+    if cfg.get("data", {}).get("allow_stale_frame_manifest", False):
+        os.environ["DU2VOX_ALLOW_STALE_FRAME_MANIFEST"] = "1"
 
     split_file = cfg["data"][f"{args.split}_split"]
     sample_ids = load_split(split_file)
