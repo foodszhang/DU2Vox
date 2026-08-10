@@ -1,4 +1,5 @@
 """DU2Vox side frame utilities — read manifest produced by FMT-SimGen."""
+import hashlib
 import json
 import os
 import warnings
@@ -62,6 +63,15 @@ def get_frame_constants(shared_dir: Optional[str | Path] = None) -> dict:
 
     # Check staleness: if file changed since last cache, invalidate
     current_mtime = manifest_path.stat().st_mtime
+    expected_sha256 = os.environ.get("DU2VOX_FRAME_MANIFEST_SHA256")
+    if expected_sha256:
+        actual_sha256 = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+        if actual_sha256 != expected_sha256.lower():
+            raise RuntimeError(
+                f"frame_manifest.json hash mismatch at {manifest_path}: "
+                f"expected {expected_sha256.lower()}, got {actual_sha256}. "
+                "Re-audit the shared physics assets before continuing."
+            )
     if _CACHED_CONSTANTS is not None and (
         _CACHE_PATH != manifest_path or _CACHE_MTIME != current_mtime
     ):
@@ -84,9 +94,14 @@ def get_frame_constants(shared_dir: Optional[str | Path] = None) -> dict:
             f"re-run build_shared_assets() before using DU2Vox."
         )
     if age_days > STALE_THRESHOLD_DAYS and allow_stale:
+        certification = (
+            f" certified_sha256={expected_sha256.lower()}"
+            if expected_sha256
+            else " without a pinned SHA256 certification"
+        )
         warnings.warn(
             f"Using explicitly allowed stale frame manifest at {manifest_path} "
-            f"(age={age_days:.1f} days); verify its coordinate contract before production",
+            f"(age={age_days:.1f} days);{certification}",
             RuntimeWarning,
             stacklevel=2,
         )

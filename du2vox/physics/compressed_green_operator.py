@@ -38,6 +38,7 @@ class CompressedGreenOperator:
         frame_metadata: dict[str, Any],
         oversampling: int,
         seed: int,
+        power_iterations: int = 0,
     ) -> None:
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -51,6 +52,7 @@ class CompressedGreenOperator:
             rank=np.int64(self.rank),
             oversampling=np.int64(oversampling),
             seed=np.int64(seed),
+            power_iterations=np.int64(power_iterations),
             visible_mask_applied=np.bool_(self.visible_mask_applied),
             relative_operator_error=np.float64(self.relative_operator_error),
             max_absolute_error=np.float64(self.max_absolute_error),

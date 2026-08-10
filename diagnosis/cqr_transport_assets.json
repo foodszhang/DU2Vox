@@ -1,0 +1,5737 @@
+{
+  "schema_version": 1,
+  "config": "configs/stage2/cqr_v2_3k_rgl_main_multiview_sparse.yaml",
+  "git": {
+    "branch": "feat/cqr-transport-observability",
+    "head": "673a899fd5579189c8bd50ef6e6443a892600fff",
+    "dirty_files": [
+      "M configs/stage2/cqr_v2_3k_transport_observability_sparse.yaml",
+      " M docs/COORDINATE_SYSTEM.md",
+      " M du2vox/physics/compressed_green_operator.py",
+      " M du2vox/utils/frame.py",
+      " M scripts/analyze_cqr_transport_operator.py",
+      " M scripts/eval_stage2_unified.py",
+      " M scripts/eval_stage2_v2_grouped.py",
+      " M scripts/precompute_compressed_green_operator.py",
+      " M scripts/train_stage2.py",
+      "?? diagnosis/cqr_adjoint_evidence/",
+      "?? diagnosis/cqr_full_smoke_eval.csv",
+      "?? diagnosis/cqr_full_smoke_eval.json",
+      "?? diagnosis/cqr_full_smoke_grouped.csv",
+      "?? diagnosis/cqr_full_smoke_grouped.json",
+      "?? diagnosis/cqr_gt_decomposition/",
+      "?? diagnosis/cqr_observability.json",
+      "?? diagnosis/cqr_observability.md",
+      "?? diagnosis/cqr_p1_transport_consistency.json",
+      "?? diagnosis/cqr_p1_transport_consistency.md",
+      "?? diagnosis/cqr_transport_assets.json",
+      "?? diagnosis/cqr_transport_assets.md",
+      "?? diagnosis/cqr_transport_operator.json",
+      "?? diagnosis/cqr_transport_operator.md",
+      "?? diagnosis/cqr_v2_3k_transport_observability_report.md",
+      "?? physics_cache/"
+    ],
+    "key_cqr_files": {
+      "du2vox/bridge/coverage_field.py": true,
+      "du2vox/bridge/cqr_query_builder.py": true,
+      "du2vox/bridge/fem_lift_indicators.py": true,
+      "du2vox/bridge/measurement_proposal.py": true,
+      "du2vox/models/stage2/cqr_residual_inr.py": true,
+      "scripts/precompute_stage2_cqr.py": true,
+      "scripts/eval_stage2_unified.py": true
+    }
+  },
+  "dataset": {
+    "paths": {
+      "dataset_root": {
+        "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k",
+        "exists": true
+      },
+      "samples": {
+        "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples",
+        "exists": true
+      },
+      "manifest": {
+        "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/dataset_manifest.json",
+        "exists": true
+      },
+      "shared": {
+        "path": "/home/foods/pro/FMT-SimGen/output/shared_mesh_20k",
+        "exists": true
+      },
+      "split_train": {
+        "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/train.txt",
+        "exists": true
+      },
+      "split_val": {
+        "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/val.txt",
+        "exists": true
+      },
+      "split_test": {
+        "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/test.txt",
+        "exists": true
+      }
+    },
+    "required_v2_3k_paths": true,
+    "split_counts": {
+      "train": 2400,
+      "val": 300,
+      "test": 300
+    },
+    "total_split_count": 3000,
+    "sample_assets": [
+      {
+        "sample_id": "sample_0000",
+        "root": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_0000",
+        "exists": true,
+        "measurement_b.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_0000/measurement_b.npy",
+          "exists": true,
+          "shape": [
+            7413
+          ],
+          "dtype": "float64",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 0.0133050833306796,
+          "mean": 8.921307081468338e-05
+        },
+        "gt_nodes.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_0000/gt_nodes.npy",
+          "exists": true,
+          "shape": [
+            19990
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 1.7893199920654297,
+          "mean": 0.005543926514763424
+        },
+        "gt_voxels.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_0000/gt_voxels.npy",
+          "exists": true,
+          "shape": [
+            190,
+            200,
+            104
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 1.7893199920654297,
+          "mean": 0.0036128633321538144
+        },
+        "proj.npz": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_0000/proj.npz",
+          "exists": true,
+          "arrays": {
+            "-90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 168.00209045410156,
+              "mean": 0.08119936475118715
+            },
+            "depth_-90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1129608154296875,
+              "min": 184.89999389648438,
+              "max": 203.5,
+              "mean": 191.3837769243116
+            },
+            "-60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 51.09336471557617,
+              "mean": 0.024370539363648767
+            },
+            "depth_-60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1333770751953125,
+              "min": 187.99789428710938,
+              "max": 204.0380096435547,
+              "mean": 192.09194536059636
+            },
+            "-30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 58.6890754699707,
+              "mean": 0.04529052126415898
+            },
+            "depth_-30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1520538330078125,
+              "min": 189.16917419433594,
+              "max": 208.6222381591797,
+              "mean": 193.07668687941975
+            },
+            "0": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 73.48531341552734,
+              "mean": 0.07645973237645153
+            },
+            "depth_0": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1596832275390625,
+              "min": 189.89999389648438,
+              "max": 206.10000610351562,
+              "mean": 193.56671708312493
+            },
+            "30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 114.22291564941406,
+              "mean": 0.1932607102405793
+            },
+            "depth_30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.156524658203125,
+              "min": 187.9691619873047,
+              "max": 208.86865234375,
+              "mean": 192.4791218383337
+            },
+            "60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 135.95721435546875,
+              "mean": 0.28585044588613207
+            },
+            "depth_60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.137359619140625,
+              "min": 186.43186950683594,
+              "max": 201.713134765625,
+              "mean": 190.4950054535678
+            },
+            "90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 2159.358642578125,
+              "mean": 1.297424526523697
+            },
+            "depth_90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1129608154296875,
+              "min": 183.89999389648438,
+              "max": 201.89999389648438,
+              "mean": 189.34187496834053
+            }
+          },
+          "raw_combined": {
+            "shape": [
+              917504
+            ],
+            "dtype": "float32",
+            "finite_fraction": 0.568922860281808,
+            "min": 0.0,
+            "max": 2159.358642578125,
+            "mean": 23.502189014814636
+          },
+          "configured_normalization": {
+            "mode": "per_view_max",
+            "transform": "none",
+            "note": "per-view normalization is applied by the dataset loader",
+            "global_max_denominator": Infinity
+          }
+        },
+        "proposal/meas_backproj_heatmap.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_0000/proposal/meas_backproj_heatmap.npy",
+          "exists": true,
+          "shape": [
+            50,
+            60,
+            50
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 2.840205570731058e-10,
+          "max": 1.0,
+          "mean": 0.06468528353231548
+        },
+        "proposal/meas_backproj_meta.json": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_0000/proposal/meas_backproj_meta.json",
+          "exists": true
+        }
+      },
+      {
+        "sample_id": "sample_1515",
+        "root": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_1515",
+        "exists": true,
+        "measurement_b.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_1515/measurement_b.npy",
+          "exists": true,
+          "shape": [
+            7413
+          ],
+          "dtype": "float64",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 5.262177310153469,
+          "mean": 0.024466495081062533
+        },
+        "gt_nodes.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_1515/gt_nodes.npy",
+          "exists": true,
+          "shape": [
+            19990
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 1.5738831758499146,
+          "mean": 0.0049711668294569805
+        },
+        "gt_voxels.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_1515/gt_voxels.npy",
+          "exists": true,
+          "shape": [
+            190,
+            200,
+            104
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 1.5738831758499146,
+          "mean": 0.003962563127641253
+        },
+        "proj.npz": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_1515/proj.npz",
+          "exists": true,
+          "arrays": {
+            "-90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 790759.5625,
+              "mean": 1102.5794894769554
+            },
+            "depth_-90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1112518310546875,
+              "min": 184.89999389648438,
+              "max": 203.6999969482422,
+              "mean": 191.7284734085286
+            },
+            "-60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 784435.375,
+              "mean": 1440.9893081086886
+            },
+            "depth_-60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1302337646484375,
+              "min": 187.99789428710938,
+              "max": 204.0380096435547,
+              "mean": 192.32964778424147
+            },
+            "-30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 784435.375,
+              "mean": 1451.8134330100102
+            },
+            "depth_-30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.14715576171875,
+              "min": 189.16917419433594,
+              "max": 208.6222381591797,
+              "mean": 193.18668234788348
+            },
+            "0": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 727124.4375,
+              "mean": 1095.2870698254267
+            },
+            "depth_0": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.15234375,
+              "min": 189.89999389648438,
+              "max": 206.10000610351562,
+              "mean": 193.5041260566467
+            },
+            "30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 784435.375,
+              "mean": 455.7034331498564
+            },
+            "depth_30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.148284912109375,
+              "min": 187.9691619873047,
+              "max": 208.86865234375,
+              "mean": 192.50934768679898
+            },
+            "60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 43539.171875,
+              "mean": 72.62384780393596
+            },
+            "depth_60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1317291259765625,
+              "min": 186.43186950683594,
+              "max": 205.0131378173828,
+              "mean": 190.77243963741117
+            },
+            "90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 39779.4609375,
+              "mean": 68.92404496077138
+            },
+            "depth_90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1112518310546875,
+              "min": 183.89999389648438,
+              "max": 204.89999389648438,
+              "mean": 189.92230156592552
+            }
+          },
+          "raw_combined": {
+            "shape": [
+              917504
+            ],
+            "dtype": "float32",
+            "finite_fraction": 0.56658935546875,
+            "min": 0.0,
+            "max": 790759.5625,
+            "mean": 739.6402359594202
+          },
+          "configured_normalization": {
+            "mode": "per_view_max",
+            "transform": "none",
+            "note": "per-view normalization is applied by the dataset loader",
+            "global_max_denominator": Infinity
+          }
+        },
+        "proposal/meas_backproj_heatmap.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_1515/proposal/meas_backproj_heatmap.npy",
+          "exists": true,
+          "shape": [
+            50,
+            60,
+            50
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 6.144329901786567e-20,
+          "max": 1.0,
+          "mean": 0.044458782904700817
+        },
+        "proposal/meas_backproj_meta.json": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_1515/proposal/meas_backproj_meta.json",
+          "exists": true
+        }
+      },
+      {
+        "sample_id": "sample_2999",
+        "root": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_2999",
+        "exists": true,
+        "measurement_b.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_2999/measurement_b.npy",
+          "exists": true,
+          "shape": [
+            7413
+          ],
+          "dtype": "float64",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 0.07523721125566402,
+          "mean": 0.0005876142004966732
+        },
+        "gt_nodes.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_2999/gt_nodes.npy",
+          "exists": true,
+          "shape": [
+            19990
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 1.078444242477417,
+          "mean": 0.0046107281798896576
+        },
+        "gt_voxels.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_2999/gt_voxels.npy",
+          "exists": true,
+          "shape": [
+            190,
+            200,
+            104
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 1.078444242477417,
+          "mean": 0.0037156044365423413
+        },
+        "proj.npz": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_2999/proj.npz",
+          "exists": true,
+          "arrays": {
+            "-90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 8382.8896484375,
+              "mean": 5.42338305891729
+            },
+            "depth_-90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1124267578125,
+              "min": 184.89999389648438,
+              "max": 205.3000030517578,
+              "mean": 191.60108580987952
+            },
+            "-60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 3049.266845703125,
+              "mean": 8.71076634895183
+            },
+            "depth_-60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.132293701171875,
+              "min": 187.99789428710938,
+              "max": 204.7810821533203,
+              "mean": 192.2493968413638
+            },
+            "-30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 3049.266845703125,
+              "mean": 12.540019817147284
+            },
+            "depth_-30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1508331298828125,
+              "min": 189.16917419433594,
+              "max": 208.6222381591797,
+              "mean": 193.20865572522732
+            },
+            "0": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 3052.297119140625,
+              "mean": 13.127379049254552
+            },
+            "depth_0": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.157012939453125,
+              "min": 189.89999389648438,
+              "max": 206.10000610351562,
+              "mean": 193.5879100907069
+            },
+            "30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 3049.266845703125,
+              "mean": 9.981719020636426
+            },
+            "depth_30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.15350341796875,
+              "min": 187.9691619873047,
+              "max": 208.86865234375,
+              "mean": 192.52032913754047
+            },
+            "60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 2772.982666015625,
+              "mean": 4.968219152902212
+            },
+            "depth_60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1347503662109375,
+              "min": 186.43186950683594,
+              "max": 204.0131378173828,
+              "mean": 190.58826212320898
+            },
+            "90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 2803.93896484375,
+              "mean": 1.797582755679689
+            },
+            "depth_90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1124267578125,
+              "min": 183.89999389648438,
+              "max": 203.5,
+              "mean": 189.58469067800317
+            }
+          },
+          "raw_combined": {
+            "shape": [
+              917504
+            ],
+            "dtype": "float32",
+            "finite_fraction": 0.5680890764508929,
+            "min": 0.0,
+            "max": 8382.8896484375,
+            "mean": 30.127364591247105
+          },
+          "configured_normalization": {
+            "mode": "per_view_max",
+            "transform": "none",
+            "note": "per-view normalization is applied by the dataset loader",
+            "global_max_denominator": Infinity
+          }
+        },
+        "proposal/meas_backproj_heatmap.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_2999/proposal/meas_backproj_heatmap.npy",
+          "exists": true,
+          "shape": [
+            50,
+            60,
+            50
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 1.8330947060973693e-15,
+          "max": 1.0,
+          "mean": 0.08518177054549184
+        },
+        "proposal/meas_backproj_meta.json": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_2999/proposal/meas_backproj_meta.json",
+          "exists": true
+        }
+      },
+      {
+        "sample_id": "sample_0001",
+        "root": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_0001",
+        "exists": true,
+        "measurement_b.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_0001/measurement_b.npy",
+          "exists": true,
+          "shape": [
+            7413
+          ],
+          "dtype": "float64",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 0.007449619787209545,
+          "mean": 0.00016265142284304206
+        },
+        "gt_nodes.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_0001/gt_nodes.npy",
+          "exists": true,
+          "shape": [
+            19990
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 1.5172361135482788,
+          "mean": 0.00323181877498808
+        },
+        "gt_voxels.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_0001/gt_voxels.npy",
+          "exists": true,
+          "shape": [
+            190,
+            200,
+            104
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 1.5172361135482788,
+          "mean": 0.002727137912381516
+        },
+        "proj.npz": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_0001/proj.npz",
+          "exists": true,
+          "arrays": {
+            "-90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1051.91552734375,
+              "mean": 1.6428143501583972
+            },
+            "depth_-90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.11236572265625,
+              "min": 184.89999389648438,
+              "max": 204.10000610351562,
+              "mean": 191.53457361249286
+            },
+            "-60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1183.5760498046875,
+              "mean": 4.121181984581308
+            },
+            "depth_-60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1324005126953125,
+              "min": 187.99789428710938,
+              "max": 204.0380096435547,
+              "mean": 192.2020007840524
+            },
+            "-30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1183.5760498046875,
+              "mean": 5.868348225495585
+            },
+            "depth_-30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1506500244140625,
+              "min": 189.16917419433594,
+              "max": 208.6222381591797,
+              "mean": 193.15199486419422
+            },
+            "0": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1124.479248046875,
+              "mean": 7.038047226153458
+            },
+            "depth_0": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.157379150390625,
+              "min": 189.89999389648438,
+              "max": 206.10000610351562,
+              "mean": 193.583982383694
+            },
+            "30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1431.476318359375,
+              "mean": 7.8292429258366765
+            },
+            "depth_30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1546783447265625,
+              "min": 187.9691619873047,
+              "max": 208.86865234375,
+              "mean": 192.53840554718954
+            },
+            "60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1633.4639892578125,
+              "mean": 6.635312948930036
+            },
+            "depth_60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1356964111328125,
+              "min": 186.43186950683594,
+              "max": 202.0667266845703,
+              "mean": 190.5847643233788
+            },
+            "90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1633.4639892578125,
+              "mean": 5.403965573516288
+            },
+            "depth_90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.11236572265625,
+              "min": 183.89999389648438,
+              "max": 204.3000030517578,
+              "mean": 189.51653999689154
+            }
+          },
+          "raw_combined": {
+            "shape": [
+              917504
+            ],
+            "dtype": "float32",
+            "finite_fraction": 0.5682525634765625,
+            "min": 0.0,
+            "max": 1633.4639892578125,
+            "mean": 27.906513069177706
+          },
+          "configured_normalization": {
+            "mode": "per_view_max",
+            "transform": "none",
+            "note": "per-view normalization is applied by the dataset loader",
+            "global_max_denominator": Infinity
+          }
+        },
+        "proposal/meas_backproj_heatmap.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_0001/proposal/meas_backproj_heatmap.npy",
+          "exists": true,
+          "shape": [
+            50,
+            60,
+            50
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 2.1921132206811304e-15,
+          "max": 1.0,
+          "mean": 0.1303485737927412
+        },
+        "proposal/meas_backproj_meta.json": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_0001/proposal/meas_backproj_meta.json",
+          "exists": true
+        }
+      },
+      {
+        "sample_id": "sample_1356",
+        "root": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_1356",
+        "exists": true,
+        "measurement_b.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_1356/measurement_b.npy",
+          "exists": true,
+          "shape": [
+            7413
+          ],
+          "dtype": "float64",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 0.016845908446391538,
+          "mean": 0.00024830604858768943
+        },
+        "gt_nodes.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_1356/gt_nodes.npy",
+          "exists": true,
+          "shape": [
+            19990
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 1.6864080429077148,
+          "mean": 0.004630156813292816
+        },
+        "gt_voxels.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_1356/gt_voxels.npy",
+          "exists": true,
+          "shape": [
+            190,
+            200,
+            104
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 1.6864080429077148,
+          "mean": 0.004125878524201119
+        },
+        "proj.npz": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_1356/proj.npz",
+          "exists": true,
+          "arrays": {
+            "-90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1622.5716552734375,
+              "mean": 0.635934233468698
+            },
+            "depth_-90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.112823486328125,
+              "min": 184.89999389648438,
+              "max": 203.5,
+              "mean": 191.48230999303502
+            },
+            "-60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1005.2402954101562,
+              "mean": 1.1350766812506867
+            },
+            "depth_-60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1329803466796875,
+              "min": 187.99789428710938,
+              "max": 204.0380096435547,
+              "mean": 192.1662332907943
+            },
+            "-30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1092.4783935546875,
+              "mean": 3.22634320164057
+            },
+            "depth_-30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1513824462890625,
+              "min": 189.16917419433594,
+              "max": 208.6222381591797,
+              "mean": 193.1285108072769
+            },
+            "0": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1092.4783935546875,
+              "mean": 5.303607955583077
+            },
+            "depth_0": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1571807861328125,
+              "min": 189.89999389648438,
+              "max": 206.10000610351562,
+              "mean": 193.51153231903066
+            },
+            "30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 939.10009765625,
+              "mean": 6.24026291910582
+            },
+            "depth_30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.153533935546875,
+              "min": 187.9691619873047,
+              "max": 208.86865234375,
+              "mean": 192.46835212047853
+            },
+            "60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1108.0201416015625,
+              "mean": 5.384653098683108
+            },
+            "depth_60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.13458251953125,
+              "min": 186.43186950683594,
+              "max": 201.713134765625,
+              "mean": 190.54150725730153
+            },
+            "90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1795.646484375,
+              "mean": 4.3467512223249685
+            },
+            "depth_90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.112823486328125,
+              "min": 183.89999389648438,
+              "max": 204.3000030517578,
+              "mean": 189.56118479309
+            }
+          },
+          "raw_combined": {
+            "shape": [
+              917504
+            ],
+            "dtype": "float32",
+            "finite_fraction": 0.5682362147739956,
+            "min": 0.0,
+            "max": 1795.646484375,
+            "mean": 26.35525666835295
+          },
+          "configured_normalization": {
+            "mode": "per_view_max",
+            "transform": "none",
+            "note": "per-view normalization is applied by the dataset loader",
+            "global_max_denominator": Infinity
+          }
+        },
+        "proposal/meas_backproj_heatmap.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_1356/proposal/meas_backproj_heatmap.npy",
+          "exists": true,
+          "shape": [
+            50,
+            60,
+            50
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 7.32031284005584e-15,
+          "max": 1.0,
+          "mean": 0.1118820128645542
+        },
+        "proposal/meas_backproj_meta.json": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_1356/proposal/meas_backproj_meta.json",
+          "exists": true
+        }
+      },
+      {
+        "sample_id": "sample_2998",
+        "root": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_2998",
+        "exists": true,
+        "measurement_b.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_2998/measurement_b.npy",
+          "exists": true,
+          "shape": [
+            7413
+          ],
+          "dtype": "float64",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 0.04787684726629727,
+          "mean": 0.00037184037529018534
+        },
+        "gt_nodes.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_2998/gt_nodes.npy",
+          "exists": true,
+          "shape": [
+            19990
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 0.6769576668739319,
+          "mean": 0.002675320444374218
+        },
+        "gt_voxels.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_2998/gt_voxels.npy",
+          "exists": true,
+          "shape": [
+            190,
+            200,
+            104
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 0.6769576668739319,
+          "mean": 0.0015282935991521307
+        },
+        "proj.npz": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_2998/proj.npz",
+          "exists": true,
+          "arrays": {
+            "-90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 44.578399658203125,
+              "mean": 0.011230189726657801
+            },
+            "depth_-90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1128692626953125,
+              "min": 184.89999389648438,
+              "max": 204.10000610351562,
+              "mean": 191.49142905340108
+            },
+            "-60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 36.873497009277344,
+              "mean": 0.011116893273740465
+            },
+            "depth_-60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1326141357421875,
+              "min": 187.99789428710938,
+              "max": 204.0380096435547,
+              "mean": 192.14581063739888
+            },
+            "-30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 2191.447509765625,
+              "mean": 0.4862597898860063
+            },
+            "depth_-30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.150970458984375,
+              "min": 189.16917419433594,
+              "max": 208.6222381591797,
+              "mean": 193.08757276132127
+            },
+            "0": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 9625.6376953125,
+              "mean": 8.671171570611511
+            },
+            "depth_0": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.15887451171875,
+              "min": 189.89999389648438,
+              "max": 206.10000610351562,
+              "mean": 193.56799792693846
+            },
+            "30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 15752.5419921875,
+              "mean": 35.96735022022766
+            },
+            "depth_30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.15582275390625,
+              "min": 187.9691619873047,
+              "max": 208.4222412109375,
+              "mean": 192.48676855742488
+            },
+            "60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 15480.4326171875,
+              "mean": 52.891424950666156
+            },
+            "depth_60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.136505126953125,
+              "min": 186.43186950683594,
+              "max": 201.713134765625,
+              "mean": 190.51041429068934
+            },
+            "90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 15965.029296875,
+              "mean": 59.98719035063939
+            },
+            "depth_90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1128692626953125,
+              "min": 183.89999389648438,
+              "max": 201.89999389648438,
+              "mean": 189.41602004771784
+            }
+          },
+          "raw_combined": {
+            "shape": [
+              917504
+            ],
+            "dtype": "float32",
+            "finite_fraction": 0.5686089651925224,
+            "min": 0.0,
+            "max": 15965.029296875,
+            "mean": 43.012580546733886
+          },
+          "configured_normalization": {
+            "mode": "per_view_max",
+            "transform": "none",
+            "note": "per-view normalization is applied by the dataset loader",
+            "global_max_denominator": Infinity
+          }
+        },
+        "proposal/meas_backproj_heatmap.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_2998/proposal/meas_backproj_heatmap.npy",
+          "exists": true,
+          "shape": [
+            50,
+            60,
+            50
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 6.1110581113695e-14,
+          "max": 1.0,
+          "mean": 0.0737983417727874
+        },
+        "proposal/meas_backproj_meta.json": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_2998/proposal/meas_backproj_meta.json",
+          "exists": true
+        }
+      },
+      {
+        "sample_id": "sample_0002",
+        "root": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_0002",
+        "exists": true,
+        "measurement_b.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_0002/measurement_b.npy",
+          "exists": true,
+          "shape": [
+            7413
+          ],
+          "dtype": "float64",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 0.04812325297513435,
+          "mean": 0.0005273641053359882
+        },
+        "gt_nodes.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_0002/gt_nodes.npy",
+          "exists": true,
+          "shape": [
+            19990
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 1.4124678373336792,
+          "mean": 0.004027547109955964
+        },
+        "gt_voxels.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_0002/gt_voxels.npy",
+          "exists": true,
+          "shape": [
+            190,
+            200,
+            104
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 1.4124678373336792,
+          "mean": 0.003493999387088575
+        },
+        "proj.npz": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_0002/proj.npz",
+          "exists": true,
+          "arrays": {
+            "-90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 3662.189453125,
+              "mean": 1.749906448704769
+            },
+            "depth_-90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1126556396484375,
+              "min": 184.89999389648438,
+              "max": 203.5,
+              "mean": 191.6286739745664
+            },
+            "-60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 101.13264465332031,
+              "mean": 0.12256809936146497
+            },
+            "depth_-60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1320343017578125,
+              "min": 187.99789428710938,
+              "max": 204.0380096435547,
+              "mean": 192.26423764931428
+            },
+            "-30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 162.1614227294922,
+              "mean": 0.35659496278710073
+            },
+            "depth_-30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1503143310546875,
+              "min": 189.16917419433594,
+              "max": 208.6222381591797,
+              "mean": 193.20782690965007
+            },
+            "0": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 229.98748779296875,
+              "mean": 0.7483919436453321
+            },
+            "depth_0": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1563568115234375,
+              "min": 189.89999389648438,
+              "max": 206.10000610351562,
+              "mean": 193.56468180282948
+            },
+            "30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 318.27532958984375,
+              "mean": 1.0256478574820627
+            },
+            "depth_30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1526336669921875,
+              "min": 187.9691619873047,
+              "max": 208.86865234375,
+              "mean": 192.4943948730664
+            },
+            "60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 229.98748779296875,
+              "mean": 0.9929990410277753
+            },
+            "depth_60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.134033203125,
+              "min": 186.43186950683594,
+              "max": 201.713134765625,
+              "mean": 190.59725385676316
+            },
+            "90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 6350.92529296875,
+              "mean": 5.3552325942885926
+            },
+            "depth_90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1126556396484375,
+              "min": 183.89999389648438,
+              "max": 203.3000030517578,
+              "mean": 189.67115008454812
+            }
+          },
+          "raw_combined": {
+            "shape": [
+              917504
+            ],
+            "dtype": "float32",
+            "finite_fraction": 0.5679059709821429,
+            "min": 0.0,
+            "max": 6350.92529296875,
+            "mean": 24.265452920307357
+          },
+          "configured_normalization": {
+            "mode": "per_view_max",
+            "transform": "none",
+            "note": "per-view normalization is applied by the dataset loader",
+            "global_max_denominator": Infinity
+          }
+        },
+        "proposal/meas_backproj_heatmap.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_0002/proposal/meas_backproj_heatmap.npy",
+          "exists": true,
+          "shape": [
+            50,
+            60,
+            50
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 6.527878366032131e-15,
+          "max": 1.0,
+          "mean": 0.04324955170831423
+        },
+        "proposal/meas_backproj_meta.json": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_0002/proposal/meas_backproj_meta.json",
+          "exists": true
+        }
+      },
+      {
+        "sample_id": "sample_1470",
+        "root": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_1470",
+        "exists": true,
+        "measurement_b.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_1470/measurement_b.npy",
+          "exists": true,
+          "shape": [
+            7413
+          ],
+          "dtype": "float64",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 0.02403293873115914,
+          "mean": 0.0004721321753652928
+        },
+        "gt_nodes.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_1470/gt_nodes.npy",
+          "exists": true,
+          "shape": [
+            19990
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 1.7831103801727295,
+          "mean": 0.006578198285505973
+        },
+        "gt_voxels.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_1470/gt_voxels.npy",
+          "exists": true,
+          "shape": [
+            190,
+            200,
+            104
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 1.7831103801727295,
+          "mean": 0.0056347628804112255
+        },
+        "proj.npz": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_1470/proj.npz",
+          "exists": true,
+          "arrays": {
+            "-90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 720.5670166015625,
+              "mean": 1.240727140301706
+            },
+            "depth_-90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.11273193359375,
+              "min": 184.89999389648438,
+              "max": 203.5,
+              "mean": 191.58613977396107
+            },
+            "-60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 913.013671875,
+              "mean": 3.4329396771327296
+            },
+            "depth_-60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.132415771484375,
+              "min": 187.99789428710938,
+              "max": 206.2667236328125,
+              "mean": 192.24563575598688
+            },
+            "-30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1340.222412109375,
+              "mean": 6.109236760700928
+            },
+            "depth_-30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1510162353515625,
+              "min": 189.16917419433594,
+              "max": 208.6222381591797,
+              "mean": 193.20706926823578
+            },
+            "0": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1353.568603515625,
+              "mean": 8.34437570348907
+            },
+            "depth_0": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1569366455078125,
+              "min": 189.89999389648438,
+              "max": 206.10000610351562,
+              "mean": 193.57694641469345
+            },
+            "30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1353.568603515625,
+              "mean": 8.55187334574848
+            },
+            "depth_30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.15313720703125,
+              "min": 187.9691619873047,
+              "max": 208.86865234375,
+              "mean": 192.48225701895782
+            },
+            "60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1340.222412109375,
+              "mean": 6.639522594836965
+            },
+            "depth_60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.134735107421875,
+              "min": 186.43186950683594,
+              "max": 202.44903564453125,
+              "mean": 190.59488973649954
+            },
+            "90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1353.568603515625,
+              "mean": 3.8371858597994146
+            },
+            "depth_90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.11273193359375,
+              "min": 183.89999389648438,
+              "max": 205.3000030517578,
+              "mean": 189.60197626969978
+            }
+          },
+          "raw_combined": {
+            "shape": [
+              917504
+            ],
+            "dtype": "float32",
+            "finite_fraction": 0.5681217738560268,
+            "min": 0.0,
+            "max": 1353.568603515625,
+            "mean": 27.823138060388953
+          },
+          "configured_normalization": {
+            "mode": "per_view_max",
+            "transform": "none",
+            "note": "per-view normalization is applied by the dataset loader",
+            "global_max_denominator": Infinity
+          }
+        },
+        "proposal/meas_backproj_heatmap.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_1470/proposal/meas_backproj_heatmap.npy",
+          "exists": true,
+          "shape": [
+            50,
+            60,
+            50
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 2.1097608659008046e-14,
+          "max": 1.0,
+          "mean": 0.12683738035209502
+        },
+        "proposal/meas_backproj_meta.json": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_1470/proposal/meas_backproj_meta.json",
+          "exists": true
+        }
+      },
+      {
+        "sample_id": "sample_2993",
+        "root": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_2993",
+        "exists": true,
+        "measurement_b.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_2993/measurement_b.npy",
+          "exists": true,
+          "shape": [
+            7413
+          ],
+          "dtype": "float64",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 1.1700575130291118,
+          "mean": 0.004757875690458593
+        },
+        "gt_nodes.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_2993/gt_nodes.npy",
+          "exists": true,
+          "shape": [
+            19990
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 1.2225852012634277,
+          "mean": 0.0028129624777760965
+        },
+        "gt_voxels.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_2993/gt_voxels.npy",
+          "exists": true,
+          "shape": [
+            190,
+            200,
+            104
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 1.2225852012634277,
+          "mean": 0.00252133827484571
+        },
+        "proj.npz": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_2993/proj.npz",
+          "exists": true,
+          "arrays": {
+            "-90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 66937.703125,
+              "mean": 128.0185342099362
+            },
+            "depth_-90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1124725341796875,
+              "min": 184.89999389648438,
+              "max": 206.3000030517578,
+              "mean": 191.65254380553858
+            },
+            "-60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 34137.5390625,
+              "mean": 73.48381600989747
+            },
+            "depth_-60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1317138671875,
+              "min": 187.99789428710938,
+              "max": 204.0380096435547,
+              "mean": 192.2364518887694
+            },
+            "-30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 34137.5390625,
+              "mean": 45.48778858423274
+            },
+            "depth_-30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1498565673828125,
+              "min": 189.16917419433594,
+              "max": 208.6222381591797,
+              "mean": 193.1762164401105
+            },
+            "0": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 14853.2138671875,
+              "mean": 12.81898996750799
+            },
+            "depth_0": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1555633544921875,
+              "min": 189.89999389648438,
+              "max": 206.10000610351562,
+              "mean": 193.51402600911857
+            },
+            "30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 5220.0927734375,
+              "mean": 1.5052136426015426
+            },
+            "depth_30": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1519927978515625,
+              "min": 187.9691619873047,
+              "max": 208.86865234375,
+              "mean": 192.47790583715945
+            },
+            "60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 267.3195495605469,
+              "mean": 0.7513956398080663
+            },
+            "depth_60": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1343536376953125,
+              "min": 186.43186950683594,
+              "max": 205.16146850585938,
+              "mean": 190.66143585153088
+            },
+            "90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 118273.5390625,
+              "mean": 39.011472682519425
+            },
+            "depth_90": {
+              "shape": [
+                256,
+                256
+              ],
+              "dtype": "float32",
+              "finite_fraction": 0.1124725341796875,
+              "min": 183.89999389648438,
+              "max": 202.89999389648438,
+              "mean": 189.69891483491642
+            }
+          },
+          "raw_combined": {
+            "shape": [
+              917504
+            ],
+            "dtype": "float32",
+            "finite_fraction": 0.5677446637834821,
+            "min": 0.0,
+            "max": 118273.5390625,
+            "mean": 60.79351481779528
+          },
+          "configured_normalization": {
+            "mode": "per_view_max",
+            "transform": "none",
+            "note": "per-view normalization is applied by the dataset loader",
+            "global_max_denominator": Infinity
+          }
+        },
+        "proposal/meas_backproj_heatmap.npy": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_2993/proposal/meas_backproj_heatmap.npy",
+          "exists": true,
+          "shape": [
+            50,
+            60,
+            50
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 7.316419029597312e-15,
+          "max": 1.0,
+          "mean": 0.06281661832872348
+        },
+        "proposal/meas_backproj_meta.json": {
+          "path": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples/sample_2993/proposal/meas_backproj_meta.json",
+          "exists": true
+        }
+      }
+    ]
+  },
+  "shared_physics": {
+    "directory": "/home/foods/pro/FMT-SimGen/output/shared_mesh_20k",
+    "mesh": {
+      "path": "/home/foods/pro/FMT-SimGen/output/shared_mesh_20k/mesh.npz",
+      "exists": true,
+      "arrays": {
+        "nodes": {
+          "shape": [
+            19990,
+            3
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 0.08668698370456696,
+          "max": 39.914180755615234,
+          "mean": 16.535037634278588
+        },
+        "elements": {
+          "shape": [
+            99209,
+            4
+          ],
+          "dtype": "int32",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 19989.0,
+          "mean": 9090.226317672792
+        },
+        "tissue_labels": {
+          "shape": [
+            99209
+          ],
+          "dtype": "int32",
+          "finite_fraction": 1.0,
+          "min": 1.0,
+          "max": 8.0,
+          "mean": 2.417028696993216
+        },
+        "surface_faces": {
+          "shape": [
+            14822,
+            3
+          ],
+          "dtype": "int32",
+          "finite_fraction": 1.0,
+          "min": 3101.0,
+          "max": 19989.0,
+          "mean": 13518.279651868843
+        },
+        "surface_node_indices": {
+          "shape": [
+            7413
+          ],
+          "dtype": "int32",
+          "finite_fraction": 1.0,
+          "min": 3101.0,
+          "max": 19989.0,
+          "mean": 13518.879401052205
+        },
+        "interface_faces": {
+          "shape": [
+            17010,
+            3
+          ],
+          "dtype": "int32",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 19935.0,
+          "mean": 6794.368489124045
+        }
+      }
+    },
+    "matrices": {
+      "M": {
+        "path": "/home/foods/pro/FMT-SimGen/output/shared_mesh_20k/system_matrix.M.npz",
+        "exists": true,
+        "shape": [
+          19990,
+          19990
+        ],
+        "dtype": "float64",
+        "format": "csr",
+        "nnz": 273208,
+        "finite": true,
+        "min": -0.37298029021885437,
+        "max": 0.8603871190837324
+      },
+      "F": {
+        "path": "/home/foods/pro/FMT-SimGen/output/shared_mesh_20k/system_matrix.F.npz",
+        "exists": true,
+        "shape": [
+          19990,
+          19990
+        ],
+        "dtype": "float64",
+        "format": "csr",
+        "nnz": 273208,
+        "finite": true,
+        "min": 0.00013503890284699118,
+        "max": 1.0737673490627615
+      },
+      "A": {
+        "path": "/home/foods/pro/FMT-SimGen/output/shared_mesh_20k/system_matrix.A.npz",
+        "exists": true,
+        "array_key": "forward_matrix",
+        "shape": [
+          7413,
+          19990
+        ],
+        "dtype": "float32",
+        "format": "dense",
+        "nnz": 148185870,
+        "finite": true,
+        "min": -0.0833236426115036,
+        "max": 1.9680373668670654
+      }
+    },
+    "index": {
+      "path": "/home/foods/pro/FMT-SimGen/output/shared_mesh_20k/system_matrix.index.npz",
+      "exists": true,
+      "arrays": {
+        "surface_index": {
+          "shape": [
+            7413
+          ],
+          "dtype": "int32",
+          "finite_fraction": 1.0,
+          "min": 3101.0,
+          "max": 19989.0,
+          "mean": 13518.879401052205
+        },
+        "nodes": {
+          "shape": [
+            19990,
+            3
+          ],
+          "dtype": "float32",
+          "finite_fraction": 1.0,
+          "min": 0.08668698370456696,
+          "max": 39.914180755615234,
+          "mean": 16.535037634278588
+        },
+        "elements": {
+          "shape": [
+            99209,
+            4
+          ],
+          "dtype": "int32",
+          "finite_fraction": 1.0,
+          "min": 0.0,
+          "max": 19989.0,
+          "mean": 9090.226317672792
+        },
+        "tissue_labels": {
+          "shape": [
+            99209
+          ],
+          "dtype": "int32",
+          "finite_fraction": 1.0,
+          "min": 1.0,
+          "max": 8.0,
+          "mean": 2.417028696993216
+        }
+      }
+    },
+    "visible_mask": {
+      "path": "/home/foods/pro/FMT-SimGen/output/shared_mesh_20k/visible_mask.npy",
+      "exists": true,
+      "shape": [
+        7413
+      ],
+      "dtype": "bool",
+      "finite_fraction": 1.0,
+      "min": 1.0,
+      "max": 1.0,
+      "mean": 1.0,
+      "true_count": 7413
+    },
+    "convention": {
+      "stage1_use_visible_mask": false,
+      "measurement_sizes": [
+        7413,
+        7413,
+        7413,
+        7413,
+        7413,
+        7413,
+        7413,
+        7413,
+        7413
+      ],
+      "a_rows": 7413,
+      "full_surface_count": 7413,
+      "visible_count": 7413,
+      "mesh_and_index_surface_equal": true,
+      "a_is_full_surface": true,
+      "measurements_are_full_surface": true,
+      "full_surface_convention_confirmed": true
+    },
+    "frame_manifest": {
+      "path": "/home/foods/pro/FMT-SimGen/output/shared_mesh_20k/frame_manifest.json",
+      "exists": true,
+      "content": {
+        "subject_id": "subject",
+        "world_frame": "mcx_trunk_local_mm",
+        "output_dir": "output/shared",
+        "mcx_volume": {
+          "shape_xyz": [
+            190,
+            200,
+            104
+          ],
+          "shape_zyx": [
+            104,
+            200,
+            190
+          ],
+          "voxel_size_mm": 0.2,
+          "origin_world_mm": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "extent_mm": [
+            38.0,
+            40.0,
+            20.8
+          ],
+          "bbox_world_mm": {
+            "min": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "max": [
+              38.0,
+              40.0,
+              20.8
+            ]
+          }
+        },
+        "atlas_to_world_offset_mm": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "crop_bbox_mm": null,
+        "segmentation_path": null,
+        "segmentation_format": null,
+        "label_key": null,
+        "label_mapping": {},
+        "label_roles": {
+          "background_labels": [
+            0
+          ],
+          "allowed_tumor_labels": [
+            1
+          ],
+          "forbidden_tumor_labels": [
+            0,
+            2
+          ]
+        },
+        "volume_center_world_mm": [
+          19.0,
+          20.0,
+          10.4
+        ],
+        "version": 2,
+        "frame_contract": {
+          "voxel_size_mm": 0.2,
+          "grid_shape_xyz": [
+            190,
+            200,
+            104
+          ],
+          "volume_center_world_mm": [
+            19.0,
+            20.0,
+            10.4
+          ],
+          "volume_extents_mm": [
+            38.0,
+            40.0,
+            20.8
+          ],
+          "generated_by": "fmt_simgen.dataset.builder.build_shared_assets"
+        },
+        "fem_mesh": {
+          "file": "mesh.npz",
+          "frame": "mcx_trunk_local_mm",
+          "n_nodes": 19990,
+          "bbox_world_mm": {
+            "min": [
+              2.8323590755462646,
+              0.08668698370456696,
+              1.5866988897323608
+            ],
+            "max": [
+              34.20408630371094,
+              39.914180755615234,
+              20.61390495300293
+            ]
+          }
+        },
+        "voxel_grid_gt": {
+          "shape": [
+            190,
+            200,
+            104
+          ],
+          "spacing_mm": 0.2,
+          "offset_world_mm": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "frame": "mcx_trunk_local_mm"
+        }
+      }
+    }
+  },
+  "checkpoints": {
+    "stage1_candidates": [
+      {
+        "path": "/home/foods/pro/DU2Vox/runs/stage1_fmt_simgen_v2_3k_20k_balanced_v2_eval/checkpoints/best.pth",
+        "exists": true,
+        "size_bytes": 593217,
+        "top_level_keys": [
+          "best_dice",
+          "best_metrics",
+          "best_val_loss",
+          "epoch",
+          "model_state_dict",
+          "optimizer_state_dict",
+          "primary_metric",
+          "scheduler_state_dict"
+        ],
+        "epoch": 71,
+        "state_tensor_count": 390
+      }
+    ],
+    "baseline_candidates": [
+      {
+        "path": "/home/foods/pro/DU2Vox/checkpoints/stage2/cqr_v2_3k_rgl_main_sparse/best.pth",
+        "exists": true,
+        "size_bytes": 3526885,
+        "top_level_keys": [
+          "residual_inr",
+          "view_encoder"
+        ]
+      },
+      {
+        "path": "/home/foods/pro/DU2Vox/runs/cqr_v2_3k_rgl_main_multiview_sparse/checkpoints/best.pth",
+        "exists": false
+      }
+    ],
+    "resolved_stage1_checkpoint": "/home/foods/pro/DU2Vox/runs/stage1_fmt_simgen_v2_3k_20k_balanced_v2_eval/checkpoints/best.pth",
+    "resolved_baseline_checkpoint": "/home/foods/pro/DU2Vox/checkpoints/stage2/cqr_v2_3k_rgl_main_sparse/best.pth"
+  },
+  "cqr_npz": {
+    "train": {
+      "directory": "/home/foods/pro/DU2Vox/precomputed/cqr_v2_3k_rgl_main/train",
+      "exists": true,
+      "expected_split_samples": 2400,
+      "npz_files_found": 100,
+      "required_minimum_audited": 5,
+      "samples_audited": 5,
+      "records": [
+        {
+          "path": "/home/foods/pro/DU2Vox/precomputed/cqr_v2_3k_rgl_main/train/sample_0000.npz",
+          "candidate_pool_size": 32768,
+          "valid_count": 32729,
+          "missing_keys": [],
+          "arrays": {
+            "grid_coords": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.11169581860303879,
+              "max": 39.902923583984375,
+              "mean": 17.237220652760318
+            },
+            "grid_coords_norm": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": -1.0,
+              "max": 1.0,
+              "mean": -0.001276969850853978
+            },
+            "prior_8d": {
+              "shape": [
+                32768,
+                8
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9999374151229858,
+              "mean": 0.21863101598366086
+            },
+            "prior_ext": {
+              "shape": [
+                32768,
+                13
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.2307105696592187
+            },
+            "prior_prolong": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.2722304116922157
+            },
+            "prior_lift": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.28998722033883395
+            },
+            "gt_values": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.7893199920654297,
+              "mean": 0.07859881338319452
+            },
+            "valid_mask": {
+              "shape": [
+                32768
+              ],
+              "dtype": "bool",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.998809814453125
+            },
+            "tet_ids": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 6.0,
+              "max": 99203.0,
+              "mean": 40241.53759765625
+            },
+            "role": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.698974609375
+            },
+            "query_src_tag": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 3.0,
+              "mean": 1.04595947265625
+            },
+            "correction_band": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.698974609375
+            },
+            "prolongation_value": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9998775720596313,
+              "mean": 0.187281137225899
+            },
+            "residual_indicator": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.44210724851904026
+            },
+            "query_weight": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.75,
+              "max": 1.25,
+              "mean": 1.071563720703125
+            },
+            "coverage_score": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 1.6513095686850054e-13,
+              "max": 0.8998749852180481,
+              "mean": 0.2682017099839425
+            },
+            "risk_components": {
+              "shape": [
+                32768,
+                4
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 7.70925567058109e-27,
+              "max": 1.0,
+              "mean": 0.24549689192915358
+            }
+          },
+          "unique_valid_tets": 10137,
+          "queries_per_tet": {
+            "shape": [
+              10137
+            ],
+            "dtype": "int64",
+            "finite_fraction": 1.0,
+            "min": 1.0,
+            "max": 48.0,
+            "mean": 3.2286672585577585
+          },
+          "negative_tet_count": 0,
+          "negative_tet_marked_valid": 0,
+          "negative_tet_with_nonzero_prior": null,
+          "role_band_mismatch": 0,
+          "band_source_mismatch": 0,
+          "role_counts": [
+            3790,
+            11300,
+            13170,
+            0,
+            4508
+          ]
+        },
+        {
+          "path": "/home/foods/pro/DU2Vox/precomputed/cqr_v2_3k_rgl_main/train/sample_0034.npz",
+          "candidate_pool_size": 32768,
+          "valid_count": 32654,
+          "missing_keys": [],
+          "arrays": {
+            "grid_coords": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.11025785654783249,
+              "max": 39.89108657836914,
+              "mean": 18.60660099418836
+            },
+            "grid_coords_norm": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": -1.0,
+              "max": 1.0,
+              "mean": 0.07400181402408634
+            },
+            "prior_8d": {
+              "shape": [
+                32768,
+                8
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9999972581863403,
+              "mean": 0.22431893234825281
+            },
+            "prior_ext": {
+              "shape": [
+                32768,
+                13
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.23591715881928144
+            },
+            "prior_prolong": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.27677397698476597
+            },
+            "prior_lift": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.3351290428854498
+            },
+            "gt_values": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.2983317375183105,
+              "mean": 0.04885463647409516
+            },
+            "valid_mask": {
+              "shape": [
+                32768
+              ],
+              "dtype": "bool",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.99652099609375
+            },
+            "tet_ids": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 6.0,
+              "max": 99206.0,
+              "mean": 40780.09582519531
+            },
+            "role": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.750396728515625
+            },
+            "query_src_tag": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 3.0,
+              "mean": 1.088226318359375
+            },
+            "correction_band": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.750396728515625
+            },
+            "prolongation_value": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9999969601631165,
+              "mean": 0.198597705585364
+            },
+            "residual_indicator": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.638015989760577
+            },
+            "query_weight": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.75,
+              "max": 1.25,
+              "mean": 1.0704803466796875
+            },
+            "coverage_score": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 5.6084368919850913e-14,
+              "max": 0.8998392224311829,
+              "mean": 0.2709491669045175
+            },
+            "risk_components": {
+              "shape": [
+                32768,
+                4
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 1.9851440086783825e-27,
+              "max": 1.0,
+              "mean": 0.2503556097400297
+            }
+          },
+          "unique_valid_tets": 8220,
+          "queries_per_tet": {
+            "shape": [
+              8220
+            ],
+            "dtype": "int64",
+            "finite_fraction": 1.0,
+            "min": 1.0,
+            "max": 70.0,
+            "mean": 3.9725060827250607
+          },
+          "negative_tet_count": 0,
+          "negative_tet_marked_valid": 0,
+          "negative_tet_with_nonzero_prior": null,
+          "role_band_mismatch": 0,
+          "band_source_mismatch": 0,
+          "role_counts": [
+            3690,
+            11033,
+            12928,
+            0,
+            5117
+          ]
+        },
+        {
+          "path": "/home/foods/pro/DU2Vox/precomputed/cqr_v2_3k_rgl_main/train/sample_0063.npz",
+          "candidate_pool_size": 32768,
+          "valid_count": 32737,
+          "missing_keys": [],
+          "arrays": {
+            "grid_coords": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.11522893607616425,
+              "max": 39.8783073425293,
+              "mean": 17.223121858569055
+            },
+            "grid_coords_norm": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": -1.0,
+              "max": 1.0,
+              "mean": -0.017129439000200364
+            },
+            "prior_8d": {
+              "shape": [
+                32768,
+                8
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9999996423721313,
+              "mean": 0.21176382497290738
+            },
+            "prior_ext": {
+              "shape": [
+                32768,
+                13
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.22856085117668984
+            },
+            "prior_prolong": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.27008945519232713
+            },
+            "prior_lift": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.3185558173275967
+            },
+            "gt_values": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.5707484483718872,
+              "mean": 0.17618284080688307
+            },
+            "valid_mask": {
+              "shape": [
+                32768
+              ],
+              "dtype": "bool",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.999053955078125
+            },
+            "tet_ids": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 5.0,
+              "max": 99195.0,
+              "mean": 53511.275787353516
+            },
+            "role": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.75775146484375
+            },
+            "query_src_tag": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 3.0,
+              "mean": 1.094207763671875
+            },
+            "correction_band": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.75775146484375
+            },
+            "prolongation_value": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9999971389770508,
+              "mean": 0.17341028594178465
+            },
+            "residual_indicator": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.5926824819181754
+            },
+            "query_weight": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.75,
+              "max": 1.25,
+              "mean": 1.0701904296875
+            },
+            "coverage_score": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 3.7180707731371276e-14,
+              "max": 0.8999715447425842,
+              "mean": 0.2780719472453716
+            },
+            "risk_components": {
+              "shape": [
+                32768,
+                4
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 1.6869314753455074e-27,
+              "max": 1.0,
+              "mean": 0.24977712956708423
+            }
+          },
+          "unique_valid_tets": 8889,
+          "queries_per_tet": {
+            "shape": [
+              8889
+            ],
+            "dtype": "int64",
+            "finite_fraction": 1.0,
+            "min": 1.0,
+            "max": 62.0,
+            "mean": 3.682866464169198
+          },
+          "negative_tet_count": 0,
+          "negative_tet_marked_valid": 0,
+          "negative_tet_with_nonzero_prior": null,
+          "role_band_mismatch": 0,
+          "band_source_mismatch": 0,
+          "role_counts": [
+            3675,
+            11008,
+            12875,
+            0,
+            5210
+          ]
+        },
+        {
+          "path": "/home/foods/pro/DU2Vox/precomputed/cqr_v2_3k_rgl_main/train/sample_0090.npz",
+          "candidate_pool_size": 32768,
+          "valid_count": 32749,
+          "missing_keys": [],
+          "arrays": {
+            "grid_coords": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.1059509888291359,
+              "max": 39.893192291259766,
+              "mean": 19.612664671293107
+            },
+            "grid_coords_norm": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": -1.0,
+              "max": 1.0,
+              "mean": 0.10922948447174956
+            },
+            "prior_8d": {
+              "shape": [
+                32768,
+                8
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9999755620956421,
+              "mean": 0.209997547133657
+            },
+            "prior_ext": {
+              "shape": [
+                32768,
+                13
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.22857611977299316
+            },
+            "prior_prolong": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.26975527402809774
+            },
+            "prior_lift": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.3211940907629733
+            },
+            "gt_values": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.7316625118255615,
+              "mean": 0.18114627273163797
+            },
+            "valid_mask": {
+              "shape": [
+                32768
+              ],
+              "dtype": "bool",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.999420166015625
+            },
+            "tet_ids": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 41.0,
+              "max": 99193.0,
+              "mean": 61128.973083496094
+            },
+            "role": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.68701171875
+            },
+            "query_src_tag": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 3.0,
+              "mean": 1.034912109375
+            },
+            "correction_band": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.68701171875
+            },
+            "prolongation_value": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9999101758003235,
+              "mean": 0.16940447194631972
+            },
+            "residual_indicator": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.6153421771874682
+            },
+            "query_weight": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.75,
+              "max": 1.25,
+              "mean": 1.07159423828125
+            },
+            "coverage_score": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 5.552855885826777e-30,
+              "max": 0.8999494910240173,
+              "mean": 0.2786749852007502
+            },
+            "risk_components": {
+              "shape": [
+                32768,
+                4
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.2532085486947261
+            }
+          },
+          "unique_valid_tets": 8106,
+          "queries_per_tet": {
+            "shape": [
+              8106
+            ],
+            "dtype": "int64",
+            "finite_fraction": 1.0,
+            "min": 1.0,
+            "max": 60.0,
+            "mean": 4.040093757710338
+          },
+          "negative_tet_count": 0,
+          "negative_tet_marked_valid": 0,
+          "negative_tet_with_nonzero_prior": null,
+          "role_band_mismatch": 0,
+          "band_source_mismatch": 0,
+          "role_counts": [
+            3800,
+            11408,
+            13184,
+            0,
+            4376
+          ]
+        },
+        {
+          "path": "/home/foods/pro/DU2Vox/precomputed/cqr_v2_3k_rgl_main/train/sample_0121.npz",
+          "candidate_pool_size": 32768,
+          "valid_count": 32684,
+          "missing_keys": [],
+          "arrays": {
+            "grid_coords": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.09747809171676636,
+              "max": 39.90021514892578,
+              "mean": 17.585337365804435
+            },
+            "grid_coords_norm": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": -1.0,
+              "max": 1.0,
+              "mean": 0.08473307155933678
+            },
+            "prior_8d": {
+              "shape": [
+                32768,
+                8
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9999949932098389,
+              "mean": 0.2178557591060845
+            },
+            "prior_ext": {
+              "shape": [
+                32768,
+                13
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.22968743575287898
+            },
+            "prior_prolong": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.26441727011962823
+            },
+            "prior_lift": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.33412076022054554
+            },
+            "gt_values": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.8351058959960938,
+              "mean": 0.03663862088652703
+            },
+            "valid_mask": {
+              "shape": [
+                32768
+              ],
+              "dtype": "bool",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.9974365234375
+            },
+            "tet_ids": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 6.0,
+              "max": 99179.0,
+              "mean": 35698.28732299805
+            },
+            "role": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.710113525390625
+            },
+            "query_src_tag": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 3.0,
+              "mean": 1.05316162109375
+            },
+            "correction_band": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.710113525390625
+            },
+            "prolongation_value": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.999991774559021,
+              "mean": 0.18678100753887217
+            },
+            "residual_indicator": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.6127827427783819
+            },
+            "query_weight": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.75,
+              "max": 1.25,
+              "mean": 1.071624755859375
+            },
+            "coverage_score": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.899626612663269,
+              "mean": 0.26014261530244975
+            },
+            "risk_components": {
+              "shape": [
+                32768,
+                4
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.24573699415907516
+            }
+          },
+          "unique_valid_tets": 9660,
+          "queries_per_tet": {
+            "shape": [
+              9660
+            ],
+            "dtype": "int64",
+            "finite_fraction": 1.0,
+            "min": 1.0,
+            "max": 44.0,
+            "mean": 3.3834368530020704
+          },
+          "negative_tet_count": 0,
+          "negative_tet_marked_valid": 0,
+          "negative_tet_with_nonzero_prior": null,
+          "role_band_mismatch": 0,
+          "band_source_mismatch": 0,
+          "role_counts": [
+            3747,
+            11259,
+            13135,
+            0,
+            4627
+          ]
+        }
+      ],
+      "blocked": false,
+      "blocker": null
+    },
+    "val": {
+      "directory": "/home/foods/pro/DU2Vox/precomputed/cqr_v2_3k_rgl_main/val",
+      "exists": true,
+      "expected_split_samples": 300,
+      "npz_files_found": 25,
+      "required_minimum_audited": 5,
+      "samples_audited": 5,
+      "records": [
+        {
+          "path": "/home/foods/pro/DU2Vox/precomputed/cqr_v2_3k_rgl_main/val/sample_0001.npz",
+          "candidate_pool_size": 32768,
+          "valid_count": 32745,
+          "missing_keys": [],
+          "arrays": {
+            "grid_coords": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0976606011390686,
+              "max": 39.897056579589844,
+              "mean": 19.103026379761406
+            },
+            "grid_coords_norm": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": -1.0,
+              "max": 1.0,
+              "mean": 0.09854558601788692
+            },
+            "prior_8d": {
+              "shape": [
+                32768,
+                8
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9999700784683228,
+              "mean": 0.21630881966458887
+            },
+            "prior_ext": {
+              "shape": [
+                32768,
+                13
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.23344758203738591
+            },
+            "prior_prolong": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.2744675653229012
+            },
+            "prior_lift": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.2991453046963103
+            },
+            "gt_values": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.5172361135482788,
+              "mean": 0.05651265108572456
+            },
+            "valid_mask": {
+              "shape": [
+                32768
+              ],
+              "dtype": "bool",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.999298095703125
+            },
+            "tet_ids": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 8.0,
+              "max": 99181.0,
+              "mean": 59809.443939208984
+            },
+            "role": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.753662109375
+            },
+            "query_src_tag": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 3.0,
+              "mean": 1.09112548828125
+            },
+            "correction_band": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.753662109375
+            },
+            "prolongation_value": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9999510049819946,
+              "mean": 0.18282823845568033
+            },
+            "residual_indicator": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.48497466052314203
+            },
+            "query_weight": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.75,
+              "max": 1.25,
+              "mean": 1.0701065063476562
+            },
+            "coverage_score": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 9.62965838525228e-15,
+              "max": 0.8998787999153137,
+              "mean": 0.28018720820889687
+            },
+            "risk_components": {
+              "shape": [
+                32768,
+                4
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 1.6581150615162293e-28,
+              "max": 1.0,
+              "mean": 0.2560402002401022
+            }
+          },
+          "unique_valid_tets": 9718,
+          "queries_per_tet": {
+            "shape": [
+              9718
+            ],
+            "dtype": "int64",
+            "finite_fraction": 1.0,
+            "min": 1.0,
+            "max": 48.0,
+            "mean": 3.3695204774644987
+          },
+          "negative_tet_count": 0,
+          "negative_tet_marked_valid": 0,
+          "negative_tet_with_nonzero_prior": null,
+          "role_band_mismatch": 0,
+          "band_source_mismatch": 0,
+          "role_counts": [
+            3686,
+            11038,
+            12875,
+            0,
+            5169
+          ]
+        },
+        {
+          "path": "/home/foods/pro/DU2Vox/precomputed/cqr_v2_3k_rgl_main/val/sample_0039.npz",
+          "candidate_pool_size": 32768,
+          "valid_count": 32744,
+          "missing_keys": [],
+          "arrays": {
+            "grid_coords": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.09970476478338242,
+              "max": 39.90458679199219,
+              "mean": 15.343415958507498
+            },
+            "grid_coords_norm": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": -1.0,
+              "max": 1.0,
+              "mean": -0.15813551598572909
+            },
+            "prior_8d": {
+              "shape": [
+                32768,
+                8
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9999995231628418,
+              "mean": 0.2157590122851776
+            },
+            "prior_ext": {
+              "shape": [
+                32768,
+                13
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.2316423706170096
+            },
+            "prior_prolong": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.27041081385781635
+            },
+            "prior_lift": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.33450411948310477
+            },
+            "gt_values": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.2635407447814941,
+              "mean": 0.11728151122972053
+            },
+            "valid_mask": {
+              "shape": [
+                32768
+              ],
+              "dtype": "bool",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.999267578125
+            },
+            "tet_ids": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 99207.0,
+              "mean": 55375.02737426758
+            },
+            "role": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.729949951171875
+            },
+            "query_src_tag": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 3.0,
+              "mean": 1.0689697265625
+            },
+            "correction_band": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.729949951171875
+            },
+            "prolongation_value": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9999994039535522,
+              "mean": 0.18237966150065144
+            },
+            "residual_indicator": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.6419869288054982
+            },
+            "query_weight": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.75,
+              "max": 1.25,
+              "mean": 1.071136474609375
+            },
+            "coverage_score": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 3.307015170603625e-14,
+              "max": 0.8999994993209839,
+              "mean": 0.2706908872094054
+            },
+            "risk_components": {
+              "shape": [
+                32768,
+                4
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 1.1891082440425505e-27,
+              "max": 1.0,
+              "mean": 0.2536469581325747
+            }
+          },
+          "unique_valid_tets": 8938,
+          "queries_per_tet": {
+            "shape": [
+              8938
+            ],
+            "dtype": "int64",
+            "finite_fraction": 1.0,
+            "min": 1.0,
+            "max": 50.0,
+            "mean": 3.663459386887447
+          },
+          "negative_tet_count": 0,
+          "negative_tet_marked_valid": 0,
+          "negative_tet_with_nonzero_prior": null,
+          "role_band_mismatch": 0,
+          "band_source_mismatch": 0,
+          "role_counts": [
+            3703,
+            11173,
+            13027,
+            0,
+            4865
+          ]
+        },
+        {
+          "path": "/home/foods/pro/DU2Vox/precomputed/cqr_v2_3k_rgl_main/val/sample_0131.npz",
+          "candidate_pool_size": 32768,
+          "valid_count": 32757,
+          "missing_keys": [],
+          "arrays": {
+            "grid_coords": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.11278881877660751,
+              "max": 39.887115478515625,
+              "mean": 17.04765646426252
+            },
+            "grid_coords_norm": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": -1.0,
+              "max": 1.0,
+              "mean": -0.03390784890264816
+            },
+            "prior_8d": {
+              "shape": [
+                32768,
+                8
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": -7.680314695335255e-08,
+              "max": 0.9999939203262329,
+              "mean": 0.20369621529985488
+            },
+            "prior_ext": {
+              "shape": [
+                32768,
+                13
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": -7.680314695335255e-08,
+              "max": 1.0,
+              "mean": 0.2247146318013954
+            },
+            "prior_prolong": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": -7.680314695335255e-08,
+              "max": 1.0,
+              "mean": 0.26667131576520864
+            },
+            "prior_lift": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": -7.680314695335255e-08,
+              "max": 1.0,
+              "mean": 0.30387441017910993
+            },
+            "gt_values": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.5417065620422363,
+              "mean": 0.1114965452220914
+            },
+            "valid_mask": {
+              "shape": [
+                32768
+              ],
+              "dtype": "bool",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.999664306640625
+            },
+            "tet_ids": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 5.0,
+              "max": 99208.0,
+              "mean": 62009.20846557617
+            },
+            "role": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.743377685546875
+            },
+            "query_src_tag": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 3.0,
+              "mean": 1.081390380859375
+            },
+            "correction_band": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.743377685546875
+            },
+            "prolongation_value": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9999905824661255,
+              "mean": 0.15788058753701112
+            },
+            "residual_indicator": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.5397809373685625
+            },
+            "query_weight": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.75,
+              "max": 1.25,
+              "mean": 1.0701217651367188
+            },
+            "coverage_score": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 5.466945459157123e-14,
+              "max": 0.8999396562576294,
+              "mean": 0.2857528579189984
+            },
+            "risk_components": {
+              "shape": [
+                32768,
+                4
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 4.831921726270404e-27,
+              "max": 1.0,
+              "mean": 0.2514919082750757
+            }
+          },
+          "unique_valid_tets": 8943,
+          "queries_per_tet": {
+            "shape": [
+              8943
+            ],
+            "dtype": "int64",
+            "finite_fraction": 1.0,
+            "min": 1.0,
+            "max": 50.0,
+            "mean": 3.6628648104662864
+          },
+          "negative_tet_count": 0,
+          "negative_tet_marked_valid": 0,
+          "negative_tet_with_nonzero_prior": null,
+          "role_band_mismatch": 0,
+          "band_source_mismatch": 0,
+          "role_counts": [
+            3692,
+            11137,
+            12883,
+            0,
+            5056
+          ]
+        },
+        {
+          "path": "/home/foods/pro/DU2Vox/precomputed/cqr_v2_3k_rgl_main/val/sample_0181.npz",
+          "candidate_pool_size": 32768,
+          "valid_count": 32742,
+          "missing_keys": [],
+          "arrays": {
+            "grid_coords": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.10579102486371994,
+              "max": 39.90610122680664,
+              "mean": 18.69335187321978
+            },
+            "grid_coords_norm": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": -1.0,
+              "max": 1.0,
+              "mean": 0.0627909815084422
+            },
+            "prior_8d": {
+              "shape": [
+                32768,
+                8
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9999635219573975,
+              "mean": 0.2006524533869944
+            },
+            "prior_ext": {
+              "shape": [
+                32768,
+                13
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.2232882877745525
+            },
+            "prior_prolong": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.26450217077095284
+            },
+            "prior_lift": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.333426439176368
+            },
+            "gt_values": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.693447232246399,
+              "mean": 0.2000488505778122
+            },
+            "valid_mask": {
+              "shape": [
+                32768
+              ],
+              "dtype": "bool",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.99920654296875
+            },
+            "tet_ids": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 23.0,
+              "max": 99208.0,
+              "mean": 49977.763275146484
+            },
+            "role": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.65399169921875
+            },
+            "query_src_tag": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 3.0,
+              "mean": 1.0072021484375
+            },
+            "correction_band": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.65399169921875
+            },
+            "prolongation_value": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9998550415039062,
+              "mean": 0.15064687170157778
+            },
+            "residual_indicator": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.694512749400379
+            },
+            "query_weight": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.75,
+              "max": 1.25,
+              "mean": 1.0735702514648438
+            },
+            "coverage_score": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 4.7144590071017053e-14,
+              "max": 0.899982750415802,
+              "mean": 0.2863301878289781
+            },
+            "risk_components": {
+              "shape": [
+                32768,
+                4
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 5.1142264634486294e-27,
+              "max": 1.0,
+              "mean": 0.25279948153606246
+            }
+          },
+          "unique_valid_tets": 7835,
+          "queries_per_tet": {
+            "shape": [
+              7835
+            ],
+            "dtype": "int64",
+            "finite_fraction": 1.0,
+            "min": 1.0,
+            "max": 46.0,
+            "mean": 4.178940650925335
+          },
+          "negative_tet_count": 0,
+          "negative_tet_marked_valid": 0,
+          "negative_tet_with_nonzero_prior": null,
+          "role_band_mismatch": 0,
+          "band_source_mismatch": 0,
+          "role_counts": [
+            3858,
+            11480,
+            13501,
+            0,
+            3929
+          ]
+        },
+        {
+          "path": "/home/foods/pro/DU2Vox/precomputed/cqr_v2_3k_rgl_main/val/sample_0237.npz",
+          "candidate_pool_size": 32768,
+          "valid_count": 32747,
+          "missing_keys": [],
+          "arrays": {
+            "grid_coords": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.09739421308040619,
+              "max": 39.89909362792969,
+              "mean": 19.570132208304585
+            },
+            "grid_coords_norm": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": -1.0,
+              "max": 1.0,
+              "mean": 0.13768576958015424
+            },
+            "prior_8d": {
+              "shape": [
+                32768,
+                8
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9999289512634277,
+              "mean": 0.21330689180467383
+            },
+            "prior_ext": {
+              "shape": [
+                32768,
+                13
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.23121714247965414
+            },
+            "prior_prolong": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.2719248023767407
+            },
+            "prior_lift": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.3041480574113289
+            },
+            "gt_values": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.6853207349777222,
+              "mean": 0.09617630901298035
+            },
+            "valid_mask": {
+              "shape": [
+                32768
+              ],
+              "dtype": "bool",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.999359130859375
+            },
+            "tet_ids": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 21.0,
+              "max": 99208.0,
+              "mean": 57878.31298828125
+            },
+            "role": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.73284912109375
+            },
+            "query_src_tag": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 3.0,
+              "mean": 1.0728759765625
+            },
+            "correction_band": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.73284912109375
+            },
+            "prolongation_value": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9999120831489563,
+              "mean": 0.17645056691627914
+            },
+            "residual_indicator": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.5197634976592873
+            },
+            "query_weight": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.75,
+              "max": 1.25,
+              "mean": 1.0708084106445312
+            },
+            "coverage_score": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 5.4409012289081266e-14,
+              "max": 0.8997772336006165,
+              "mean": 0.27932479237253816
+            },
+            "risk_components": {
+              "shape": [
+                32768,
+                4
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 6.094478968009056e-27,
+              "max": 1.0,
+              "mean": 0.25501073135639374
+            }
+          },
+          "unique_valid_tets": 9186,
+          "queries_per_tet": {
+            "shape": [
+              9186
+            ],
+            "dtype": "int64",
+            "finite_fraction": 1.0,
+            "min": 1.0,
+            "max": 61.0,
+            "mean": 3.564881341171348
+          },
+          "negative_tet_count": 0,
+          "negative_tet_marked_valid": 0,
+          "negative_tet_with_nonzero_prior": null,
+          "role_band_mismatch": 0,
+          "band_source_mismatch": 0,
+          "role_counts": [
+            3714,
+            11148,
+            12995,
+            0,
+            4911
+          ]
+        }
+      ],
+      "blocked": false,
+      "blocker": null
+    },
+    "test": {
+      "directory": "/home/foods/pro/DU2Vox/precomputed/cqr_v2_3k_rgl_main/test",
+      "exists": true,
+      "expected_split_samples": 300,
+      "npz_files_found": 5,
+      "required_minimum_audited": 5,
+      "samples_audited": 5,
+      "records": [
+        {
+          "path": "/home/foods/pro/DU2Vox/precomputed/cqr_v2_3k_rgl_main/test/sample_0002.npz",
+          "candidate_pool_size": 32768,
+          "valid_count": 32753,
+          "missing_keys": [],
+          "arrays": {
+            "grid_coords": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.1050606295466423,
+              "max": 39.90283203125,
+              "mean": 18.701380763919058
+            },
+            "grid_coords_norm": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": -1.0,
+              "max": 1.0,
+              "mean": 0.053219753502465515
+            },
+            "prior_8d": {
+              "shape": [
+                32768,
+                8
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9996317625045776,
+              "mean": 0.21503056814492233
+            },
+            "prior_ext": {
+              "shape": [
+                32768,
+                13
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.2340161819501564
+            },
+            "prior_prolong": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.272236395987016
+            },
+            "prior_lift": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.34215378652296013
+            },
+            "gt_values": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.4124678373336792,
+              "mean": 0.22176756852794396
+            },
+            "valid_mask": {
+              "shape": [
+                32768
+              ],
+              "dtype": "bool",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.999542236328125
+            },
+            "tet_ids": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 3.0,
+              "max": 99195.0,
+              "mean": 67226.41567993164
+            },
+            "role": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.6727294921875
+            },
+            "query_src_tag": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 3.0,
+              "mean": 1.0235595703125
+            },
+            "correction_band": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.6727294921875
+            },
+            "prolongation_value": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9996126294136047,
+              "mean": 0.18050793004527904
+            },
+            "residual_indicator": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.6702380653025629
+            },
+            "query_weight": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.75,
+              "max": 1.25,
+              "mean": 1.0723953247070312
+            },
+            "coverage_score": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 3.5463853262449746e-14,
+              "max": 0.8999496698379517,
+              "mean": 0.2793240371969619
+            },
+            "risk_components": {
+              "shape": [
+                32768,
+                4
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 8.873768441082854e-28,
+              "max": 1.0,
+              "mean": 0.26066044574892305
+            }
+          },
+          "unique_valid_tets": 8590,
+          "queries_per_tet": {
+            "shape": [
+              8590
+            ],
+            "dtype": "int64",
+            "finite_fraction": 1.0,
+            "min": 1.0,
+            "max": 43.0,
+            "mean": 3.8129220023282886
+          },
+          "negative_tet_count": 0,
+          "negative_tet_marked_valid": 0,
+          "negative_tet_with_nonzero_prior": null,
+          "role_band_mismatch": 0,
+          "band_source_mismatch": 0,
+          "role_counts": [
+            3832,
+            11430,
+            13321,
+            0,
+            4185
+          ]
+        },
+        {
+          "path": "/home/foods/pro/DU2Vox/precomputed/cqr_v2_3k_rgl_main/test/sample_0006.npz",
+          "candidate_pool_size": 32768,
+          "valid_count": 32726,
+          "missing_keys": [],
+          "arrays": {
+            "grid_coords": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0977540984749794,
+              "max": 39.8979606628418,
+              "mean": 19.498859922435486
+            },
+            "grid_coords_norm": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": -1.0,
+              "max": 1.0,
+              "mean": 0.1770285353250074
+            },
+            "prior_8d": {
+              "shape": [
+                32768,
+                8
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9993665814399719,
+              "mean": 0.22293813936319706
+            },
+            "prior_ext": {
+              "shape": [
+                32768,
+                13
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.22878830393853217
+            },
+            "prior_prolong": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.2701143787922947
+            },
+            "prior_lift": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.3018991428619541
+            },
+            "gt_values": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.211640477180481,
+              "mean": 0.07668447118568045
+            },
+            "valid_mask": {
+              "shape": [
+                32768
+              ],
+              "dtype": "bool",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.99871826171875
+            },
+            "tet_ids": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 2.0,
+              "max": 99196.0,
+              "mean": 36031.96740722656
+            },
+            "role": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.79376220703125
+            },
+            "query_src_tag": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 3.0,
+              "mean": 1.126373291015625
+            },
+            "correction_band": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.79376220703125
+            },
+            "prolongation_value": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9990601539611816,
+              "mean": 0.19642245150130766
+            },
+            "residual_indicator": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.4981804450668663
+            },
+            "query_weight": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.75,
+              "max": 1.25,
+              "mean": 1.0685501098632812
+            },
+            "coverage_score": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 6.955494394420697e-14,
+              "max": 0.8999770283699036,
+              "mean": 0.2511814213476267
+            },
+            "risk_components": {
+              "shape": [
+                32768,
+                4
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 1.971136450562662e-26,
+              "max": 1.0,
+              "mean": 0.23489035373692876
+            }
+          },
+          "unique_valid_tets": 9930,
+          "queries_per_tet": {
+            "shape": [
+              9930
+            ],
+            "dtype": "int64",
+            "finite_fraction": 1.0,
+            "min": 1.0,
+            "max": 66.0,
+            "mean": 3.2956696878147027
+          },
+          "negative_tet_count": 0,
+          "negative_tet_marked_valid": 0,
+          "negative_tet_with_nonzero_prior": null,
+          "role_band_mismatch": 0,
+          "band_source_mismatch": 0,
+          "role_counts": [
+            3633,
+            10842,
+            12618,
+            0,
+            5675
+          ]
+        },
+        {
+          "path": "/home/foods/pro/DU2Vox/precomputed/cqr_v2_3k_rgl_main/test/sample_0022.npz",
+          "candidate_pool_size": 32768,
+          "valid_count": 32734,
+          "missing_keys": [],
+          "arrays": {
+            "grid_coords": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.09864959865808487,
+              "max": 39.902000427246094,
+              "mean": 16.008906166131055
+            },
+            "grid_coords_norm": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": -1.0,
+              "max": 1.0,
+              "mean": -0.1029320991425872
+            },
+            "prior_8d": {
+              "shape": [
+                32768,
+                8
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9999649524688721,
+              "mean": 0.20671824751764814
+            },
+            "prior_ext": {
+              "shape": [
+                32768,
+                13
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.22443246586948545
+            },
+            "prior_prolong": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.2663754318286845
+            },
+            "prior_lift": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.31509890373396143
+            },
+            "gt_values": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.3884775638580322,
+              "mean": 0.06924143446526188
+            },
+            "valid_mask": {
+              "shape": [
+                32768
+              ],
+              "dtype": "bool",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.99896240234375
+            },
+            "tet_ids": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 4.0,
+              "max": 99207.0,
+              "mean": 55990.65252685547
+            },
+            "role": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.7518310546875
+            },
+            "query_src_tag": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 3.0,
+              "mean": 1.08984375
+            },
+            "correction_band": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.7518310546875
+            },
+            "prolongation_value": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9999337196350098,
+              "mean": 0.1640953567549443
+            },
+            "residual_indicator": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.5899998803808659
+            },
+            "query_weight": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.75,
+              "max": 1.25,
+              "mean": 1.0703811645507812
+            },
+            "coverage_score": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 3.975344494778002e-14,
+              "max": 0.8996376395225525,
+              "mean": 0.2775220572049217
+            },
+            "risk_components": {
+              "shape": [
+                32768,
+                4
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 2.1920349144312425e-27,
+              "max": 1.0,
+              "mean": 0.24658850473930094
+            }
+          },
+          "unique_valid_tets": 8659,
+          "queries_per_tet": {
+            "shape": [
+              8659
+            ],
+            "dtype": "int64",
+            "finite_fraction": 1.0,
+            "min": 1.0,
+            "max": 56.0,
+            "mean": 3.780344150594757
+          },
+          "negative_tet_count": 0,
+          "negative_tet_marked_valid": 0,
+          "negative_tet_with_nonzero_prior": null,
+          "role_band_mismatch": 0,
+          "band_source_mismatch": 0,
+          "role_counts": [
+            3692,
+            11022,
+            12917,
+            0,
+            5137
+          ]
+        },
+        {
+          "path": "/home/foods/pro/DU2Vox/precomputed/cqr_v2_3k_rgl_main/test/sample_0032.npz",
+          "candidate_pool_size": 32768,
+          "valid_count": 32730,
+          "missing_keys": [],
+          "arrays": {
+            "grid_coords": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.1005929559469223,
+              "max": 39.89946365356445,
+              "mean": 13.295983806490236
+            },
+            "grid_coords_norm": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": -1.0,
+              "max": 1.0,
+              "mean": -0.2777634733817346
+            },
+            "prior_8d": {
+              "shape": [
+                32768,
+                8
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": -1.9800567940819747e-07,
+              "max": 0.9999946355819702,
+              "mean": 0.2276103547713773
+            },
+            "prior_ext": {
+              "shape": [
+                32768,
+                13
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": -1.9800567940819747e-07,
+              "max": 1.0,
+              "mean": 0.23734952825139027
+            },
+            "prior_prolong": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": -1.9800567940819747e-07,
+              "max": 1.0,
+              "mean": 0.27702653926423076
+            },
+            "prior_lift": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": -1.9800567940819747e-07,
+              "max": 1.0,
+              "mean": 0.34938311131635186
+            },
+            "gt_values": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9255465269088745,
+              "mean": 0.293568666847828
+            },
+            "valid_mask": {
+              "shape": [
+                32768
+              ],
+              "dtype": "bool",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.99884033203125
+            },
+            "tet_ids": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 6.0,
+              "max": 99208.0,
+              "mean": 52983.763732910156
+            },
+            "role": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.73394775390625
+            },
+            "query_src_tag": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 3.0,
+              "mean": 1.072967529296875
+            },
+            "correction_band": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.73394775390625
+            },
+            "prolongation_value": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9999918937683105,
+              "mean": 0.206602810072893
+            },
+            "residual_indicator": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.6803946322479691
+            },
+            "query_weight": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.75,
+              "max": 1.25,
+              "mean": 1.0708084106445312
+            },
+            "coverage_score": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 3.762779543785462e-14,
+              "max": 0.8999236226081848,
+              "mean": 0.2651102752127893
+            },
+            "risk_components": {
+              "shape": [
+                32768,
+                4
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 1.5838715936439437e-27,
+              "max": 1.0,
+              "mean": 0.24988768847106646
+            }
+          },
+          "unique_valid_tets": 7956,
+          "queries_per_tet": {
+            "shape": [
+              7956
+            ],
+            "dtype": "int64",
+            "finite_fraction": 1.0,
+            "min": 1.0,
+            "max": 68.0,
+            "mean": 4.113876319758672
+          },
+          "negative_tet_count": 0,
+          "negative_tet_marked_valid": 0,
+          "negative_tet_with_nonzero_prior": null,
+          "role_band_mismatch": 0,
+          "band_source_mismatch": 0,
+          "role_counts": [
+            3703,
+            11158,
+            12984,
+            0,
+            4923
+          ]
+        },
+        {
+          "path": "/home/foods/pro/DU2Vox/precomputed/cqr_v2_3k_rgl_main/test/sample_0038.npz",
+          "candidate_pool_size": 32768,
+          "valid_count": 32742,
+          "missing_keys": [],
+          "arrays": {
+            "grid_coords": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.10136256366968155,
+              "max": 39.90064239501953,
+              "mean": 17.00158190107307
+            },
+            "grid_coords_norm": {
+              "shape": [
+                32768,
+                3
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": -1.0,
+              "max": 1.0,
+              "mean": -0.04597673696540975
+            },
+            "prior_8d": {
+              "shape": [
+                32768,
+                8
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9999676942825317,
+              "mean": 0.20021152691774027
+            },
+            "prior_ext": {
+              "shape": [
+                32768,
+                13
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.22224099245848467
+            },
+            "prior_prolong": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.26329465940897934
+            },
+            "prior_lift": {
+              "shape": [
+                32768,
+                15
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.3294780121538704
+            },
+            "gt_values": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.7068198919296265,
+              "mean": 0.2377527419764568
+            },
+            "valid_mask": {
+              "shape": [
+                32768
+              ],
+              "dtype": "bool",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.99920654296875
+            },
+            "tet_ids": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 4.0,
+              "max": 99196.0,
+              "mean": 51169.61325073242
+            },
+            "role": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.738128662109375
+            },
+            "query_src_tag": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 3.0,
+              "mean": 1.07659912109375
+            },
+            "correction_band": {
+              "shape": [
+                32768
+              ],
+              "dtype": "int64",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 4.0,
+              "mean": 1.738128662109375
+            },
+            "prolongation_value": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 0.9992634057998657,
+              "mean": 0.15077020681236614
+            },
+            "residual_indicator": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.0,
+              "max": 1.0,
+              "mean": 0.6732607963834444
+            },
+            "query_weight": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 0.75,
+              "max": 1.25,
+              "mean": 1.0703887939453125
+            },
+            "coverage_score": {
+              "shape": [
+                32768
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 2.1138799871233023e-14,
+              "max": 0.8997018933296204,
+              "mean": 0.28441073028900266
+            },
+            "risk_components": {
+              "shape": [
+                32768,
+                4
+              ],
+              "dtype": "float32",
+              "finite_fraction": 1.0,
+              "min": 4.734045581310656e-27,
+              "max": 1.0,
+              "mean": 0.25075748908234397
+            }
+          },
+          "unique_valid_tets": 8293,
+          "queries_per_tet": {
+            "shape": [
+              8293
+            ],
+            "dtype": "int64",
+            "finite_fraction": 1.0,
+            "min": 1.0,
+            "max": 45.0,
+            "mean": 3.948149041360183
+          },
+          "negative_tet_count": 0,
+          "negative_tet_marked_valid": 0,
+          "negative_tet_with_nonzero_prior": null,
+          "role_band_mismatch": 0,
+          "band_source_mismatch": 0,
+          "role_counts": [
+            3697,
+            11161,
+            12923,
+            0,
+            4987
+          ]
+        }
+      ],
+      "blocked": false,
+      "blocker": null
+    }
+  },
+  "blockers": []
+}

@@ -1,8 +1,13 @@
+import hashlib
+import json
+
 import numpy as np
+import pytest
 import scipy.sparse as sp
 
 from du2vox.physics.compressed_green_operator import apply_surface_convention
 from du2vox.physics.compressed_green_operator import build_compressed_green_operator
+from du2vox.utils import frame
 
 
 def test_compressed_operator_identity_and_full_surface_convention():
@@ -32,3 +37,28 @@ def test_visible_mask_convention_crops_rows_and_indices():
     assert applied
     np.testing.assert_array_equal(cropped, forward[mask])
     np.testing.assert_array_equal(indices, surface[mask])
+
+
+def test_frame_manifest_sha256_certification(tmp_path, monkeypatch):
+    manifest = {
+        "world_frame": "mcx_trunk_local_mm",
+        "mcx_volume": {"voxel_size_mm": 0.2},
+        "frame_contract": {
+            "voxel_size_mm": 0.2,
+            "volume_extents_mm": [38.0, 40.0, 20.8],
+            "grid_shape_xyz": [190, 200, 104],
+        },
+    }
+    payload = json.dumps(manifest).encode()
+    (tmp_path / "frame_manifest.json").write_bytes(payload)
+    monkeypatch.setenv("DU2VOX_FRAME_MANIFEST_SHA256", "0" * 64)
+    frame._CACHED_CONSTANTS = None
+    with pytest.raises(RuntimeError, match="hash mismatch"):
+        frame.get_frame_constants(tmp_path)
+
+    monkeypatch.setenv(
+        "DU2VOX_FRAME_MANIFEST_SHA256", hashlib.sha256(payload).hexdigest()
+    )
+    frame._CACHED_CONSTANTS = None
+    constants = frame.get_frame_constants(tmp_path)
+    assert constants["mcx_shape_xyz"] == (190, 200, 104)

@@ -26,6 +26,7 @@ def main() -> None:
     parser.add_argument("--config", required=True)
     parser.add_argument("--operator_cache", default=None)
     parser.add_argument("--max_rank", type=int, default=128)
+    parser.add_argument("--power-iterations", type=int, default=2)
     parser.add_argument("--out_json", default="diagnosis/cqr_transport_operator.json")
     parser.add_argument("--out_md", default="diagnosis/cqr_transport_operator.md")
     args = parser.parse_args()
@@ -44,6 +45,7 @@ def main() -> None:
         rank=args.max_rank,
         oversampling=int(transport.get("oversampling", 16)),
         seed=int(transport.get("seed", 20260722)),
+        power_iterations=args.power_iterations,
     )
     total_energy = spectrum.frobenius_energy
     ranks = [rank for rank in (16, 32, 64, 128) if rank <= args.max_rank]
@@ -63,6 +65,7 @@ def main() -> None:
         "retained_energy_by_rank": retained,
         "rank64_cache_retained_energy": operator.retained_energy_ratio,
         "gram_condition_number_rank_max": gram_condition,
+        "spectral_power_iterations": args.power_iterations,
         "optical_modes_finite": bool(
             np.isfinite(operator.measurement_basis).all()
             and np.isfinite(operator.green_node_modes).all()

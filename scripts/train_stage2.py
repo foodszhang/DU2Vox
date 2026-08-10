@@ -970,6 +970,10 @@ def main():
     if cfg.get("data", {}).get("allow_stale_frame_manifest", False):
         os.environ["DU2VOX_ALLOW_STALE_FRAME_MANIFEST"] = "1"
         print("[Stage2][WARN] stale frame manifest explicitly allowed by config")
+    if cfg.get("data", {}).get("frame_manifest_sha256"):
+        os.environ["DU2VOX_FRAME_MANIFEST_SHA256"] = str(
+            cfg["data"]["frame_manifest_sha256"]
+        )
 
     exp_name = args.experiment_name or cfg["experiment"]["name"]
     max_epochs = args.max_epochs or cfg["training"]["max_epochs"]
@@ -1200,6 +1204,18 @@ def main():
             f"[Stage2] Resume baseline: ΔDice={best_delta:+.4f} "
             f"(S2={val_metrics['stage2_dice_05']:.4f} vs FEM={val_metrics['fem_dice_05']:.4f})"
         )
+        resume_baseline_path = Path(args.checkpoint_dir) / exp_name / "best.pth"
+        save_stage2_checkpoint(
+            resume_baseline_path,
+            model,
+            view_encoder,
+            extra={
+                "epoch": 0,
+                "sampled_val_metrics": val_metrics,
+                "initialized_from": str(args.resume_checkpoint),
+            },
+        )
+        print(f"[Stage2] Saved phase-local resume baseline: {resume_baseline_path}")
 
     print(
         f"\n{'Epoch':>5}  {'Loss':>10}  {'ValLoss':>10}  {'S2Dice':>8}  {'FemDice':>8}  {'ΔDice':>8}  {'ResNorm':>8}  {'FemMSE':>10}  {'Valid':>7}  {'Time':>6}"

@@ -98,6 +98,7 @@ def main() -> None:
         frame_metadata=frame_metadata,
         oversampling=args.oversampling,
         seed=args.seed,
+        power_iterations=args.power_iterations,
     )
     print(f"[Transport] cache={output}")
     print(f"[Transport] relative_operator_error={operator.relative_operator_error:.6e}")

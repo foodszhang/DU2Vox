@@ -1,0 +1,265 @@
+{
+  "schema_version": 1,
+  "split": "train",
+  "sample_count": 4,
+  "scale_distribution": {
+    "min": 0.03232594527479485,
+    "mean": 0.805559578669965,
+    "max": 1.7520851806536386
+  },
+  "samples": [
+    {
+      "sample_id": "sample_0000",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32731,
+      "unique_tet_count": 10137,
+      "tet_coverage_ratio": 0.9869334163795044,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3790,
+          "unique_tet_count": 3106
+        },
+        "core": {
+          "query_count": 11273,
+          "unique_tet_count": 2423
+        },
+        "halo": {
+          "query_count": 13160,
+          "unique_tet_count": 1279
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 4508,
+          "unique_tet_count": 3726
+        }
+      },
+      "subsample_2048_coverage_mean": 0.2517342299175455,
+      "subsample_2048_coverage_std": 0.0033661521841917797,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.99636692718429,
+          "evidence_l2": 0.29844905043249337,
+          "evidence_abs_mean": 0.00035563423323341415,
+          "evidence_abs_max": 0.046912307901914904
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 3.064679004261431,
+          "evidence_l2": 0.9324466613035207,
+          "evidence_abs_mean": 0.0011083442921612677,
+          "evidence_abs_max": 0.15093202485698382
+        },
+        "least_squares_stage1_scale": {
+          "scale": 0.03232594527479485,
+          "residual_norm": 0.013222458920786516,
+          "evidence_l2": 0.0040557298618154785,
+          "evidence_abs_mean": 4.709831896934226e-06,
+          "evidence_abs_max": 0.0007093839964245365
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.9632066417380861,
+        "l2__least_squares_stage1_scale": 0.8775815958840705,
+        "max__least_squares_stage1_scale": 0.9741442214530739
+      },
+      "projector_decomposition_max_error": 1.1920928955078125e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.00032466076663695276,
+      "projector_backward_finite": true
+    },
+    {
+      "sample_id": "sample_0003",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32735,
+      "unique_tet_count": 8839,
+      "tet_coverage_ratio": 0.9993056107632396,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3712,
+          "unique_tet_count": 3127
+        },
+        "core": {
+          "query_count": 11162,
+          "unique_tet_count": 1253
+        },
+        "halo": {
+          "query_count": 13065,
+          "unique_tet_count": 860
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 4796,
+          "unique_tet_count": 3926
+        }
+      },
+      "subsample_2048_coverage_mean": 0.2670525014328467,
+      "subsample_2048_coverage_std": 0.005155772162880506,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.19809888313583707,
+          "evidence_l2": 0.0638546896279469,
+          "evidence_abs_mean": 6.966380577786444e-05,
+          "evidence_abs_max": 0.010972885262857772
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 0.6212851492512268,
+          "evidence_l2": 0.20196738376630924,
+          "evidence_abs_mean": 0.00021855203474202128,
+          "evidence_abs_max": 0.03548785371460991
+        },
+        "least_squares_stage1_scale": {
+          "scale": 0.40322685571216405,
+          "residual_norm": 0.004637903631336205,
+          "evidence_l2": 0.001505227544239979,
+          "evidence_abs_mean": 1.6315177557787397e-06,
+          "evidence_abs_max": 0.00026354024680366316
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.9931419766801157,
+        "l2__least_squares_stage1_scale": 0.9957692775316531,
+        "max__least_squares_stage1_scale": 0.9996834035648232
+      },
+      "projector_decomposition_max_error": 2.384185791015625e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.00038813622086308897,
+      "projector_backward_finite": true
+    },
+    {
+      "sample_id": "sample_0004",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32740,
+      "unique_tet_count": 8679,
+      "tet_coverage_ratio": 1.0,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3682,
+          "unique_tet_count": 3123
+        },
+        "core": {
+          "query_count": 11079,
+          "unique_tet_count": 1153
+        },
+        "halo": {
+          "query_count": 12866,
+          "unique_tet_count": 802
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 5113,
+          "unique_tet_count": 4072
+        }
+      },
+      "subsample_2048_coverage_mean": 0.254426934822172,
+      "subsample_2048_coverage_std": 0.003761688886220502,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.10513505878129388,
+          "evidence_l2": 0.03400432947481055,
+          "evidence_abs_mean": 5.456411103209843e-05,
+          "evidence_abs_max": 0.00541838116590989
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 0.3178362664526591,
+          "evidence_l2": 0.10489988562515436,
+          "evidence_abs_mean": 0.00016890156769228928,
+          "evidence_abs_max": 0.014746428493629324
+        },
+        "least_squares_stage1_scale": {
+          "scale": 1.0346003330392624,
+          "residual_norm": 0.614008462860661,
+          "evidence_l2": 0.19936449621093796,
+          "evidence_abs_mean": 0.0003184025916884146,
+          "evidence_abs_max": 0.031139415229963403
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.9679545033412832,
+        "l2__least_squares_stage1_scale": 0.998538797064293,
+        "max__least_squares_stage1_scale": 0.9801108360126762
+      },
+      "projector_decomposition_max_error": 2.384185791015625e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.0003013086970895529,
+      "projector_backward_finite": true
+    },
+    {
+      "sample_id": "sample_0005",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32746,
+      "unique_tet_count": 8023,
+      "tet_coverage_ratio": 0.9996997680249475,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3684,
+          "unique_tet_count": 3121
+        },
+        "core": {
+          "query_count": 11084,
+          "unique_tet_count": 910
+        },
+        "halo": {
+          "query_count": 12941,
+          "unique_tet_count": 875
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 5037,
+          "unique_tet_count": 3775
+        }
+      },
+      "subsample_2048_coverage_mean": 0.2927312888221981,
+      "subsample_2048_coverage_std": 0.003948975147321459,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.16444949255422947,
+          "evidence_l2": 0.0493111004769639,
+          "evidence_abs_mean": 8.737632033541714e-05,
+          "evidence_abs_max": 0.006881904813787141
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 0.39038807507113316,
+          "evidence_l2": 0.11488243695802881,
+          "evidence_abs_mean": 0.0002053445691559088,
+          "evidence_abs_max": 0.015269864775198018
+        },
+        "least_squares_stage1_scale": {
+          "scale": 1.7520851806536386,
+          "residual_norm": 0.7493494854075421,
+          "evidence_l2": 0.22807592683862016,
+          "evidence_abs_mean": 0.0004007339206364174,
+          "evidence_abs_max": 0.032762189261625385
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.9946993334608771,
+        "l2__least_squares_stage1_scale": 0.9968217639527553,
+        "max__least_squares_stage1_scale": 0.9833463828267167
+      },
+      "projector_decomposition_max_error": 1.1920928955078125e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.00038241653237491846,
+      "projector_backward_finite": true
+    }
+  ],
+  "operator_scope": "CQR candidate-supported correction operator; not full-volume quadrature"
+}

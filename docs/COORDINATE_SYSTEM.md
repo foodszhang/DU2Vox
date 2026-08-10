@@ -79,4 +79,6 @@ mesh.nodes / gt_nodes 的隐式坐标 / gt_voxels offset / tumor_params.foci[i].
 内容、mesh bounds、measurement/shared 资产来自同一版本时，才可显式设置
 `DU2VOX_ALLOW_STALE_FRAME_MANIFEST=1`（训练配置对应
 `data.allow_stale_frame_manifest: true`）。该开关只忽略 mtime 门禁，不改变任何坐标值；
-正式数据重建后应移除此开关。
+正式实验还应通过 `data.frame_manifest_sha256` 固定已审计 manifest 的 SHA256；训练和
+统一评估会将它传给 `DU2VOX_FRAME_MANIFEST_SHA256`，内容变化时立即失败。正式数据重建后
+应重新审计哈希并移除 stale 开关。

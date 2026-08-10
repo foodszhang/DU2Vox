@@ -16,6 +16,7 @@ data:
   shared_dir: /home/foods/pro/FMT-SimGen/output/shared_mesh_20k
   # The content was audited against the current frame contract; only mtime is stale.
   allow_stale_frame_manifest: true
+  frame_manifest_sha256: 25b77f5d11430ebf4d9735f19534782afb56f7fe5cab525a569028b0f3c02e2b
   train_split: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/train.txt
   val_split: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/val.txt
   test_split: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/test.txt
@@ -82,6 +83,7 @@ transport:
   quadrature_root: precomputed/cqr_v2_3k_rgl_main_physics_quadrature
   rank: 64
   oversampling: 16
+  power_iterations: 2
   seed: 20260722
   measurement_normalization: least_squares_stage1_scale
   physics_tet_mode: stratified
