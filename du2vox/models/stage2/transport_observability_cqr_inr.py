@@ -105,11 +105,12 @@ class TransportObservabilityCQRINR(nn.Module):
         self.observable_head = _CorrectionHead(input_dim, hidden_dim, n_hidden_layers)
         self.ambiguous_head = _CorrectionHead(input_dim, hidden_dim, n_hidden_layers)
 
-    def set_phase(self, phase: str) -> None:
+    def set_phase(self, phase: str, freeze_lifter_after_phase_a: bool = False) -> None:
         if phase not in {"lifter", "observable", "full"}:
             raise ValueError(f"Unknown training phase: {phase}")
+        train_lifter = phase == "lifter" or not freeze_lifter_after_phase_a
         for parameter in self.lifter.parameters():
-            parameter.requires_grad_(True)
+            parameter.requires_grad_(train_lifter)
         for parameter in self.observable_head.parameters():
             parameter.requires_grad_(phase in {"observable", "full"})
         for parameter in self.ambiguous_head.parameters():

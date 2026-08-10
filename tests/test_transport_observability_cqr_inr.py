@@ -51,6 +51,21 @@ def test_model_zero_init_is_p1_and_backward_finite():
     assert all(parameter.grad is None or torch.isfinite(parameter.grad).all() for parameter in model.parameters())
 
 
+def test_phase_curriculum_can_freeze_lifter_and_select_branch_heads():
+    kwargs, _ = synthetic_batch()
+    model = TransportObservabilityCQRINR(**kwargs)
+
+    model.set_phase("observable", freeze_lifter_after_phase_a=True)
+    assert not any(parameter.requires_grad for parameter in model.lifter.parameters())
+    assert all(parameter.requires_grad for parameter in model.observable_head.parameters())
+    assert not any(parameter.requires_grad for parameter in model.ambiguous_head.parameters())
+
+    model.set_phase("full", freeze_lifter_after_phase_a=True)
+    assert not any(parameter.requires_grad for parameter in model.lifter.parameters())
+    assert all(parameter.requires_grad for parameter in model.observable_head.parameters())
+    assert all(parameter.requires_grad for parameter in model.ambiguous_head.parameters())
+
+
 def test_old_sparse_cqr_checkpoint_and_config_remain_loadable():
     root = Path(__file__).resolve().parents[1]
     config_path = root / "configs/stage2/cqr_v2_3k_rgl_main_multiview_sparse.yaml"

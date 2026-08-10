@@ -1,0 +1,1020 @@
+{
+  "schema_version": 1,
+  "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+  "split": "val",
+  "summary": {
+    "count": 25,
+    "source_load_relative_error_mean": 3.126225438722605e-08,
+    "source_load_relative_error_max": 3.233839723060916e-08,
+    "compressed_measurement_relative_error_mean": 2.6953042227368806e-08,
+    "compressed_measurement_relative_error_max": 2.9201949744331552e-08
+  },
+  "per_depth": {
+    "medium": {
+      "count": 11,
+      "source_load_relative_error_mean": 3.129385951773693e-08,
+      "source_load_relative_error_max": 3.233839723060916e-08,
+      "compressed_measurement_relative_error_mean": 2.708045611937067e-08,
+      "compressed_measurement_relative_error_max": 2.9201949744331552e-08
+    },
+    "deep": {
+      "count": 7,
+      "source_load_relative_error_mean": 3.123449331335907e-08,
+      "source_load_relative_error_max": 3.1879249068317926e-08,
+      "compressed_measurement_relative_error_mean": 2.6503020340481757e-08,
+      "compressed_measurement_relative_error_max": 2.7675184150494713e-08
+    },
+    "shallow": {
+      "count": 7,
+      "source_load_relative_error_mean": 3.12403502560045e-08,
+      "source_load_relative_error_max": 3.167612584512375e-08,
+      "compressed_measurement_relative_error_mean": 2.720284228396722e-08,
+      "compressed_measurement_relative_error_max": 2.8371185540470474e-08
+    }
+  },
+  "per_foci": {
+    "2": {
+      "count": 11,
+      "source_load_relative_error_mean": 3.126242985096861e-08,
+      "source_load_relative_error_max": 3.182894001105315e-08,
+      "compressed_measurement_relative_error_mean": 2.745801686813986e-08,
+      "compressed_measurement_relative_error_max": 2.9201949744331552e-08
+    },
+    "1": {
+      "count": 8,
+      "source_load_relative_error_mean": 3.1125193708005076e-08,
+      "source_load_relative_error_max": 3.1879249068317926e-08,
+      "compressed_measurement_relative_error_mean": 2.6567867932469284e-08,
+      "compressed_measurement_relative_error_max": 2.789212647065562e-08
+    },
+    "3": {
+      "count": 6,
+      "source_load_relative_error_mean": 3.144468027599263e-08,
+      "source_load_relative_error_max": 3.233839723060916e-08,
+      "compressed_measurement_relative_error_mean": 2.6540821112487916e-08,
+      "compressed_measurement_relative_error_max": 2.7477277824793354e-08
+    }
+  },
+  "samples": [
+    {
+      "sample_id": "sample_0001",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.1078914238189604e-08,
+      "compressed_measurement_relative_error": 2.6566080669422192e-08,
+      "source_load_max_absolute_error": 2.9447371069357686e-09,
+      "compressed_measurement_max_absolute_error": 1.241992245160084e-09,
+      "per_role": {
+        "core": {
+          "tet_count": 340,
+          "source_load_relative_error": 3.0659681538057515e-08,
+          "compressed_measurement_relative_error": 2.7661904233961835e-08
+        },
+        "halo": {
+          "tet_count": 5,
+          "source_load_relative_error": 3.954345900736115e-08,
+          "compressed_measurement_relative_error": 2.5029388270890983e-08
+        },
+        "proposal": {
+          "tet_count": 679,
+          "source_load_relative_error": 3.2342537129668656e-08,
+          "compressed_measurement_relative_error": 2.432452734802101e-08
+        }
+      },
+      "depth_tier": "medium",
+      "depth_mm": 3.874967962361074,
+      "num_foci": 2,
+      "learned_lifter": {
+        "transport_error": 3.5056132219324354e-08,
+        "alpha_lambda_l1": 2.8701437258860096e-05,
+        "rho0_minus_p1_l1": 2.7021505957236513e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 4.0609862139717734e-08,
+        "alpha_lambda_l1": 2.596164631540887e-05,
+        "rho0_minus_p1_l1": 1.962188798643183e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 5.55372992039338e-09
+    },
+    {
+      "sample_id": "sample_0008",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.092944729944759e-08,
+      "compressed_measurement_relative_error": 2.6980916408084954e-08,
+      "source_load_max_absolute_error": 3.103238985224799e-09,
+      "compressed_measurement_max_absolute_error": 2.073366868818316e-10,
+      "per_role": {
+        "core": {
+          "tet_count": 358,
+          "source_load_relative_error": 3.060904590652787e-08,
+          "compressed_measurement_relative_error": 2.7035604418587024e-08
+        },
+        "halo": {
+          "tet_count": 9,
+          "source_load_relative_error": 3.9686538921487416e-08,
+          "compressed_measurement_relative_error": 2.3503815131268826e-08
+        },
+        "proposal": {
+          "tet_count": 657,
+          "source_load_relative_error": 3.2304169932001e-08,
+          "compressed_measurement_relative_error": 2.6424716373675214e-08
+        }
+      },
+      "depth_tier": "medium",
+      "depth_mm": 4.493166781404351,
+      "num_foci": 2,
+      "learned_lifter": {
+        "transport_error": 2.2879133254605222e-08,
+        "alpha_lambda_l1": 2.6364403311163187e-05,
+        "rho0_minus_p1_l1": 1.9467814126983285e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 3.566201911553435e-08,
+        "alpha_lambda_l1": 2.4432567443000153e-05,
+        "rho0_minus_p1_l1": 1.5236316357913893e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 1.2782885860929127e-08
+    },
+    {
+      "sample_id": "sample_0013",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.142212467333329e-08,
+      "compressed_measurement_relative_error": 2.7675184150494713e-08,
+      "source_load_max_absolute_error": 2.652277369952216e-09,
+      "compressed_measurement_max_absolute_error": 2.2677896782674623e-08,
+      "per_role": {
+        "core": {
+          "tet_count": 210,
+          "source_load_relative_error": 3.1379030069971885e-08,
+          "compressed_measurement_relative_error": 2.7929211897345837e-08
+        },
+        "proposal": {
+          "tet_count": 814,
+          "source_load_relative_error": 3.14727635977948e-08,
+          "compressed_measurement_relative_error": 2.744573147847949e-08
+        }
+      },
+      "depth_tier": "deep",
+      "depth_mm": 8.215329093552395,
+      "num_foci": 2,
+      "learned_lifter": {
+        "transport_error": 1.8211075314411573e-08,
+        "alpha_lambda_l1": 2.3494998458772898e-05,
+        "rho0_minus_p1_l1": 1.2851756764575839e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 2.1207652523003162e-08,
+        "alpha_lambda_l1": 2.175849294872023e-05,
+        "rho0_minus_p1_l1": 8.750925189815462e-06
+      },
+      "learned_lifter_transport_error_absolute_delta": 2.9965772085915887e-09
+    },
+    {
+      "sample_id": "sample_0014",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.100213829659233e-08,
+      "compressed_measurement_relative_error": 2.7883626368693255e-08,
+      "source_load_max_absolute_error": 2.927299444510645e-09,
+      "compressed_measurement_max_absolute_error": 2.023176445820063e-09,
+      "per_role": {
+        "core": {
+          "tet_count": 334,
+          "source_load_relative_error": 3.064715631822058e-08,
+          "compressed_measurement_relative_error": 2.8029920800540134e-08
+        },
+        "halo": {
+          "tet_count": 6,
+          "source_load_relative_error": 4.005889929194263e-08,
+          "compressed_measurement_relative_error": 2.2311040315577067e-08
+        },
+        "proposal": {
+          "tet_count": 684,
+          "source_load_relative_error": 3.1845027818635946e-08,
+          "compressed_measurement_relative_error": 2.7649102417879824e-08
+        }
+      },
+      "depth_tier": "shallow",
+      "depth_mm": 1.572923075481084,
+      "num_foci": 2,
+      "learned_lifter": {
+        "transport_error": 2.254332720497132e-08,
+        "alpha_lambda_l1": 2.7086822228739038e-05,
+        "rho0_minus_p1_l1": 2.178082831960637e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 4.3174889441388586e-08,
+        "alpha_lambda_l1": 2.5127481421804987e-05,
+        "rho0_minus_p1_l1": 1.6688996765878983e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 2.0631562236417267e-08
+    },
+    {
+      "sample_id": "sample_0026",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.102300038882866e-08,
+      "compressed_measurement_relative_error": 2.858419508235587e-08,
+      "source_load_max_absolute_error": 2.932981246761557e-09,
+      "compressed_measurement_max_absolute_error": 3.364676293138302e-08,
+      "per_role": {
+        "core": {
+          "tet_count": 256,
+          "source_load_relative_error": 3.1041285067887164e-08,
+          "compressed_measurement_relative_error": 2.8787216246179284e-08
+        },
+        "proposal": {
+          "tet_count": 768,
+          "source_load_relative_error": 3.093090709858284e-08,
+          "compressed_measurement_relative_error": 2.7711789665241448e-08
+        }
+      },
+      "depth_tier": "medium",
+      "depth_mm": 4.00257900970183,
+      "num_foci": 2,
+      "learned_lifter": {
+        "transport_error": 1.0427945618118883e-08,
+        "alpha_lambda_l1": 2.496023262210656e-05,
+        "rho0_minus_p1_l1": 1.4863211617921479e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 1.2879502797602527e-08,
+        "alpha_lambda_l1": 2.4918499548221007e-05,
+        "rho0_minus_p1_l1": 1.4915420251782052e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 2.4515571794836433e-09
+    },
+    {
+      "sample_id": "sample_0029",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.0649628551199776e-08,
+      "compressed_measurement_relative_error": 2.719094417604672e-08,
+      "source_load_max_absolute_error": 2.5537120196261753e-09,
+      "compressed_measurement_max_absolute_error": 2.2346969587305754e-10,
+      "per_role": {
+        "core": {
+          "tet_count": 340,
+          "source_load_relative_error": 3.027617427785154e-08,
+          "compressed_measurement_relative_error": 2.779615333911818e-08
+        },
+        "halo": {
+          "tet_count": 6,
+          "source_load_relative_error": 3.97862552241406e-08,
+          "compressed_measurement_relative_error": 3.2054130441078476e-08
+        },
+        "proposal": {
+          "tet_count": 678,
+          "source_load_relative_error": 3.22152269104632e-08,
+          "compressed_measurement_relative_error": 2.6057227666854106e-08
+        }
+      },
+      "depth_tier": "deep",
+      "depth_mm": 7.02417413032633,
+      "num_foci": 1,
+      "learned_lifter": {
+        "transport_error": 2.5889887567132064e-08,
+        "alpha_lambda_l1": 2.735149973887019e-05,
+        "rho0_minus_p1_l1": 2.0470039089559577e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 3.7577539302446894e-08,
+        "alpha_lambda_l1": 2.5182574972859584e-05,
+        "rho0_minus_p1_l1": 1.6024967408156954e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 1.168765173531483e-08
+    },
+    {
+      "sample_id": "sample_0039",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.148632349705173e-08,
+      "compressed_measurement_relative_error": 2.6767512575816794e-08,
+      "source_load_max_absolute_error": 2.853772301802948e-09,
+      "compressed_measurement_max_absolute_error": 2.0149686474901785e-08,
+      "per_role": {
+        "core": {
+          "tet_count": 209,
+          "source_load_relative_error": 3.159369742465496e-08,
+          "compressed_measurement_relative_error": 2.7052786696289993e-08
+        },
+        "proposal": {
+          "tet_count": 815,
+          "source_load_relative_error": 3.13094658731579e-08,
+          "compressed_measurement_relative_error": 2.6213384838704107e-08
+        }
+      },
+      "depth_tier": "deep",
+      "depth_mm": 6.557676578335369,
+      "num_foci": 1,
+      "learned_lifter": {
+        "transport_error": 3.6643282186332726e-08,
+        "alpha_lambda_l1": 2.5480976546532474e-05,
+        "rho0_minus_p1_l1": 1.6946582036325708e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 3.463677344939242e-08,
+        "alpha_lambda_l1": 2.2890664695296437e-05,
+        "rho0_minus_p1_l1": 1.0459646546223667e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 2.0065087369403045e-09
+    },
+    {
+      "sample_id": "sample_0047",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.1298946130104205e-08,
+      "compressed_measurement_relative_error": 2.789212647065562e-08,
+      "source_load_max_absolute_error": 2.3847392671694223e-09,
+      "compressed_measurement_max_absolute_error": 1.2053323061866905e-08,
+      "per_role": {
+        "core": {
+          "tet_count": 362,
+          "source_load_relative_error": 3.128339620521536e-08,
+          "compressed_measurement_relative_error": 2.787794098060897e-08
+        },
+        "halo": {
+          "tet_count": 1,
+          "source_load_relative_error": 3.724299031148354e-08,
+          "compressed_measurement_relative_error": 2.7039304461375805e-08
+        },
+        "proposal": {
+          "tet_count": 661,
+          "source_load_relative_error": 3.245245708500817e-08,
+          "compressed_measurement_relative_error": 2.794892220765808e-08
+        }
+      },
+      "depth_tier": "shallow",
+      "depth_mm": 1.730194157106953,
+      "num_foci": 1,
+      "learned_lifter": {
+        "transport_error": 1.6638962208048724e-08,
+        "alpha_lambda_l1": 2.6021791200037114e-05,
+        "rho0_minus_p1_l1": 1.6112320736283436e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 2.0481136786543175e-08,
+        "alpha_lambda_l1": 2.966880492749624e-05,
+        "rho0_minus_p1_l1": 2.377364035055507e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 3.8421745784944505e-09
+    },
+    {
+      "sample_id": "sample_0060",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.088652788328776e-08,
+      "compressed_measurement_relative_error": 2.4615236870367644e-08,
+      "source_load_max_absolute_error": 2.732343518108138e-09,
+      "compressed_measurement_max_absolute_error": 1.182251267370371e-10,
+      "per_role": {
+        "core": {
+          "tet_count": 342,
+          "source_load_relative_error": 3.0500868949068065e-08,
+          "compressed_measurement_relative_error": 2.6390809842390148e-08
+        },
+        "halo": {
+          "tet_count": 13,
+          "source_load_relative_error": 3.9671322776120535e-08,
+          "compressed_measurement_relative_error": 1.844364961174284e-08
+        },
+        "proposal": {
+          "tet_count": 669,
+          "source_load_relative_error": 3.193878863817756e-08,
+          "compressed_measurement_relative_error": 2.2632893795043445e-08
+        }
+      },
+      "depth_tier": "medium",
+      "depth_mm": 5.291770116977654,
+      "num_foci": 1,
+      "learned_lifter": {
+        "transport_error": 8.597392309184215e-08,
+        "alpha_lambda_l1": 2.943436811619904e-05,
+        "rho0_minus_p1_l1": 2.6172743673669174e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 7.412767644154883e-08,
+        "alpha_lambda_l1": 2.711094384721946e-05,
+        "rho0_minus_p1_l1": 2.0142360881436616e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 1.1846246650293324e-08
+    },
+    {
+      "sample_id": "sample_0086",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.066333321798864e-08,
+      "compressed_measurement_relative_error": 2.6507079896921308e-08,
+      "source_load_max_absolute_error": 3.561525727113768e-09,
+      "compressed_measurement_max_absolute_error": 1.242479773580496e-10,
+      "per_role": {
+        "core": {
+          "tet_count": 341,
+          "source_load_relative_error": 3.034282078959018e-08,
+          "compressed_measurement_relative_error": 2.7292576443342288e-08
+        },
+        "halo": {
+          "tet_count": 3,
+          "source_load_relative_error": 3.45312597384794e-08,
+          "compressed_measurement_relative_error": 2.6588616083164895e-08
+        },
+        "proposal": {
+          "tet_count": 680,
+          "source_load_relative_error": 3.160226724295144e-08,
+          "compressed_measurement_relative_error": 2.5192922670673535e-08
+        }
+      },
+      "depth_tier": "deep",
+      "depth_mm": 6.342011701224755,
+      "num_foci": 1,
+      "learned_lifter": {
+        "transport_error": 3.286717031869557e-08,
+        "alpha_lambda_l1": 2.713012509047985e-05,
+        "rho0_minus_p1_l1": 2.1117621145094745e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 4.158756894412363e-08,
+        "alpha_lambda_l1": 2.522185786801856e-05,
+        "rho0_minus_p1_l1": 1.6330806829500943e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 8.72039862542806e-09
+    },
+    {
+      "sample_id": "sample_0101",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.110810553266468e-08,
+      "compressed_measurement_relative_error": 2.6059314906118196e-08,
+      "source_load_max_absolute_error": 3.1652316601071817e-09,
+      "compressed_measurement_max_absolute_error": 2.1846039907624792e-10,
+      "per_role": {
+        "core": {
+          "tet_count": 339,
+          "source_load_relative_error": 3.06098522909809e-08,
+          "compressed_measurement_relative_error": 2.8212846032797575e-08
+        },
+        "halo": {
+          "tet_count": 9,
+          "source_load_relative_error": 3.8096702507210354e-08,
+          "compressed_measurement_relative_error": 2.2804728146066243e-08
+        },
+        "proposal": {
+          "tet_count": 676,
+          "source_load_relative_error": 3.238670350927025e-08,
+          "compressed_measurement_relative_error": 2.4006278071506256e-08
+        }
+      },
+      "depth_tier": "deep",
+      "depth_mm": 6.362970889178818,
+      "num_foci": 2,
+      "learned_lifter": {
+        "transport_error": 4.370866335534629e-08,
+        "alpha_lambda_l1": 2.7823371056001633e-05,
+        "rho0_minus_p1_l1": 2.2652697225566953e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 4.0276798785043866e-08,
+        "alpha_lambda_l1": 2.539831621106714e-05,
+        "rho0_minus_p1_l1": 1.738415267027449e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 3.431864570302423e-09
+    },
+    {
+      "sample_id": "sample_0102",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.167612584512375e-08,
+      "compressed_measurement_relative_error": 2.8371185540470474e-08,
+      "source_load_max_absolute_error": 2.7910076888515434e-09,
+      "compressed_measurement_max_absolute_error": 4.341722514844548e-08,
+      "per_role": {
+        "core": {
+          "tet_count": 205,
+          "source_load_relative_error": 3.239902668823276e-08,
+          "compressed_measurement_relative_error": 2.8437581379598055e-08
+        },
+        "halo": {
+          "tet_count": 1,
+          "source_load_relative_error": 4.066760504099372e-08,
+          "compressed_measurement_relative_error": 2.299192649624686e-08
+        },
+        "proposal": {
+          "tet_count": 818,
+          "source_load_relative_error": 3.112038419169186e-08,
+          "compressed_measurement_relative_error": 2.8229632970635043e-08
+        }
+      },
+      "depth_tier": "shallow",
+      "depth_mm": 2.318285752326773,
+      "num_foci": 2,
+      "learned_lifter": {
+        "transport_error": 1.4327925512702677e-08,
+        "alpha_lambda_l1": 2.5955858291126788e-05,
+        "rho0_minus_p1_l1": 1.836233786889352e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 1.325004728158774e-08,
+        "alpha_lambda_l1": 2.2902491764398292e-05,
+        "rho0_minus_p1_l1": 1.0560572263784707e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 1.077878231114937e-09
+    },
+    {
+      "sample_id": "sample_0131",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.131936014835023e-08,
+      "compressed_measurement_relative_error": 2.7145463958983708e-08,
+      "source_load_max_absolute_error": 3.0132136230598405e-09,
+      "compressed_measurement_max_absolute_error": 1.4007229820478528e-08,
+      "per_role": {
+        "core": {
+          "tet_count": 293,
+          "source_load_relative_error": 3.087574742022735e-08,
+          "compressed_measurement_relative_error": 2.7797212326494592e-08
+        },
+        "halo": {
+          "tet_count": 4,
+          "source_load_relative_error": 3.8285152075883826e-08,
+          "compressed_measurement_relative_error": 2.6262976586083544e-08
+        },
+        "proposal": {
+          "tet_count": 727,
+          "source_load_relative_error": 3.229111762852038e-08,
+          "compressed_measurement_relative_error": 2.656196039550759e-08
+        }
+      },
+      "depth_tier": "medium",
+      "depth_mm": 5.3895472182971496,
+      "num_foci": 3,
+      "learned_lifter": {
+        "transport_error": 2.750918959293358e-08,
+        "alpha_lambda_l1": 2.7459969714982435e-05,
+        "rho0_minus_p1_l1": 2.197503636125475e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 3.5958628075150045e-08,
+        "alpha_lambda_l1": 2.4352013497264124e-05,
+        "rho0_minus_p1_l1": 1.487754980189493e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 8.449438482216465e-09
+    },
+    {
+      "sample_id": "sample_0147",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.163962813730707e-08,
+      "compressed_measurement_relative_error": 2.724662110133739e-08,
+      "source_load_max_absolute_error": 2.348699443266433e-09,
+      "compressed_measurement_max_absolute_error": 3.0534254812086825e-10,
+      "per_role": {
+        "core": {
+          "tet_count": 205,
+          "source_load_relative_error": 3.1648054665476203e-08,
+          "compressed_measurement_relative_error": 2.7807354907296856e-08
+        },
+        "halo": {
+          "tet_count": 1,
+          "source_load_relative_error": 3.415115619833744e-08,
+          "compressed_measurement_relative_error": 3.342722019474266e-08
+        },
+        "proposal": {
+          "tet_count": 818,
+          "source_load_relative_error": 3.162399830926137e-08,
+          "compressed_measurement_relative_error": 2.646294807904394e-08
+        }
+      },
+      "depth_tier": "medium",
+      "depth_mm": 4.405258853054585,
+      "num_foci": 1,
+      "learned_lifter": {
+        "transport_error": 3.6224154342789916e-08,
+        "alpha_lambda_l1": 2.3668224457651377e-05,
+        "rho0_minus_p1_l1": 1.437161336070858e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 3.8769375265701456e-08,
+        "alpha_lambda_l1": 2.2407344658859074e-05,
+        "rho0_minus_p1_l1": 1.0170349014515523e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 2.5452209229115397e-09
+    },
+    {
+      "sample_id": "sample_0156",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.101811004430731e-08,
+      "compressed_measurement_relative_error": 2.6406745527279536e-08,
+      "source_load_max_absolute_error": 2.763734144317631e-09,
+      "compressed_measurement_max_absolute_error": 7.217527860092776e-10,
+      "per_role": {
+        "core": {
+          "tet_count": 338,
+          "source_load_relative_error": 3.0631140618600235e-08,
+          "compressed_measurement_relative_error": 2.7240637413532366e-08
+        },
+        "halo": {
+          "tet_count": 11,
+          "source_load_relative_error": 4.043302744549302e-08,
+          "compressed_measurement_relative_error": 2.3626583664609973e-08
+        },
+        "proposal": {
+          "tet_count": 675,
+          "source_load_relative_error": 3.192644939001545e-08,
+          "compressed_measurement_relative_error": 2.5294836929198667e-08
+        }
+      },
+      "depth_tier": "shallow",
+      "depth_mm": 1.7326737263193808,
+      "num_foci": 2,
+      "learned_lifter": {
+        "transport_error": 4.0655443456216744e-08,
+        "alpha_lambda_l1": 2.8283016945351847e-05,
+        "rho0_minus_p1_l1": 2.4087414203677326e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 4.381850970958112e-08,
+        "alpha_lambda_l1": 2.565352406236343e-05,
+        "rho0_minus_p1_l1": 1.7769663827493787e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 3.163066253364377e-09
+    },
+    {
+      "sample_id": "sample_0162",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.182894001105315e-08,
+      "compressed_measurement_relative_error": 2.791716842044024e-08,
+      "source_load_max_absolute_error": 2.8488571501839033e-09,
+      "compressed_measurement_max_absolute_error": 2.2083136874684328e-08,
+      "per_role": {
+        "core": {
+          "tet_count": 207,
+          "source_load_relative_error": 3.212871975535526e-08,
+          "compressed_measurement_relative_error": 2.7961645266676715e-08
+        },
+        "proposal": {
+          "tet_count": 817,
+          "source_load_relative_error": 3.150837531439914e-08,
+          "compressed_measurement_relative_error": 2.7872585663312356e-08
+        }
+      },
+      "depth_tier": "medium",
+      "depth_mm": 5.541518826169032,
+      "num_foci": 2,
+      "learned_lifter": {
+        "transport_error": 2.1320021303949943e-08,
+        "alpha_lambda_l1": 2.536640749895014e-05,
+        "rho0_minus_p1_l1": 1.8240807548863813e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 2.183992009463509e-08,
+        "alpha_lambda_l1": 2.2675756554235704e-05,
+        "rho0_minus_p1_l1": 1.1615930816333275e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 5.198987906851471e-10
+    },
+    {
+      "sample_id": "sample_0171",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.130852709598352e-08,
+      "compressed_measurement_relative_error": 2.5760751245822287e-08,
+      "source_load_max_absolute_error": 3.1405389677718887e-09,
+      "compressed_measurement_max_absolute_error": 7.925031575428676e-09,
+      "per_role": {
+        "core": {
+          "tet_count": 208,
+          "source_load_relative_error": 3.108758386811552e-08,
+          "compressed_measurement_relative_error": 2.5252303574182413e-08
+        },
+        "proposal": {
+          "tet_count": 816,
+          "source_load_relative_error": 3.172434054362817e-08,
+          "compressed_measurement_relative_error": 2.653959842136938e-08
+        }
+      },
+      "depth_tier": "shallow",
+      "depth_mm": 2.5788298100028237,
+      "num_foci": 3,
+      "learned_lifter": {
+        "transport_error": 5.6085038835362866e-08,
+        "alpha_lambda_l1": 2.47761417995207e-05,
+        "rho0_minus_p1_l1": 1.5998888557078317e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 6.644776817665843e-08,
+        "alpha_lambda_l1": 2.2746589820599183e-05,
+        "rho0_minus_p1_l1": 1.0824227501871064e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 1.0362729341295562e-08
+    },
+    {
+      "sample_id": "sample_0177",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.144539767396294e-08,
+      "compressed_measurement_relative_error": 2.662818301005599e-08,
+      "source_load_max_absolute_error": 2.6599579483477243e-09,
+      "compressed_measurement_max_absolute_error": 2.152223302354095e-09,
+      "per_role": {
+        "core": {
+          "tet_count": 325,
+          "source_load_relative_error": 3.1087370681965083e-08,
+          "compressed_measurement_relative_error": 2.8036882397859644e-08
+        },
+        "halo": {
+          "tet_count": 55,
+          "source_load_relative_error": 3.724234565595924e-08,
+          "compressed_measurement_relative_error": 2.4777644689785712e-08
+        },
+        "proposal": {
+          "tet_count": 644,
+          "source_load_relative_error": 3.197282636414963e-08,
+          "compressed_measurement_relative_error": 2.5513500098271974e-08
+        }
+      },
+      "depth_tier": "shallow",
+      "depth_mm": 2.267620729681054,
+      "num_foci": 3,
+      "learned_lifter": {
+        "transport_error": 3.7825056864448925e-08,
+        "alpha_lambda_l1": 2.9690014343941584e-05,
+        "rho0_minus_p1_l1": 2.8421929528121836e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 3.6963783145438356e-08,
+        "alpha_lambda_l1": 2.7283389499643818e-05,
+        "rho0_minus_p1_l1": 2.253417915198952e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 8.61273719010569e-10
+    },
+    {
+      "sample_id": "sample_0181",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.233839723060916e-08,
+      "compressed_measurement_relative_error": 2.5219668849791476e-08,
+      "source_load_max_absolute_error": 2.601888635100913e-09,
+      "compressed_measurement_max_absolute_error": 7.468654694697818e-09,
+      "per_role": {
+        "core": {
+          "tet_count": 205,
+          "source_load_relative_error": 3.240092571580174e-08,
+          "compressed_measurement_relative_error": 2.4845681288911107e-08
+        },
+        "halo": {
+          "tet_count": 2,
+          "source_load_relative_error": 4.084679639965331e-08,
+          "compressed_measurement_relative_error": 2.9296766966776207e-08
+        },
+        "proposal": {
+          "tet_count": 817,
+          "source_load_relative_error": 3.217568633423199e-08,
+          "compressed_measurement_relative_error": 2.5812810244463767e-08
+        }
+      },
+      "depth_tier": "medium",
+      "depth_mm": 5.985771501027271,
+      "num_foci": 3,
+      "learned_lifter": {
+        "transport_error": 8.263984341283503e-08,
+        "alpha_lambda_l1": 2.3926979338284582e-05,
+        "rho0_minus_p1_l1": 1.4415613804885652e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 8.169840270966233e-08,
+        "alpha_lambda_l1": 2.290352676936891e-05,
+        "rho0_minus_p1_l1": 1.1174098290211987e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 9.414407031727023e-10
+    },
+    {
+      "sample_id": "sample_0205",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.136713337815693e-08,
+      "compressed_measurement_relative_error": 2.9201949744331552e-08,
+      "source_load_max_absolute_error": 2.9117787764265657e-09,
+      "compressed_measurement_max_absolute_error": 5.170124395270648e-08,
+      "per_role": {
+        "core": {
+          "tet_count": 251,
+          "source_load_relative_error": 3.11467817263191e-08,
+          "compressed_measurement_relative_error": 2.913300738882878e-08
+        },
+        "halo": {
+          "tet_count": 4,
+          "source_load_relative_error": 3.8844286076029206e-08,
+          "compressed_measurement_relative_error": 2.1152487833685163e-08
+        },
+        "proposal": {
+          "tet_count": 769,
+          "source_load_relative_error": 3.1690121163587635e-08,
+          "compressed_measurement_relative_error": 2.9207569869737193e-08
+        }
+      },
+      "depth_tier": "medium",
+      "depth_mm": 4.521030593427113,
+      "num_foci": 2,
+      "learned_lifter": {
+        "transport_error": 9.288855018496633e-09,
+        "alpha_lambda_l1": 2.6654226530808955e-05,
+        "rho0_minus_p1_l1": 1.9841698303935118e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 1.0093274660505358e-08,
+        "alpha_lambda_l1": 2.3933649572427385e-05,
+        "rho0_minus_p1_l1": 1.3329262401384767e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 8.044196420087246e-10
+    },
+    {
+      "sample_id": "sample_0208",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.1323192801092544e-08,
+      "compressed_measurement_relative_error": 2.701358178548067e-08,
+      "source_load_max_absolute_error": 2.8683124764228296e-09,
+      "compressed_measurement_max_absolute_error": 3.2742383526684904e-09,
+      "per_role": {
+        "core": {
+          "tet_count": 260,
+          "source_load_relative_error": 3.083106489454903e-08,
+          "compressed_measurement_relative_error": 2.7771779028341052e-08
+        },
+        "halo": {
+          "tet_count": 4,
+          "source_load_relative_error": 3.954296218628897e-08,
+          "compressed_measurement_relative_error": 2.933573327816183e-08
+        },
+        "proposal": {
+          "tet_count": 760,
+          "source_load_relative_error": 3.273989629236701e-08,
+          "compressed_measurement_relative_error": 2.4958874728932783e-08
+        }
+      },
+      "depth_tier": "medium",
+      "depth_mm": 5.6343092412141,
+      "num_foci": 3,
+      "learned_lifter": {
+        "transport_error": 3.308524654244138e-08,
+        "alpha_lambda_l1": 2.59031803580001e-05,
+        "rho0_minus_p1_l1": 2.006773320317734e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 4.801892927730478e-08,
+        "alpha_lambda_l1": 2.4017308533075266e-05,
+        "rho0_minus_p1_l1": 1.4516039300360717e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 1.4933682734863396e-08
+    },
+    {
+      "sample_id": "sample_0221",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.1879249068317926e-08,
+      "compressed_measurement_relative_error": 2.4929287946127077e-08,
+      "source_load_max_absolute_error": 2.767037210471557e-09,
+      "compressed_measurement_max_absolute_error": 1.3506470161045447e-10,
+      "per_role": {
+        "core": {
+          "tet_count": 205,
+          "source_load_relative_error": 3.1947988108351196e-08,
+          "compressed_measurement_relative_error": 2.517693987407303e-08
+        },
+        "halo": {
+          "tet_count": 1,
+          "source_load_relative_error": 4.08929204899641e-08,
+          "compressed_measurement_relative_error": 2.698971378939086e-08
+        },
+        "proposal": {
+          "tet_count": 818,
+          "source_load_relative_error": 3.179588653094841e-08,
+          "compressed_measurement_relative_error": 2.4386328927309998e-08
+        }
+      },
+      "depth_tier": "deep",
+      "depth_mm": 8.171026879402042,
+      "num_foci": 1,
+      "learned_lifter": {
+        "transport_error": 7.11306782363863e-08,
+        "alpha_lambda_l1": 2.5257431843783706e-05,
+        "rho0_minus_p1_l1": 1.6600546587142162e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 7.754108821700356e-08,
+        "alpha_lambda_l1": 2.3582799258292653e-05,
+        "rho0_minus_p1_l1": 1.1701240509864874e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 6.41040998061726e-09
+    },
+    {
+      "sample_id": "sample_0229",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.143268865295745e-08,
+      "compressed_measurement_relative_error": 2.6391818731847492e-08,
+      "source_load_max_absolute_error": 2.701109141911573e-09,
+      "compressed_measurement_max_absolute_error": 1.680602462750258e-10,
+      "per_role": {
+        "core": {
+          "tet_count": 267,
+          "source_load_relative_error": 3.0787477616856316e-08,
+          "compressed_measurement_relative_error": 2.7150004968644137e-08
+        },
+        "halo": {
+          "tet_count": 4,
+          "source_load_relative_error": 4.0532211045277e-08,
+          "compressed_measurement_relative_error": 2.2665435400324696e-08
+        },
+        "proposal": {
+          "tet_count": 753,
+          "source_load_relative_error": 3.2639491849519816e-08,
+          "compressed_measurement_relative_error": 2.5701840076345898e-08
+        }
+      },
+      "depth_tier": "deep",
+      "depth_mm": 7.881792244384284,
+      "num_foci": 2,
+      "learned_lifter": {
+        "transport_error": 4.030424705092628e-08,
+        "alpha_lambda_l1": 2.8442293114494532e-05,
+        "rho0_minus_p1_l1": 2.489841790520586e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 5.295638771940503e-08,
+        "alpha_lambda_l1": 2.5284918592660688e-05,
+        "rho0_minus_p1_l1": 1.759565384418238e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 1.265214066847875e-08
+    },
+    {
+      "sample_id": "sample_0232",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.0497913178783504e-08,
+      "compressed_measurement_relative_error": 2.739413442248171e-08,
+      "source_load_max_absolute_error": 3.3188460035749046e-09,
+      "compressed_measurement_max_absolute_error": 3.949107776901606e-10,
+      "per_role": {
+        "core": {
+          "tet_count": 340,
+          "source_load_relative_error": 3.02867764186374e-08,
+          "compressed_measurement_relative_error": 2.7678927696931988e-08
+        },
+        "halo": {
+          "tet_count": 6,
+          "source_load_relative_error": 4.0780441106130896e-08,
+          "compressed_measurement_relative_error": 2.05704253127261e-08
+        },
+        "proposal": {
+          "tet_count": 678,
+          "source_load_relative_error": 3.117049087699511e-08,
+          "compressed_measurement_relative_error": 2.6693862807597565e-08
+        }
+      },
+      "depth_tier": "medium",
+      "depth_mm": 4.393780978672849,
+      "num_foci": 1,
+      "learned_lifter": {
+        "transport_error": 1.9758662261892823e-08,
+        "alpha_lambda_l1": 2.6546689696260728e-05,
+        "rho0_minus_p1_l1": 1.8198450561612844e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 4.234586370444049e-08,
+        "alpha_lambda_l1": 2.4657754693180323e-05,
+        "rho0_minus_p1_l1": 1.517244800197659e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 2.2587201442547666e-08
+    },
+    {
+      "sample_id": "sample_0237",
+      "selected_tet_count": 1024,
+      "source_load_relative_error": 3.093320670595737e-08,
+      "compressed_measurement_relative_error": 2.7477277824793354e-08,
+      "source_load_max_absolute_error": 3.2002939881481396e-09,
+      "compressed_measurement_max_absolute_error": 2.604534282690807e-09,
+      "per_role": {
+        "core": {
+          "tet_count": 340,
+          "source_load_relative_error": 3.044382188621283e-08,
+          "compressed_measurement_relative_error": 2.8138002140734734e-08
+        },
+        "halo": {
+          "tet_count": 6,
+          "source_load_relative_error": 4.085255864642411e-08,
+          "compressed_measurement_relative_error": 2.504283836701379e-08
+        },
+        "proposal": {
+          "tet_count": 678,
+          "source_load_relative_error": 3.275411026071309e-08,
+          "compressed_measurement_relative_error": 2.6316223926538355e-08
+        }
+      },
+      "depth_tier": "shallow",
+      "depth_mm": 1.8608413677264046,
+      "num_foci": 3,
+      "learned_lifter": {
+        "transport_error": 1.802541049755746e-08,
+        "alpha_lambda_l1": 2.7184723876416683e-05,
+        "rho0_minus_p1_l1": 2.1403442588052712e-05
+      },
+      "learned_lifter_compare": {
+        "transport_error": 3.350059074591627e-08,
+        "alpha_lambda_l1": 2.4821772967698053e-05,
+        "rho0_minus_p1_l1": 1.6696170860086568e-05
+      },
+      "learned_lifter_transport_error_absolute_delta": 1.547518024835881e-08
+    }
+  ],
+  "missing_samples": [],
+  "max_relative_error_gate": 1e-06,
+  "p1_consistency_passed": true,
+  "learned_lifter_summary": {
+    "count": 25,
+    "primary_transport_error_mean": 3.436077101071078e-08,
+    "compare_transport_error_mean": 4.021695954037341e-08,
+    "absolute_delta_mean": 7.469405538529372e-09,
+    "absolute_delta_max": 2.2587201442547666e-08
+  }
+}

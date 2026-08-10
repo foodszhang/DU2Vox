@@ -14,6 +14,9 @@ data:
   dataset_root: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k
   samples_dir: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples
   shared_dir: /home/foods/pro/FMT-SimGen/output/shared_mesh_20k
+  # Asset content was audited; allow its old mtime only while this hash matches.
+  allow_stale_frame_manifest: true
+  frame_manifest_sha256: 25b77f5d11430ebf4d9735f19534782afb56f7fe5cab525a569028b0f3c02e2b
   train_split: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/train.txt
   val_split: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/val.txt
   test_split: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/test.txt

@@ -96,6 +96,7 @@ observability:
 
 training:
   phase: lifter
+  freeze_lifter_after_phase_a: true
   batch_size: 1
   grad_accum_steps: 8
   amp: true
@@ -122,9 +123,13 @@ loss:
   residual_indicator_weight: 0.5
   lambda_transport: 1.0
   lambda_alpha_anchor: 0.01
-  lambda_data: 0.1
-  lambda_observable_residual: 0.1
-  lambda_ambiguous_leakage: 0.1
+  lambda_recon: 0.5
+  lambda_obs_target: 1.0
+  lambda_amb_target: 1.0
+  lambda_data: 0.02
+  lambda_correction_l2: 0.0
+  lambda_observable_residual: 0.02
+  lambda_ambiguous_leakage: 0.02
 
 logging:
   print_every: 1

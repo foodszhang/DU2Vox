@@ -11,12 +11,14 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import torch
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from du2vox.physics.compressed_green_operator import CompressedGreenOperator
 from du2vox.physics.tetra_quadrature import local_p1_source_mass
+from du2vox.models.stage2.transport_cqr_lifter import TransportConsistentCQRLifter
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -134,6 +136,68 @@ def analyze_sample(
     }
 
 
+def load_lifter(
+    checkpoint_path: Path,
+    green_modes: np.ndarray,
+    elements: np.ndarray,
+    cfg: dict[str, Any],
+) -> TransportConsistentCQRLifter:
+    model_cfg = cfg.get("model", {}) or {}
+    transport_cfg = cfg.get("transport", {}) or {}
+    lifter = TransportConsistentCQRLifter(
+        green_modes,
+        elements,
+        hidden_dim=min(int(model_cfg.get("hidden_dim", 256)), 128),
+        max_logit_delta=float(transport_cfg.get("max_logit_delta", 2.0)),
+    )
+    payload = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    state = payload.get("residual_inr", payload.get("model", payload))
+    lifter_state = {
+        key.removeprefix("lifter."): value
+        for key, value in state.items()
+        if key.startswith("lifter.")
+    }
+    if not lifter_state:
+        raise ValueError(f"No lifter state found in {checkpoint_path}")
+    lifter.load_state_dict(lifter_state, strict=True)
+    return lifter.eval()
+
+
+@torch.inference_mode()
+def learned_lifter_transport_error(
+    quadrature_path: Path,
+    lifter: TransportConsistentCQRLifter,
+) -> dict[str, float]:
+    with np.load(quadrature_path, allow_pickle=False) as data:
+        prior_lift = torch.from_numpy(np.asarray(data["prior_lift"], dtype=np.float32))[None]
+        tet_ids = torch.from_numpy(np.asarray(data["tet_id"], dtype=np.int64))[None]
+        correction_band = torch.from_numpy(
+            np.asarray(data["correction_band"], dtype=np.int64)
+        )[None]
+        role = torch.from_numpy(np.asarray(data["role"], dtype=np.int64))[None]
+        weights = torch.from_numpy(
+            np.asarray(data["quadrature_weight"], dtype=np.float32)
+        )[None]
+    lifted = lifter(prior_lift, tet_ids, correction_band, role=role)
+    a_quad = lifted["query_green"].transpose(-1, -2) * weights.unsqueeze(-2)
+    delta_modes = (
+        a_quad.float() @ (lifted["rho0"] - lifted["fem_interp"]).float().unsqueeze(-1)
+    ).squeeze(-1)
+    reference_modes = (
+        a_quad.float() @ lifted["fem_interp"].float().unsqueeze(-1)
+    ).squeeze(-1)
+    error = delta_modes.square().sum() / (reference_modes.square().sum() + 1e-8)
+    return {
+        "transport_error": float(error),
+        "alpha_lambda_l1": float(
+            torch.mean(torch.abs(lifted["alpha"] - prior_lift[..., 4:8]))
+        ),
+        "rho0_minus_p1_l1": float(
+            torch.mean(torch.abs(lifted["rho0"] - lifted["fem_interp"]))
+        ),
+    }
+
+
 def markdown(report: dict[str, Any]) -> str:
     lines = [
         "# CQR P1 Transport Consistency",
@@ -159,6 +223,19 @@ def markdown(report: dict[str, Any]) -> str:
             f"{row['num_foci']} | {row['source_load_relative_error']:.3e} | "
             f"{row['compressed_measurement_relative_error']:.3e} |"
         )
+    if "learned_lifter_summary" in report:
+        learned = report["learned_lifter_summary"]
+        lines.extend(
+            [
+                "",
+                "## Learned lifter: primary versus comparison quadrature",
+                "",
+                f"- Primary transport-error mean: `{learned['primary_transport_error_mean']:.6e}`",
+                f"- Comparison transport-error mean: `{learned['compare_transport_error_mean']:.6e}`",
+                f"- Absolute delta mean: `{learned['absolute_delta_mean']:.6e}`",
+                f"- Absolute delta maximum: `{learned['absolute_delta_max']:.6e}`",
+            ]
+        )
     lines.extend(
         [
             "",
@@ -178,6 +255,8 @@ def main() -> None:
     parser.add_argument("--max_samples", type=int, default=4)
     parser.add_argument("--quadrature_root", default=None)
     parser.add_argument("--operator_cache", default=None)
+    parser.add_argument("--lifter_checkpoint", default=None)
+    parser.add_argument("--compare_quadrature_root", default=None)
     parser.add_argument("--out_json", default="diagnosis/cqr_p1_transport_consistency.json")
     parser.add_argument("--out_md", default="diagnosis/cqr_p1_transport_consistency.md")
     parser.add_argument("--max_relative_error", type=float, default=1e-6)
@@ -203,6 +282,19 @@ def main() -> None:
         operator_path = REPO_ROOT / operator_path
     operator = CompressedGreenOperator.load(operator_path)
     green_modes = np.asarray(operator.green_node_modes, dtype=np.float64)
+    with np.load(Path(cfg["data"]["shared_dir"]) / "mesh.npz", allow_pickle=False) as mesh:
+        elements = np.asarray(mesh["elements"], dtype=np.int64)
+    lifter = None
+    compare_root = None
+    if args.lifter_checkpoint:
+        checkpoint_path = Path(args.lifter_checkpoint)
+        if not checkpoint_path.is_absolute():
+            checkpoint_path = REPO_ROOT / checkpoint_path
+        lifter = load_lifter(checkpoint_path, green_modes, elements, cfg)
+    if args.compare_quadrature_root:
+        compare_root = Path(args.compare_quadrature_root)
+        if not compare_root.is_absolute():
+            compare_root = REPO_ROOT / compare_root
 
     manifest_path = Path(cfg["data"]["dataset_root"]) / "dataset_manifest.json"
     manifest = json.loads(manifest_path.read_text())
@@ -216,8 +308,7 @@ def main() -> None:
         if not quadrature_path.exists() or not coarse_path.exists():
             missing.append(sid)
             continue
-        records.append(
-            analyze_sample(
+        record = analyze_sample(
                 sid,
                 quadrature_path,
                 coarse_path,
@@ -225,7 +316,20 @@ def main() -> None:
                 green_modes.shape[1],
                 manifest_by_id.get(sid, {}),
             )
-        )
+        if lifter is not None:
+            record["learned_lifter"] = learned_lifter_transport_error(
+                quadrature_path, lifter
+            )
+            if compare_root is not None:
+                compare_path = compare_root / args.split / f"{sid}.npz"
+                if compare_path.exists():
+                    record["learned_lifter_compare"] = learned_lifter_transport_error(
+                        compare_path, lifter
+                    )
+                    left = record["learned_lifter"]["transport_error"]
+                    right = record["learned_lifter_compare"]["transport_error"]
+                    record["learned_lifter_transport_error_absolute_delta"] = abs(left - right)
+        records.append(record)
 
     grouped_depth: dict[str, list[dict[str, Any]]] = defaultdict(list)
     grouped_foci: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -250,6 +354,41 @@ def main() -> None:
         "max_relative_error_gate": args.max_relative_error,
         "p1_consistency_passed": passed,
     }
+    learned_records = [row for row in records if "learned_lifter" in row]
+    if learned_records:
+        report["learned_lifter_summary"] = {
+            "count": len(learned_records),
+            "primary_transport_error_mean": float(
+                np.mean([row["learned_lifter"]["transport_error"] for row in learned_records])
+            ),
+            "compare_transport_error_mean": float(
+                np.mean(
+                    [
+                        row["learned_lifter_compare"]["transport_error"]
+                        for row in learned_records
+                        if "learned_lifter_compare" in row
+                    ]
+                )
+            ),
+            "absolute_delta_mean": float(
+                np.mean(
+                    [
+                        row["learned_lifter_transport_error_absolute_delta"]
+                        for row in learned_records
+                        if "learned_lifter_transport_error_absolute_delta" in row
+                    ]
+                )
+            ),
+            "absolute_delta_max": float(
+                np.max(
+                    [
+                        row["learned_lifter_transport_error_absolute_delta"]
+                        for row in learned_records
+                        if "learned_lifter_transport_error_absolute_delta" in row
+                    ]
+                )
+            ),
+        }
     out_json = REPO_ROOT / args.out_json
     out_md = REPO_ROOT / args.out_md
     out_json.parent.mkdir(parents=True, exist_ok=True)

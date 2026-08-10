@@ -1,0 +1,114 @@
+# CQR Observability Analysis
+
+- Samples: 100
+- Least-squares Stage 1 scale distribution: `{'min': 0.028522646400032943, 'mean': 0.8871211468964024, 'max': 2.542478153875}`
+- Scope: candidate-supported correction operator; strict forward checks use fixed quadrature.
+
+## Residual and oracle correction information
+
+| rank | residual / y | GT correction / GT | observable norm fraction | observable energy | adjoint cosine |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 64 | 0.1698 | 0.8184 | 0.1112 | 0.0234 | 0.3453 |
+
+## Per sample
+
+- sample_0000: pool=32768, unique_tets=10137, coverage=0.9869, 2048 coverage std=0.0034, proposal_fail=0, projector_error=1.192e-07
+- sample_0003: pool=32768, unique_tets=8839, coverage=0.9993, 2048 coverage std=0.0052, proposal_fail=0, projector_error=2.384e-07
+- sample_0004: pool=32768, unique_tets=8679, coverage=1.0000, 2048 coverage std=0.0038, proposal_fail=0, projector_error=1.192e-07
+- sample_0005: pool=32768, unique_tets=8023, coverage=0.9997, 2048 coverage std=0.0039, proposal_fail=0, projector_error=1.192e-07
+- sample_0007: pool=32768, unique_tets=7984, coverage=1.0000, 2048 coverage std=0.0040, proposal_fail=0, projector_error=2.384e-07
+- sample_0009: pool=32768, unique_tets=8170, coverage=0.9997, 2048 coverage std=0.0036, proposal_fail=0, projector_error=2.384e-07
+- sample_0010: pool=32768, unique_tets=9531, coverage=0.9952, 2048 coverage std=0.0045, proposal_fail=0, projector_error=2.384e-07
+- sample_0011: pool=32768, unique_tets=9605, coverage=1.0000, 2048 coverage std=0.0036, proposal_fail=0, projector_error=1.192e-07
+- sample_0012: pool=32768, unique_tets=8427, coverage=0.9992, 2048 coverage std=0.0035, proposal_fail=0, projector_error=1.192e-07
+- sample_0015: pool=32768, unique_tets=8334, coverage=1.0000, 2048 coverage std=0.0036, proposal_fail=0, projector_error=2.384e-07
+- sample_0016: pool=32768, unique_tets=8192, coverage=0.9996, 2048 coverage std=0.0037, proposal_fail=0, projector_error=1.192e-07
+- sample_0017: pool=32768, unique_tets=11754, coverage=1.0000, 2048 coverage std=0.0064, proposal_fail=0, projector_error=1.192e-07
+- sample_0018: pool=32768, unique_tets=7908, coverage=1.0000, 2048 coverage std=0.0043, proposal_fail=0, projector_error=2.384e-07
+- sample_0019: pool=32768, unique_tets=8733, coverage=0.9972, 2048 coverage std=0.0048, proposal_fail=0, projector_error=1.192e-07
+- sample_0020: pool=32768, unique_tets=8530, coverage=0.9991, 2048 coverage std=0.0040, proposal_fail=0, projector_error=1.192e-07
+- sample_0021: pool=32768, unique_tets=10208, coverage=0.9927, 2048 coverage std=0.0033, proposal_fail=0, projector_error=1.192e-07
+- sample_0023: pool=32768, unique_tets=11136, coverage=1.0000, 2048 coverage std=0.0041, proposal_fail=0, projector_error=1.192e-07
+- sample_0024: pool=32768, unique_tets=8805, coverage=0.9957, 2048 coverage std=0.0041, proposal_fail=0, projector_error=2.384e-07
+- sample_0025: pool=32768, unique_tets=9081, coverage=0.9900, 2048 coverage std=0.0045, proposal_fail=0, projector_error=1.192e-07
+- sample_0027: pool=32768, unique_tets=6392, coverage=1.0000, 2048 coverage std=0.0068, proposal_fail=0, projector_error=2.384e-07
+- sample_0028: pool=32768, unique_tets=7299, coverage=1.0000, 2048 coverage std=0.0057, proposal_fail=0, projector_error=1.192e-07
+- sample_0030: pool=32768, unique_tets=9957, coverage=1.0000, 2048 coverage std=0.0040, proposal_fail=0, projector_error=1.192e-07
+- sample_0031: pool=32768, unique_tets=5808, coverage=0.9996, 2048 coverage std=0.0090, proposal_fail=0, projector_error=2.384e-07
+- sample_0033: pool=32768, unique_tets=9728, coverage=0.9999, 2048 coverage std=0.0033, proposal_fail=0, projector_error=1.192e-07
+- sample_0034: pool=32768, unique_tets=8220, coverage=0.9995, 2048 coverage std=0.0041, proposal_fail=0, projector_error=1.192e-07
+- sample_0035: pool=32768, unique_tets=9422, coverage=0.9976, 2048 coverage std=0.0040, proposal_fail=0, projector_error=2.384e-07
+- sample_0036: pool=32768, unique_tets=7332, coverage=1.0000, 2048 coverage std=0.0057, proposal_fail=0, projector_error=1.192e-07
+- sample_0037: pool=32768, unique_tets=6224, coverage=1.0000, 2048 coverage std=0.0089, proposal_fail=0, projector_error=2.384e-07
+- sample_0040: pool=32768, unique_tets=8470, coverage=0.9998, 2048 coverage std=0.0041, proposal_fail=0, projector_error=1.192e-07
+- sample_0041: pool=32768, unique_tets=10032, coverage=0.9965, 2048 coverage std=0.0046, proposal_fail=0, projector_error=1.192e-07
+- sample_0042: pool=32768, unique_tets=6575, coverage=0.9987, 2048 coverage std=0.0049, proposal_fail=0, projector_error=1.192e-07
+- sample_0043: pool=32768, unique_tets=12473, coverage=1.0000, 2048 coverage std=0.0055, proposal_fail=0, projector_error=1.192e-07
+- sample_0044: pool=32768, unique_tets=10944, coverage=1.0000, 2048 coverage std=0.0035, proposal_fail=0, projector_error=2.384e-07
+- sample_0045: pool=32768, unique_tets=8147, coverage=0.9980, 2048 coverage std=0.0042, proposal_fail=0, projector_error=1.192e-07
+- sample_0046: pool=32768, unique_tets=10511, coverage=1.0000, 2048 coverage std=0.0051, proposal_fail=0, projector_error=1.192e-07
+- sample_0048: pool=32768, unique_tets=8133, coverage=0.9995, 2048 coverage std=0.0038, proposal_fail=0, projector_error=1.192e-07
+- sample_0049: pool=32768, unique_tets=8678, coverage=0.9995, 2048 coverage std=0.0037, proposal_fail=0, projector_error=1.192e-07
+- sample_0050: pool=32768, unique_tets=8634, coverage=0.9994, 2048 coverage std=0.0026, proposal_fail=0, projector_error=1.192e-07
+- sample_0051: pool=32768, unique_tets=9792, coverage=1.0000, 2048 coverage std=0.0035, proposal_fail=0, projector_error=2.384e-07
+- sample_0052: pool=32768, unique_tets=9990, coverage=1.0000, 2048 coverage std=0.0057, proposal_fail=0, projector_error=1.192e-07
+- sample_0053: pool=32768, unique_tets=8960, coverage=0.9985, 2048 coverage std=0.0035, proposal_fail=0, projector_error=1.192e-07
+- sample_0054: pool=32768, unique_tets=9276, coverage=0.9950, 2048 coverage std=0.0049, proposal_fail=0, projector_error=2.384e-07
+- sample_0055: pool=32768, unique_tets=10215, coverage=1.0000, 2048 coverage std=0.0048, proposal_fail=0, projector_error=2.384e-07
+- sample_0056: pool=32768, unique_tets=8474, coverage=0.9995, 2048 coverage std=0.0040, proposal_fail=0, projector_error=1.192e-07
+- sample_0057: pool=32768, unique_tets=7013, coverage=0.9947, 2048 coverage std=0.0058, proposal_fail=0, projector_error=1.192e-07
+- sample_0058: pool=32768, unique_tets=12250, coverage=0.9508, 2048 coverage std=0.0031, proposal_fail=0, projector_error=1.192e-07
+- sample_0059: pool=32768, unique_tets=5464, coverage=1.0000, 2048 coverage std=0.0120, proposal_fail=0, projector_error=1.192e-07
+- sample_0061: pool=32768, unique_tets=8071, coverage=0.9995, 2048 coverage std=0.0045, proposal_fail=0, projector_error=1.192e-07
+- sample_0062: pool=32768, unique_tets=9252, coverage=0.9971, 2048 coverage std=0.0031, proposal_fail=0, projector_error=1.192e-07
+- sample_0063: pool=32768, unique_tets=8889, coverage=0.9997, 2048 coverage std=0.0039, proposal_fail=0, projector_error=1.192e-07
+- sample_0064: pool=32768, unique_tets=8562, coverage=0.9998, 2048 coverage std=0.0043, proposal_fail=0, projector_error=1.192e-07
+- sample_0065: pool=32768, unique_tets=9175, coverage=0.9976, 2048 coverage std=0.0030, proposal_fail=0, projector_error=1.192e-07
+- sample_0066: pool=32768, unique_tets=8064, coverage=1.0000, 2048 coverage std=0.0031, proposal_fail=0, projector_error=1.192e-07
+- sample_0067: pool=32768, unique_tets=8473, coverage=1.0000, 2048 coverage std=0.0031, proposal_fail=0, projector_error=1.192e-07
+- sample_0068: pool=32768, unique_tets=8100, coverage=0.9995, 2048 coverage std=0.0041, proposal_fail=0, projector_error=1.192e-07
+- sample_0069: pool=32768, unique_tets=6193, coverage=0.9980, 2048 coverage std=0.0080, proposal_fail=0, projector_error=2.384e-07
+- sample_0070: pool=32768, unique_tets=9783, coverage=1.0000, 2048 coverage std=0.0040, proposal_fail=0, projector_error=2.384e-07
+- sample_0071: pool=32768, unique_tets=9873, coverage=0.9964, 2048 coverage std=0.0040, proposal_fail=0, projector_error=1.192e-07
+- sample_0072: pool=32768, unique_tets=8717, coverage=1.0000, 2048 coverage std=0.0043, proposal_fail=0, projector_error=1.192e-07
+- sample_0073: pool=32768, unique_tets=8661, coverage=0.9997, 2048 coverage std=0.0037, proposal_fail=0, projector_error=1.192e-07
+- sample_0074: pool=32768, unique_tets=8292, coverage=1.0000, 2048 coverage std=0.0060, proposal_fail=0, projector_error=2.384e-07
+- sample_0075: pool=32768, unique_tets=7921, coverage=0.9999, 2048 coverage std=0.0048, proposal_fail=0, projector_error=1.192e-07
+- sample_0076: pool=32768, unique_tets=8522, coverage=1.0000, 2048 coverage std=0.0049, proposal_fail=0, projector_error=1.192e-07
+- sample_0077: pool=32768, unique_tets=7097, coverage=0.9990, 2048 coverage std=0.0045, proposal_fail=0, projector_error=2.384e-07
+- sample_0078: pool=32768, unique_tets=8664, coverage=0.9998, 2048 coverage std=0.0040, proposal_fail=0, projector_error=1.192e-07
+- sample_0080: pool=32768, unique_tets=8160, coverage=0.9997, 2048 coverage std=0.0035, proposal_fail=0, projector_error=2.384e-07
+- sample_0081: pool=32768, unique_tets=7953, coverage=0.9993, 2048 coverage std=0.0045, proposal_fail=0, projector_error=1.192e-07
+- sample_0082: pool=32768, unique_tets=10365, coverage=0.9881, 2048 coverage std=0.0035, proposal_fail=0, projector_error=1.192e-07
+- sample_0083: pool=32768, unique_tets=8474, coverage=0.9993, 2048 coverage std=0.0039, proposal_fail=0, projector_error=1.192e-07
+- sample_0084: pool=32768, unique_tets=9600, coverage=0.9953, 2048 coverage std=0.0043, proposal_fail=0, projector_error=1.192e-07
+- sample_0085: pool=32768, unique_tets=8169, coverage=1.0000, 2048 coverage std=0.0053, proposal_fail=0, projector_error=2.384e-07
+- sample_0087: pool=32768, unique_tets=7567, coverage=0.9992, 2048 coverage std=0.0096, proposal_fail=0, projector_error=2.384e-07
+- sample_0088: pool=32768, unique_tets=8802, coverage=0.9957, 2048 coverage std=0.0036, proposal_fail=0, projector_error=2.384e-07
+- sample_0089: pool=32768, unique_tets=9434, coverage=0.9954, 2048 coverage std=0.0030, proposal_fail=0, projector_error=1.192e-07
+- sample_0090: pool=32768, unique_tets=8106, coverage=0.9990, 2048 coverage std=0.0049, proposal_fail=0, projector_error=2.384e-07
+- sample_0091: pool=32768, unique_tets=8699, coverage=1.0000, 2048 coverage std=0.0036, proposal_fail=0, projector_error=1.192e-07
+- sample_0092: pool=32768, unique_tets=8449, coverage=1.0000, 2048 coverage std=0.0037, proposal_fail=0, projector_error=1.192e-07
+- sample_0093: pool=32768, unique_tets=8719, coverage=0.9941, 2048 coverage std=0.0049, proposal_fail=0, projector_error=1.192e-07
+- sample_0094: pool=32768, unique_tets=8782, coverage=0.9994, 2048 coverage std=0.0027, proposal_fail=0, projector_error=1.192e-07
+- sample_0095: pool=32768, unique_tets=7015, coverage=0.9994, 2048 coverage std=0.0063, proposal_fail=0, projector_error=1.192e-07
+- sample_0097: pool=32768, unique_tets=9709, coverage=0.9920, 2048 coverage std=0.0036, proposal_fail=0, projector_error=2.384e-07
+- sample_0098: pool=32768, unique_tets=9271, coverage=0.9973, 2048 coverage std=0.0037, proposal_fail=0, projector_error=1.192e-07
+- sample_0099: pool=32768, unique_tets=8091, coverage=1.0000, 2048 coverage std=0.0041, proposal_fail=0, projector_error=1.192e-07
+- sample_0103: pool=32768, unique_tets=9138, coverage=0.9976, 2048 coverage std=0.0037, proposal_fail=0, projector_error=1.192e-07
+- sample_0104: pool=32768, unique_tets=8823, coverage=0.9971, 2048 coverage std=0.0023, proposal_fail=0, projector_error=1.192e-07
+- sample_0105: pool=32768, unique_tets=8605, coverage=0.9990, 2048 coverage std=0.0043, proposal_fail=0, projector_error=2.384e-07
+- sample_0106: pool=32768, unique_tets=10672, coverage=1.0000, 2048 coverage std=0.0035, proposal_fail=0, projector_error=2.384e-07
+- sample_0107: pool=32768, unique_tets=8853, coverage=0.9990, 2048 coverage std=0.0035, proposal_fail=0, projector_error=1.192e-07
+- sample_0109: pool=32768, unique_tets=9513, coverage=0.9966, 2048 coverage std=0.0035, proposal_fail=0, projector_error=2.384e-07
+- sample_0110: pool=32768, unique_tets=8120, coverage=0.9991, 2048 coverage std=0.0045, proposal_fail=0, projector_error=2.384e-07
+- sample_0111: pool=32768, unique_tets=8370, coverage=0.9955, 2048 coverage std=0.0044, proposal_fail=0, projector_error=2.384e-07
+- sample_0112: pool=32768, unique_tets=10056, coverage=0.9973, 2048 coverage std=0.0040, proposal_fail=0, projector_error=1.192e-07
+- sample_0114: pool=32768, unique_tets=7271, coverage=0.9996, 2048 coverage std=0.0046, proposal_fail=0, projector_error=1.192e-07
+- sample_0115: pool=32768, unique_tets=8756, coverage=0.9964, 2048 coverage std=0.0041, proposal_fail=0, projector_error=2.384e-07
+- sample_0116: pool=32768, unique_tets=8658, coverage=0.9980, 2048 coverage std=0.0030, proposal_fail=0, projector_error=1.192e-07
+- sample_0117: pool=32768, unique_tets=8650, coverage=0.9998, 2048 coverage std=0.0037, proposal_fail=0, projector_error=1.192e-07
+- sample_0118: pool=32768, unique_tets=9400, coverage=1.0000, 2048 coverage std=0.0050, proposal_fail=0, projector_error=1.192e-07
+- sample_0119: pool=32768, unique_tets=8781, coverage=0.9998, 2048 coverage std=0.0031, proposal_fail=0, projector_error=2.384e-07
+- sample_0120: pool=32768, unique_tets=7810, coverage=0.9998, 2048 coverage std=0.0039, proposal_fail=0, projector_error=1.192e-07
+- sample_0121: pool=32768, unique_tets=9662, coverage=1.0000, 2048 coverage std=0.0057, proposal_fail=0, projector_error=1.192e-07

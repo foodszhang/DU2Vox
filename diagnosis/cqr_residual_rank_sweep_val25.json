@@ -1,0 +1,2968 @@
+{
+  "schema_version": 1,
+  "split": "val",
+  "sample_count": 25,
+  "scale_distribution": {
+    "min": 0.04126136219354854,
+    "mean": 0.7257119664035693,
+    "max": 2.394182655262166
+  },
+  "samples": [
+    {
+      "sample_id": "sample_0001",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32746,
+      "unique_tet_count": 9719,
+      "tet_coverage_ratio": 0.9968326825710508,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3686,
+          "unique_tet_count": 3159
+        },
+        "core": {
+          "query_count": 11024,
+          "unique_tet_count": 1850
+        },
+        "halo": {
+          "query_count": 12867,
+          "unique_tet_count": 1113
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 5169,
+          "unique_tet_count": 4207
+        }
+      },
+      "subsample_2048_coverage_mean": 0.25550020624559433,
+      "subsample_2048_coverage_std": 0.003109176864943341,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.6299498023436266,
+          "evidence_l2": 0.3520587646336768,
+          "evidence_abs_mean": 0.00037981912670249533,
+          "evidence_abs_max": 0.04799331357230409
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 1.927504107323947,
+          "evidence_l2": 1.0830244016167188,
+          "evidence_abs_mean": 0.0011010007361397216,
+          "evidence_abs_max": 0.16439277372082983
+        },
+        "least_squares_stage1_scale": {
+          "scale": 0.05900799530390513,
+          "residual_norm": 0.02176809682307137,
+          "evidence_l2": 0.012283074741620045,
+          "evidence_abs_mean": 1.2245016723080937e-05,
+          "evidence_abs_max": 0.0019020956925965768
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.9657047241864858,
+        "l2__least_squares_stage1_scale": 0.939834005101071,
+        "max__least_squares_stage1_scale": 0.9963042844856917
+      },
+      "projector_decomposition_max_error": 1.1920928955078125e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.0008306367672048509,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 0.05900799530390513,
+          "measurement_residual_ratio": 0.5978854363894439,
+          "gt_correction_relative_norm": 1.1555076837539673,
+          "observable_correction_norm_ratio": 0.03249995782971382,
+          "observable_correction_energy_ratio": 0.0010562472743913531,
+          "adjoint_observable_cosine": 0.23110780119895935,
+          "gt_correction_l2": 14.26758098602295,
+          "observable_target_l2": 0.46369579434394836,
+          "adjoint_evidence_l2": 0.017028087750077248
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 0.05234158172021504,
+          "measurement_residual_ratio": 0.6551611523025963,
+          "gt_correction_relative_norm": 1.1555076837539673,
+          "observable_correction_norm_ratio": 0.055056195706129074,
+          "observable_correction_energy_ratio": 0.0030311844311654568,
+          "adjoint_observable_cosine": -0.03221319988369942,
+          "gt_correction_l2": 14.26758098602295,
+          "observable_target_l2": 0.7855187058448792,
+          "adjoint_evidence_l2": 0.02649073302745819
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 0.05350465894089048,
+          "measurement_residual_ratio": 0.6237405966506934,
+          "gt_correction_relative_norm": 1.1555076837539673,
+          "observable_correction_norm_ratio": 0.0988457128405571,
+          "observable_correction_energy_ratio": 0.009770474396646023,
+          "adjoint_observable_cosine": -0.03758201748132706,
+          "gt_correction_l2": 14.26758098602295,
+          "observable_target_l2": 1.4102891683578491,
+          "adjoint_evidence_l2": 0.06435418128967285
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 0.05252770287931982,
+          "measurement_residual_ratio": 0.6295791321754066,
+          "gt_correction_relative_norm": 1.1555076837539673,
+          "observable_correction_norm_ratio": 0.12324454635381699,
+          "observable_correction_energy_ratio": 0.015189217403531075,
+          "adjoint_observable_cosine": -0.13970904052257538,
+          "gt_correction_l2": 14.26758098602295,
+          "observable_target_l2": 1.7584015130996704,
+          "adjoint_evidence_l2": 0.10003038495779037
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0008",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32752,
+      "unique_tet_count": 9083,
+      "tet_coverage_ratio": 0.9984934836925077,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3776,
+          "unique_tet_count": 3116
+        },
+        "core": {
+          "query_count": 11299,
+          "unique_tet_count": 1464
+        },
+        "halo": {
+          "query_count": 13269,
+          "unique_tet_count": 1177
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 4408,
+          "unique_tet_count": 3587
+        }
+      },
+      "subsample_2048_coverage_mean": 0.29059949824697967,
+      "subsample_2048_coverage_std": 0.0035232865005055884,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.5682809572963784,
+          "evidence_l2": 0.29760296227259436,
+          "evidence_abs_mean": 0.00027088690560127975,
+          "evidence_abs_max": 0.05540549855182482
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 1.7899247657903636,
+          "evidence_l2": 0.9380892967964178,
+          "evidence_abs_mean": 0.0008528264331042062,
+          "evidence_abs_max": 0.17483552693297533
+        },
+        "least_squares_stage1_scale": {
+          "scale": 2.2449208030781764,
+          "residual_norm": 0.14211042467944518,
+          "evidence_l2": 0.07817362102508323,
+          "evidence_abs_mean": 6.688717701290473e-05,
+          "evidence_abs_max": 0.014956495306206177
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.9999899472510615,
+        "l2__least_squares_stage1_scale": 0.9609224561884677,
+        "max__least_squares_stage1_scale": 0.9621540202749621
+      },
+      "projector_decomposition_max_error": 1.1920928955078125e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.0005387270357459784,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 2.2449208030781764,
+          "measurement_residual_ratio": 0.5448579626858154,
+          "gt_correction_relative_norm": 0.7973492741584778,
+          "observable_correction_norm_ratio": 0.0029398680198937654,
+          "observable_correction_energy_ratio": 8.642823559057433e-06,
+          "adjoint_observable_cosine": 0.8442630767822266,
+          "gt_correction_l2": 19.787248611450195,
+          "observable_target_l2": 0.05817189812660217,
+          "adjoint_evidence_l2": 0.10179036110639572
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 2.108548399008936,
+          "measurement_residual_ratio": 0.554592668774643,
+          "gt_correction_relative_norm": 0.7973492741584778,
+          "observable_correction_norm_ratio": 0.0048727598041296005,
+          "observable_correction_energy_ratio": 2.3743787096464075e-05,
+          "adjoint_observable_cosine": 0.8345187306404114,
+          "gt_correction_l2": 19.787248611450195,
+          "observable_target_l2": 0.09641850739717484,
+          "adjoint_evidence_l2": 0.19916340708732605
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 1.980137112146334,
+          "measurement_residual_ratio": 0.6180249566502684,
+          "gt_correction_relative_norm": 0.7973492741584778,
+          "observable_correction_norm_ratio": 0.01011775340884924,
+          "observable_correction_energy_ratio": 0.0001023689255816862,
+          "adjoint_observable_cosine": 0.8242784738540649,
+          "gt_correction_l2": 19.787248611450195,
+          "observable_target_l2": 0.20020249485969543,
+          "adjoint_evidence_l2": 0.4862821400165558
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 1.979939902593614,
+          "measurement_residual_ratio": 0.662846557372562,
+          "gt_correction_relative_norm": 0.7973492741584778,
+          "observable_correction_norm_ratio": 0.033721648156642914,
+          "observable_correction_energy_ratio": 0.0011371494038030505,
+          "adjoint_observable_cosine": 0.9057872295379639,
+          "gt_correction_l2": 19.787248611450195,
+          "observable_target_l2": 0.667258620262146,
+          "adjoint_evidence_l2": 1.3915410041809082
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0013",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32735,
+      "unique_tet_count": 8641,
+      "tet_coverage_ratio": 1.0,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3659,
+          "unique_tet_count": 3129
+        },
+        "core": {
+          "query_count": 10942,
+          "unique_tet_count": 978
+        },
+        "halo": {
+          "query_count": 12787,
+          "unique_tet_count": 868
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 5347,
+          "unique_tet_count": 4199
+        }
+      },
+      "subsample_2048_coverage_mean": 0.2513912596049513,
+      "subsample_2048_coverage_std": 0.004150767486543538,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.062203223723467545,
+          "evidence_l2": 0.03134322389188469,
+          "evidence_abs_mean": 4.387791055361261e-05,
+          "evidence_abs_max": 0.008440217679282115
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 0.21161725606120946,
+          "evidence_l2": 0.0964312698217339,
+          "evidence_abs_mean": 0.00016339313266237667,
+          "evidence_abs_max": 0.01572324014620024
+        },
+        "least_squares_stage1_scale": {
+          "scale": 0.8898605882038432,
+          "residual_norm": 0.4108925617171696,
+          "evidence_l2": 0.20888158895823444,
+          "evidence_abs_mean": 0.00029011219220966553,
+          "evidence_abs_max": 0.056990713362454204
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.8459403971499024,
+        "l2__least_squares_stage1_scale": 0.9994906629579658,
+        "max__least_squares_stage1_scale": 0.8284912530567745
+      },
+      "projector_decomposition_max_error": 1.1920928955078125e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.0007024033111520112,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 0.8898605882038432,
+          "measurement_residual_ratio": 0.0621731316252077,
+          "gt_correction_relative_norm": 0.6094737648963928,
+          "observable_correction_norm_ratio": 0.11440037190914154,
+          "observable_correction_energy_ratio": 0.013087445870041847,
+          "adjoint_observable_cosine": 0.6921977400779724,
+          "gt_correction_l2": 15.00103759765625,
+          "observable_target_l2": 1.7161242961883545,
+          "adjoint_evidence_l2": 0.4645521938800812
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 0.877941117732636,
+          "measurement_residual_ratio": 0.08280130854103501,
+          "gt_correction_relative_norm": 0.6094737648963928,
+          "observable_correction_norm_ratio": 0.14359259605407715,
+          "observable_correction_energy_ratio": 0.02061883546411991,
+          "adjoint_observable_cosine": 0.5535651445388794,
+          "gt_correction_l2": 15.00103759765625,
+          "observable_target_l2": 2.1540379524230957,
+          "adjoint_evidence_l2": 0.8082232475280762
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 0.8648959465732717,
+          "measurement_residual_ratio": 0.1094839333849133,
+          "gt_correction_relative_norm": 0.6094737648963928,
+          "observable_correction_norm_ratio": 0.16791296005249023,
+          "observable_correction_energy_ratio": 0.028194762766361237,
+          "adjoint_observable_cosine": 0.557391345500946,
+          "gt_correction_l2": 15.00103759765625,
+          "observable_target_l2": 2.5188686847686768,
+          "adjoint_evidence_l2": 1.16231369972229
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 0.8507283227534719,
+          "measurement_residual_ratio": 0.14464228157615538,
+          "gt_correction_relative_norm": 0.6094737648963928,
+          "observable_correction_norm_ratio": 0.18322961032390594,
+          "observable_correction_energy_ratio": 0.03357309103012085,
+          "adjoint_observable_cosine": 0.5347356796264648,
+          "gt_correction_l2": 15.00103759765625,
+          "observable_target_l2": 2.7486343383789062,
+          "adjoint_evidence_l2": 1.4578843116760254
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0014",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32734,
+      "unique_tet_count": 9537,
+      "tet_coverage_ratio": 0.9983871445333585,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3691,
+          "unique_tet_count": 3132
+        },
+        "core": {
+          "query_count": 10994,
+          "unique_tet_count": 1527
+        },
+        "halo": {
+          "query_count": 12888,
+          "unique_tet_count": 964
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 5161,
+          "unique_tet_count": 4340
+        }
+      },
+      "subsample_2048_coverage_mean": 0.24914222154746,
+      "subsample_2048_coverage_std": 0.0037877480857377074,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.27875747701336256,
+          "evidence_l2": 0.11493300786142964,
+          "evidence_abs_mean": 0.00013461005146466273,
+          "evidence_abs_max": 0.015288223656913374
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 0.7429104743609664,
+          "evidence_l2": 0.3033188646735944,
+          "evidence_abs_mean": 0.0003481363785817116,
+          "evidence_abs_max": 0.039810985969795376
+        },
+        "least_squares_stage1_scale": {
+          "scale": 0.2310980674513155,
+          "residual_norm": 0.04823476865381432,
+          "evidence_l2": 0.01965058910473127,
+          "evidence_abs_mean": 2.236069680114159e-05,
+          "evidence_abs_max": 0.0025429281976053235
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.9922871690821595,
+        "l2__least_squares_stage1_scale": 0.9814830603690552,
+        "max__least_squares_stage1_scale": 0.9976575274009477
+      },
+      "projector_decomposition_max_error": 1.1920928955078125e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.000612293544691056,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 0.2310980674513155,
+          "measurement_residual_ratio": 0.2760365757204455,
+          "gt_correction_relative_norm": 0.7876793146133423,
+          "observable_correction_norm_ratio": 0.018033457919955254,
+          "observable_correction_energy_ratio": 0.0003252055903431028,
+          "adjoint_observable_cosine": 0.10270404070615768,
+          "gt_correction_l2": 23.001174926757812,
+          "observable_target_l2": 0.41479071974754333,
+          "adjoint_evidence_l2": 0.045352641493082047
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 0.23881784109880916,
+          "measurement_residual_ratio": 0.3454935242021211,
+          "gt_correction_relative_norm": 0.7876793146133423,
+          "observable_correction_norm_ratio": 0.03391272574663162,
+          "observable_correction_energy_ratio": 0.0011500727850943804,
+          "adjoint_observable_cosine": 0.14001384377479553,
+          "gt_correction_l2": 23.001174926757812,
+          "observable_target_l2": 0.7800325155258179,
+          "adjoint_evidence_l2": 0.08332604914903641
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 0.23950301232534899,
+          "measurement_residual_ratio": 0.3886336714343535,
+          "gt_correction_relative_norm": 0.7876793146133423,
+          "observable_correction_norm_ratio": 0.051790062338113785,
+          "observable_correction_energy_ratio": 0.0026822106447070837,
+          "adjoint_observable_cosine": 0.18259622156620026,
+          "gt_correction_l2": 23.001174926757812,
+          "observable_target_l2": 1.1912323236465454,
+          "adjoint_evidence_l2": 0.161183699965477
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 0.2403381715807805,
+          "measurement_residual_ratio": 0.41006125114834946,
+          "gt_correction_relative_norm": 0.7876793146133423,
+          "observable_correction_norm_ratio": 0.06272010505199432,
+          "observable_correction_energy_ratio": 0.0039338115602731705,
+          "adjoint_observable_cosine": 0.1946762204170227,
+          "gt_correction_l2": 23.001174926757812,
+          "observable_target_l2": 1.4426361322402954,
+          "adjoint_evidence_l2": 0.2422351986169815
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0026",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32749,
+      "unique_tet_count": 7181,
+      "tet_coverage_ratio": 0.9996106135491999,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3890,
+          "unique_tet_count": 3134
+        },
+        "core": {
+          "query_count": 11798,
+          "unique_tet_count": 959
+        },
+        "halo": {
+          "query_count": 13776,
+          "unique_tet_count": 942
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 3285,
+          "unique_tet_count": 2462
+        }
+      },
+      "subsample_2048_coverage_mean": 0.38646845120113665,
+      "subsample_2048_coverage_std": 0.006250710811821476,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.06923991103453743,
+          "evidence_l2": 0.0396097349323786,
+          "evidence_abs_mean": 5.5579813105950034e-05,
+          "evidence_abs_max": 0.007597761967758174
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 0.18202832284040743,
+          "evidence_l2": 0.09974578390409448,
+          "evidence_abs_mean": 0.000143864321057506,
+          "evidence_abs_max": 0.02271027553851019
+        },
+        "least_squares_stage1_scale": {
+          "scale": 1.2292972103350526,
+          "residual_norm": 0.8552080588348234,
+          "evidence_l2": 0.4908773691572129,
+          "evidence_abs_mean": 0.0006888363050801258,
+          "evidence_abs_max": 0.09197832903446027
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.9305779187058946,
+        "l2__least_squares_stage1_scale": 0.999508009121992,
+        "max__least_squares_stage1_scale": 0.9186376852468198
+      },
+      "projector_decomposition_max_error": 1.1920928955078125e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.0010266619501635432,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 1.2292972103350526,
+          "measurement_residual_ratio": 0.0691984052094121,
+          "gt_correction_relative_norm": 0.5106185674667358,
+          "observable_correction_norm_ratio": 0.13864508271217346,
+          "observable_correction_energy_ratio": 0.019222456961870193,
+          "adjoint_observable_cosine": 0.5460892915725708,
+          "gt_correction_l2": 12.519304275512695,
+          "observable_target_l2": 1.7357399463653564,
+          "adjoint_evidence_l2": 0.7613494992256165
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 1.2335721802603778,
+          "measurement_residual_ratio": 0.0827902689201255,
+          "gt_correction_relative_norm": 0.5106185674667358,
+          "observable_correction_norm_ratio": 0.19553013145923615,
+          "observable_correction_energy_ratio": 0.03823203220963478,
+          "adjoint_observable_cosine": 0.6678982973098755,
+          "gt_correction_l2": 12.519304275512695,
+          "observable_target_l2": 2.4479012489318848,
+          "adjoint_evidence_l2": 1.3187191486358643
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 1.2334850757278668,
+          "measurement_residual_ratio": 0.10137967559474631,
+          "gt_correction_relative_norm": 0.5106185674667358,
+          "observable_correction_norm_ratio": 0.23442384600639343,
+          "observable_correction_energy_ratio": 0.05495453625917435,
+          "adjoint_observable_cosine": 0.6868157982826233,
+          "gt_correction_l2": 12.519304275512695,
+          "observable_target_l2": 2.934823513031006,
+          "adjoint_evidence_l2": 1.625730037689209
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 1.2311173069271852,
+          "measurement_residual_ratio": 0.12246994274912783,
+          "gt_correction_relative_norm": 0.5106185674667358,
+          "observable_correction_norm_ratio": 0.25203850865364075,
+          "observable_correction_energy_ratio": 0.06352341175079346,
+          "adjoint_observable_cosine": 0.6423865556716919,
+          "gt_correction_l2": 12.519304275512695,
+          "observable_target_l2": 3.1553468704223633,
+          "adjoint_evidence_l2": 1.946999192237854
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0029",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32722,
+      "unique_tet_count": 8928,
+      "tet_coverage_ratio": 0.9974993455939568,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3732,
+          "unique_tet_count": 3132
+        },
+        "core": {
+          "query_count": 11218,
+          "unique_tet_count": 1479
+        },
+        "halo": {
+          "query_count": 13202,
+          "unique_tet_count": 912
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 4570,
+          "unique_tet_count": 3750
+        }
+      },
+      "subsample_2048_coverage_mean": 0.26065661580432525,
+      "subsample_2048_coverage_std": 0.0042766941090970085,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.08023400229628819,
+          "evidence_l2": 0.040799568264573746,
+          "evidence_abs_mean": 3.69594126032377e-05,
+          "evidence_abs_max": 0.009825182687610682
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 0.2617293077074588,
+          "evidence_l2": 0.1287280540729161,
+          "evidence_abs_mean": 0.00012009050101007358,
+          "evidence_abs_max": 0.03061054995632799
+        },
+        "least_squares_stage1_scale": {
+          "scale": 0.385238516427232,
+          "residual_norm": 0.002299915442112937,
+          "evidence_l2": 0.001187817019202846,
+          "evidence_abs_mean": 1.0613395804299127e-06,
+          "evidence_abs_max": 0.00029428307902422824
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.9904977269741626,
+        "l2__least_squares_stage1_scale": 0.9985988588401065,
+        "max__least_squares_stage1_scale": 0.9818321293035578
+      },
+      "projector_decomposition_max_error": 1.1920928955078125e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.001005276688374579,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 0.385238516427232,
+          "measurement_residual_ratio": 0.08016943241054188,
+          "gt_correction_relative_norm": 0.9292992353439331,
+          "observable_correction_norm_ratio": 0.0030673739966005087,
+          "observable_correction_energy_ratio": 9.408783625985961e-06,
+          "adjoint_observable_cosine": 0.5908610224723816,
+          "gt_correction_l2": 14.100576400756836,
+          "observable_target_l2": 0.04325174167752266,
+          "adjoint_evidence_l2": 0.004605104215443134
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 0.37942290874973983,
+          "measurement_residual_ratio": 0.10930522120737148,
+          "gt_correction_relative_norm": 0.9292992353439331,
+          "observable_correction_norm_ratio": 0.0052407714538276196,
+          "observable_correction_energy_ratio": 2.746568679867778e-05,
+          "adjoint_observable_cosine": 0.5632308125495911,
+          "gt_correction_l2": 14.100576400756836,
+          "observable_target_l2": 0.07389789819717407,
+          "adjoint_evidence_l2": 0.007732918951660395
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 0.376055119609715,
+          "measurement_residual_ratio": 0.11512815857207037,
+          "gt_correction_relative_norm": 0.9292992353439331,
+          "observable_correction_norm_ratio": 0.00892843957990408,
+          "observable_correction_energy_ratio": 7.97170287114568e-05,
+          "adjoint_observable_cosine": 0.3712618052959442,
+          "gt_correction_l2": 14.100576400756836,
+          "observable_target_l2": 0.1258961409330368,
+          "adjoint_evidence_l2": 0.010534130036830902
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 0.37415911764985915,
+          "measurement_residual_ratio": 0.1361608001978487,
+          "gt_correction_relative_norm": 0.9292992353439331,
+          "observable_correction_norm_ratio": 0.020091356709599495,
+          "observable_correction_energy_ratio": 0.00040366261964663863,
+          "adjoint_observable_cosine": 0.3846535086631775,
+          "gt_correction_l2": 14.100576400756836,
+          "observable_target_l2": 0.2832997143268585,
+          "adjoint_evidence_l2": 0.020499495789408684
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0039",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32747,
+      "unique_tet_count": 8940,
+      "tet_coverage_ratio": 1.0,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3703,
+          "unique_tet_count": 3116
+        },
+        "core": {
+          "query_count": 11156,
+          "unique_tet_count": 804
+        },
+        "halo": {
+          "query_count": 13023,
+          "unique_tet_count": 1735
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 4865,
+          "unique_tet_count": 3814
+        }
+      },
+      "subsample_2048_coverage_mean": 0.31375849139737405,
+      "subsample_2048_coverage_std": 0.0030719119766552745,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.07069898661705884,
+          "evidence_l2": 0.044098372712628765,
+          "evidence_abs_mean": 6.730616073694429e-05,
+          "evidence_abs_max": 0.005844607326491393
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 0.1939749946200201,
+          "evidence_l2": 0.12086248567526056,
+          "evidence_abs_mean": 0.0001842018256658042,
+          "evidence_abs_max": 0.016175253254020822
+        },
+        "least_squares_stage1_scale": {
+          "scale": 0.5659140002440051,
+          "residual_norm": 0.22046309171456707,
+          "evidence_l2": 0.1373363309938455,
+          "evidence_abs_mean": 0.00020925179941468108,
+          "evidence_abs_max": 0.018411475176605033
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.9996905212558467,
+        "l2__least_squares_stage1_scale": 0.9995658552138292,
+        "max__least_squares_stage1_scale": 0.99998947366938
+      },
+      "projector_decomposition_max_error": 1.1920928955078125e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.0007846691878512502,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 0.5659140002440051,
+          "measurement_residual_ratio": 0.07065480073051073,
+          "gt_correction_relative_norm": 0.6991794109344482,
+          "observable_correction_norm_ratio": 0.1899414360523224,
+          "observable_correction_energy_ratio": 0.036077748984098434,
+          "adjoint_observable_cosine": -0.26703041791915894,
+          "gt_correction_l2": 11.320892333984375,
+          "observable_target_l2": 2.150306463241577,
+          "adjoint_evidence_l2": 0.14780855178833008
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 0.5705377210194449,
+          "measurement_residual_ratio": 0.07558144076774966,
+          "gt_correction_relative_norm": 0.6991794109344482,
+          "observable_correction_norm_ratio": 0.2769012451171875,
+          "observable_correction_energy_ratio": 0.07667430490255356,
+          "adjoint_observable_cosine": -0.38716816902160645,
+          "gt_correction_l2": 11.320892333984375,
+          "observable_target_l2": 3.1347692012786865,
+          "adjoint_evidence_l2": 0.2926848530769348
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 0.5763955904345232,
+          "measurement_residual_ratio": 0.08444433826724491,
+          "gt_correction_relative_norm": 0.6991794109344482,
+          "observable_correction_norm_ratio": 0.373320996761322,
+          "observable_correction_energy_ratio": 0.13936857879161835,
+          "adjoint_observable_cosine": -0.10794708132743835,
+          "gt_correction_l2": 11.320892333984375,
+          "observable_target_l2": 4.226326942443848,
+          "adjoint_evidence_l2": 0.4096389412879944
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 0.5839772465977198,
+          "measurement_residual_ratio": 0.0917922709099887,
+          "gt_correction_relative_norm": 0.6991794109344482,
+          "observable_correction_norm_ratio": 0.3853013217449188,
+          "observable_correction_energy_ratio": 0.1484571099281311,
+          "adjoint_observable_cosine": 0.05033445730805397,
+          "gt_correction_l2": 11.320892333984375,
+          "observable_target_l2": 4.361954689025879,
+          "adjoint_evidence_l2": 0.6766764521598816
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0047",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32710,
+      "unique_tet_count": 5606,
+      "tet_coverage_ratio": 0.9998911933895145,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 4202,
+          "unique_tet_count": 3123
+        },
+        "core": {
+          "query_count": 12491,
+          "unique_tet_count": 939
+        },
+        "halo": {
+          "query_count": 14601,
+          "unique_tet_count": 748
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 1416,
+          "unique_tet_count": 924
+        }
+      },
+      "subsample_2048_coverage_mean": 0.671413651325379,
+      "subsample_2048_coverage_std": 0.010108002546505384,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.04786769917257662,
+          "evidence_l2": 0.011087827874180634,
+          "evidence_abs_mean": 1.2046442614947846e-05,
+          "evidence_abs_max": 0.002241324890994755
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 0.12009734050158953,
+          "evidence_l2": 0.03294005638811579,
+          "evidence_abs_mean": 4.312226807861497e-05,
+          "evidence_abs_max": 0.0054633811417613325
+        },
+        "least_squares_stage1_scale": {
+          "scale": 2.394182655262166,
+          "residual_norm": 0.27736377258312683,
+          "evidence_l2": 0.06469498731709934,
+          "evidence_abs_mean": 7.014332514696016e-05,
+          "evidence_abs_max": 0.013007888778437298
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.8766079001526246,
+        "l2__least_squares_stage1_scale": 0.9991499206920669,
+        "max__least_squares_stage1_scale": 0.8957000272045758
+      },
+      "projector_decomposition_max_error": 1.1920928955078125e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.0009171358542516828,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 2.394182655262166,
+          "measurement_residual_ratio": 0.04785398734193263,
+          "gt_correction_relative_norm": 0.7385340929031372,
+          "observable_correction_norm_ratio": 0.253005713224411,
+          "observable_correction_energy_ratio": 0.06401189416646957,
+          "adjoint_observable_cosine": -0.5295557975769043,
+          "gt_correction_l2": 14.098150253295898,
+          "observable_target_l2": 3.5669126510620117,
+          "adjoint_evidence_l2": 0.804736852645874
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 2.3805395463574133,
+          "measurement_residual_ratio": 0.05595202003519082,
+          "gt_correction_relative_norm": 0.7385340929031372,
+          "observable_correction_norm_ratio": 0.29604122042655945,
+          "observable_correction_energy_ratio": 0.08764040470123291,
+          "adjoint_observable_cosine": -0.15990665555000305,
+          "gt_correction_l2": 14.098150253295898,
+          "observable_target_l2": 4.173633575439453,
+          "adjoint_evidence_l2": 1.5944877862930298
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 2.329792417729235,
+          "measurement_residual_ratio": 0.08988444372056564,
+          "gt_correction_relative_norm": 0.7385340929031372,
+          "observable_correction_norm_ratio": 0.3150753974914551,
+          "observable_correction_energy_ratio": 0.09927251189947128,
+          "adjoint_observable_cosine": 0.13091406226158142,
+          "gt_correction_l2": 14.098150253295898,
+          "observable_target_l2": 4.441980361938477,
+          "adjoint_evidence_l2": 2.661921262741089
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 2.239437022488286,
+          "measurement_residual_ratio": 0.1465257881577828,
+          "gt_correction_relative_norm": 0.7385340929031372,
+          "observable_correction_norm_ratio": 0.33785098791122437,
+          "observable_correction_energy_ratio": 0.11414328217506409,
+          "adjoint_observable_cosine": 0.3623995780944824,
+          "gt_correction_l2": 14.098150253295898,
+          "observable_target_l2": 4.763073921203613,
+          "adjoint_evidence_l2": 3.795119285583496
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0060",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32711,
+      "unique_tet_count": 9527,
+      "tet_coverage_ratio": 0.9961568569424302,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3749,
+          "unique_tet_count": 3123
+        },
+        "core": {
+          "query_count": 11178,
+          "unique_tet_count": 1945
+        },
+        "halo": {
+          "query_count": 13085,
+          "unique_tet_count": 874
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 4699,
+          "unique_tet_count": 3956
+        }
+      },
+      "subsample_2048_coverage_mean": 0.2275137359848569,
+      "subsample_2048_coverage_std": 0.002102423952590162,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.16090528418216318,
+          "evidence_l2": 0.06216996490891771,
+          "evidence_abs_mean": 6.544456781776566e-05,
+          "evidence_abs_max": 0.009507262342841858
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 0.5196794572793342,
+          "evidence_l2": 0.18307837509393785,
+          "evidence_abs_mean": 0.0002025011826965018,
+          "evidence_abs_max": 0.02152229228524785
+        },
+        "least_squares_stage1_scale": {
+          "scale": 0.2942271296693969,
+          "residual_norm": 0.002708869436121302,
+          "evidence_l2": 0.0010751570085305755,
+          "evidence_abs_mean": 1.116240312706731e-06,
+          "evidence_abs_max": 0.00016803759534537766
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.8991910348330365,
+        "l2__least_squares_stage1_scale": 0.996106383435703,
+        "max__least_squares_stage1_scale": 0.8571152493517129
+      },
+      "projector_decomposition_max_error": 1.1920928955078125e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.0005982942529954016,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 0.2942271296693969,
+          "measurement_residual_ratio": 0.16038376007118424,
+          "gt_correction_relative_norm": 0.9975486397743225,
+          "observable_correction_norm_ratio": 0.001714429585263133,
+          "observable_correction_energy_ratio": 2.9392685974016786e-06,
+          "adjoint_observable_cosine": 0.146786168217659,
+          "gt_correction_l2": 15.268356323242188,
+          "observable_target_l2": 0.02617652155458927,
+          "adjoint_evidence_l2": 0.003211082424968481
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 0.27526782389438736,
+          "measurement_residual_ratio": 0.2028197556536266,
+          "gt_correction_relative_norm": 0.9975486397743225,
+          "observable_correction_norm_ratio": 0.0023333742283284664,
+          "observable_correction_energy_ratio": 5.444634552986827e-06,
+          "adjoint_observable_cosine": -0.14329077303409576,
+          "gt_correction_l2": 15.268356323242188,
+          "observable_target_l2": 0.035626787692308426,
+          "adjoint_evidence_l2": 0.007216309197247028
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 0.27453002976871227,
+          "measurement_residual_ratio": 0.22121406548707434,
+          "gt_correction_relative_norm": 0.9975486397743225,
+          "observable_correction_norm_ratio": 0.004086426459252834,
+          "observable_correction_energy_ratio": 1.669888115429785e-05,
+          "adjoint_observable_cosine": -0.09133292734622955,
+          "gt_correction_l2": 15.268356323242188,
+          "observable_target_l2": 0.06239301711320877,
+          "adjoint_evidence_l2": 0.010874289087951183
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 0.2736109669769295,
+          "measurement_residual_ratio": 0.2516230194460995,
+          "gt_correction_relative_norm": 0.9975486397743225,
+          "observable_correction_norm_ratio": 0.007373142056167126,
+          "observable_correction_energy_ratio": 5.436322680907324e-05,
+          "adjoint_observable_cosine": -0.03429770469665527,
+          "gt_correction_l2": 15.268356323242188,
+          "observable_target_l2": 0.11257576197385788,
+          "adjoint_evidence_l2": 0.01995421200990677
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0086",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32732,
+      "unique_tet_count": 9812,
+      "tet_coverage_ratio": 0.9969926118375061,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3647,
+          "unique_tet_count": 3108
+        },
+        "core": {
+          "query_count": 10884,
+          "unique_tet_count": 1846
+        },
+        "halo": {
+          "query_count": 12768,
+          "unique_tet_count": 968
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 5433,
+          "unique_tet_count": 4424
+        }
+      },
+      "subsample_2048_coverage_mean": 0.233974005580998,
+      "subsample_2048_coverage_std": 0.0031270278061320328,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.7207536342774984,
+          "evidence_l2": 0.4627613024765745,
+          "evidence_abs_mean": 0.00043251078730975487,
+          "evidence_abs_max": 0.08335361894886721
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 2.5666099587850564,
+          "evidence_l2": 1.656564944807741,
+          "evidence_abs_mean": 0.0015456963105901149,
+          "evidence_abs_max": 0.30302427624002104
+        },
+        "least_squares_stage1_scale": {
+          "scale": 0.1163026079970339,
+          "residual_norm": 0.007227825611451094,
+          "evidence_l2": 0.004954396547661779,
+          "evidence_abs_mean": 4.3975631825573575e-06,
+          "evidence_abs_max": 0.001033530217948734
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.9997097994492242,
+        "l2__least_squares_stage1_scale": 0.9455212039223647,
+        "max__least_squares_stage1_scale": 0.9530894903220274
+      },
+      "projector_decomposition_max_error": 2.384185791015625e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.0005632298998534679,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 0.1163026079970339,
+          "measurement_residual_ratio": 0.6723242080935856,
+          "gt_correction_relative_norm": 1.0461416244506836,
+          "observable_correction_norm_ratio": 0.00221518287435174,
+          "observable_correction_energy_ratio": 4.907035418000305e-06,
+          "adjoint_observable_cosine": 0.00901306513696909,
+          "gt_correction_l2": 15.298270225524902,
+          "observable_target_l2": 0.03388846665620804,
+          "adjoint_evidence_l2": 0.0038530887104570866
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 0.11712401331093275,
+          "measurement_residual_ratio": 0.6729082497982458,
+          "gt_correction_relative_norm": 1.0461416244506836,
+          "observable_correction_norm_ratio": 0.002711811801418662,
+          "observable_correction_energy_ratio": 7.353922228503507e-06,
+          "adjoint_observable_cosine": -0.07275274395942688,
+          "gt_correction_l2": 15.298270225524902,
+          "observable_target_l2": 0.04148602858185768,
+          "adjoint_evidence_l2": 0.005267944186925888
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 0.11538664259978311,
+          "measurement_residual_ratio": 0.6748731771110693,
+          "gt_correction_relative_norm": 1.0461416244506836,
+          "observable_correction_norm_ratio": 0.004832819569855928,
+          "observable_correction_energy_ratio": 2.335614408366382e-05,
+          "adjoint_observable_cosine": -0.06079820916056633,
+          "gt_correction_l2": 15.298270225524902,
+          "observable_target_l2": 0.07393378019332886,
+          "adjoint_evidence_l2": 0.009652115404605865
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 0.11342554865456363,
+          "measurement_residual_ratio": 0.6786300338041147,
+          "gt_correction_relative_norm": 1.0461416244506836,
+          "observable_correction_norm_ratio": 0.011519143357872963,
+          "observable_correction_energy_ratio": 0.00013269066403154284,
+          "adjoint_observable_cosine": 0.08993368595838547,
+          "gt_correction_l2": 15.298270225524902,
+          "observable_target_l2": 0.17622296512126923,
+          "adjoint_evidence_l2": 0.020074762403964996
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0101",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32745,
+      "unique_tet_count": 9275,
+      "tet_coverage_ratio": 0.9984614875973359,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3688,
+          "unique_tet_count": 3110
+        },
+        "core": {
+          "query_count": 11064,
+          "unique_tet_count": 1608
+        },
+        "halo": {
+          "query_count": 12936,
+          "unique_tet_count": 1023
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 5057,
+          "unique_tet_count": 4102
+        }
+      },
+      "subsample_2048_coverage_mean": 0.2583251840012468,
+      "subsample_2048_coverage_std": 0.0033186896004683644,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.49529414160075014,
+          "evidence_l2": 0.28898980855561535,
+          "evidence_abs_mean": 0.0002700278460172602,
+          "evidence_abs_max": 0.061257141643406385
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 1.6543911891610916,
+          "evidence_l2": 1.0759972933471587,
+          "evidence_abs_mean": 0.0009341558404332494,
+          "evidence_abs_max": 0.22473637489913245
+        },
+        "least_squares_stage1_scale": {
+          "scale": 1.713789160209454,
+          "residual_norm": 0.05010769479390036,
+          "evidence_l2": 0.03041266221537523,
+          "evidence_abs_mean": 2.8358555763726634e-05,
+          "evidence_abs_max": 0.005293951229550846
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.8036430859473795,
+        "l2__least_squares_stage1_scale": 0.9602551413998095,
+        "max__least_squares_stage1_scale": 0.9378121757945211
+      },
+      "projector_decomposition_max_error": 2.384185791015625e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.0008585083414800465,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 1.713789160209454,
+          "measurement_residual_ratio": 0.4798659473821257,
+          "gt_correction_relative_norm": 0.7078186869621277,
+          "observable_correction_norm_ratio": 0.001533443690277636,
+          "observable_correction_energy_ratio": 2.3514496660936857e-06,
+          "adjoint_observable_cosine": 0.7946991324424744,
+          "gt_correction_l2": 18.183866500854492,
+          "observable_target_l2": 0.02788393571972847,
+          "adjoint_evidence_l2": 0.03440877050161362
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 1.6926494364498381,
+          "measurement_residual_ratio": 0.5191937314145227,
+          "gt_correction_relative_norm": 0.7078186869621277,
+          "observable_correction_norm_ratio": 0.0026942992117255926,
+          "observable_correction_energy_ratio": 7.259248377522454e-06,
+          "adjoint_observable_cosine": 0.8507153391838074,
+          "gt_correction_l2": 18.183866500854492,
+          "observable_target_l2": 0.04899277910590172,
+          "adjoint_evidence_l2": 0.0685039684176445
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 1.7118104809225139,
+          "measurement_residual_ratio": 0.5242394039371687,
+          "gt_correction_relative_norm": 0.7078186869621277,
+          "observable_correction_norm_ratio": 0.004364558029919863,
+          "observable_correction_energy_ratio": 1.904936470964458e-05,
+          "adjoint_observable_cosine": 0.8217648267745972,
+          "gt_correction_l2": 18.183866500854492,
+          "observable_target_l2": 0.07936453819274902,
+          "adjoint_evidence_l2": 0.12210317701101303
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 1.7254747052972155,
+          "measurement_residual_ratio": 0.5277961462243604,
+          "gt_correction_relative_norm": 0.7078186869621277,
+          "observable_correction_norm_ratio": 0.007159915287047625,
+          "observable_correction_energy_ratio": 5.1264389185234904e-05,
+          "adjoint_observable_cosine": 0.760749101638794,
+          "gt_correction_l2": 18.183866500854492,
+          "observable_target_l2": 0.13019494712352753,
+          "adjoint_evidence_l2": 0.17362509667873383
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0102",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32737,
+      "unique_tet_count": 8744,
+      "tet_coverage_ratio": 0.9996398729497497,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3668,
+          "unique_tet_count": 3109
+        },
+        "core": {
+          "query_count": 11020,
+          "unique_tet_count": 774
+        },
+        "halo": {
+          "query_count": 12833,
+          "unique_tet_count": 1851
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 5216,
+          "unique_tet_count": 3618
+        }
+      },
+      "subsample_2048_coverage_mean": 0.3090829465868742,
+      "subsample_2048_coverage_std": 0.004499990579713184,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.06484933007901683,
+          "evidence_l2": 0.03085531686629867,
+          "evidence_abs_mean": 5.1204698263689064e-05,
+          "evidence_abs_max": 0.006593733465951993
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 0.1888161485314793,
+          "evidence_l2": 0.09030944192608822,
+          "evidence_abs_mean": 0.00014295194913633034,
+          "evidence_abs_max": 0.020346349662592137
+        },
+        "least_squares_stage1_scale": {
+          "scale": 0.5148836401990078,
+          "residual_norm": 0.34290720258319524,
+          "evidence_l2": 0.1632240730665509,
+          "evidence_abs_mean": 0.00026860527436082897,
+          "evidence_abs_max": 0.03524884635939274
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.9606703711412892,
+        "l2__least_squares_stage1_scale": 0.9995086490267114,
+        "max__least_squares_stage1_scale": 0.9689023626277916
+      },
+      "projector_decomposition_max_error": 2.384185791015625e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.0007883752114139497,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 0.5148836401990078,
+          "measurement_residual_ratio": 0.06481523124660829,
+          "gt_correction_relative_norm": 0.7769699096679688,
+          "observable_correction_norm_ratio": 0.191470205783844,
+          "observable_correction_energy_ratio": 0.03666083887219429,
+          "adjoint_observable_cosine": 0.0013906237436458468,
+          "gt_correction_l2": 12.28964614868164,
+          "observable_target_l2": 2.3531010150909424,
+          "adjoint_evidence_l2": 0.32412847876548767
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 0.5199991448531545,
+          "measurement_residual_ratio": 0.07522304200820934,
+          "gt_correction_relative_norm": 0.7769699096679688,
+          "observable_correction_norm_ratio": 0.24728929996490479,
+          "observable_correction_energy_ratio": 0.06115199625492096,
+          "adjoint_observable_cosine": 0.0756254717707634,
+          "gt_correction_l2": 12.28964614868164,
+          "observable_target_l2": 3.039098024368286,
+          "adjoint_evidence_l2": 0.6934028267860413
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 0.521880675301681,
+          "measurement_residual_ratio": 0.10132639520782222,
+          "gt_correction_relative_norm": 0.7769699096679688,
+          "observable_correction_norm_ratio": 0.2771247327327728,
+          "observable_correction_energy_ratio": 0.07679812610149384,
+          "adjoint_observable_cosine": 0.1958741694688797,
+          "gt_correction_l2": 12.28964614868164,
+          "observable_target_l2": 3.4057650566101074,
+          "adjoint_evidence_l2": 1.1233705282211304
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 0.5275162389860028,
+          "measurement_residual_ratio": 0.14344265801670078,
+          "gt_correction_relative_norm": 0.7769699096679688,
+          "observable_correction_norm_ratio": 0.31651854515075684,
+          "observable_correction_energy_ratio": 0.10018399357795715,
+          "adjoint_observable_cosine": 0.3815023899078369,
+          "gt_correction_l2": 12.28964614868164,
+          "observable_target_l2": 3.8899009227752686,
+          "adjoint_evidence_l2": 1.6841458082199097
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0131",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32757,
+      "unique_tet_count": 8943,
+      "tet_coverage_ratio": 0.9987336068876338,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3692,
+          "unique_tet_count": 3113
+        },
+        "core": {
+          "query_count": 11129,
+          "unique_tet_count": 1373
+        },
+        "halo": {
+          "query_count": 12880,
+          "unique_tet_count": 1013
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 5056,
+          "unique_tet_count": 4012
+        }
+      },
+      "subsample_2048_coverage_mean": 0.28226746993822377,
+      "subsample_2048_coverage_std": 0.0037989597782900264,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.3935234751180787,
+          "evidence_l2": 0.23300068871675514,
+          "evidence_abs_mean": 0.0003714473543618536,
+          "evidence_abs_max": 0.04356836813019072
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 1.272346371098954,
+          "evidence_l2": 0.6925515247371665,
+          "evidence_abs_mean": 0.0012083025726549932,
+          "evidence_abs_max": 0.1112085764407388
+        },
+        "least_squares_stage1_scale": {
+          "scale": 0.5996109080680766,
+          "residual_norm": 1.1698572199791895,
+          "evidence_l2": 0.7118657727370467,
+          "evidence_abs_mean": 0.0010427709490346932,
+          "evidence_abs_max": 0.14138870343455606
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.8636848696376263,
+        "l2__least_squares_stage1_scale": 0.9843326750660246,
+        "max__least_squares_stage1_scale": 0.7612816505368101
+      },
+      "projector_decomposition_max_error": 1.1920928955078125e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.001183585962280631,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 0.5996109080680766,
+          "measurement_residual_ratio": 0.3858306172056076,
+          "gt_correction_relative_norm": 0.7407275438308716,
+          "observable_correction_norm_ratio": 0.09579942375421524,
+          "observable_correction_energy_ratio": 0.00917753018438816,
+          "adjoint_observable_cosine": 0.3873026371002197,
+          "gt_correction_l2": 12.073429107666016,
+          "observable_target_l2": 1.1566275358200073,
+          "adjoint_evidence_l2": 0.7189744710922241
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 0.612193672854743,
+          "measurement_residual_ratio": 0.3804965235462111,
+          "gt_correction_relative_norm": 0.7407275438308716,
+          "observable_correction_norm_ratio": 0.13092973828315735,
+          "observable_correction_energy_ratio": 0.01714259572327137,
+          "adjoint_observable_cosine": 0.32239270210266113,
+          "gt_correction_l2": 12.073429107666016,
+          "observable_target_l2": 1.5807708501815796,
+          "adjoint_evidence_l2": 0.9066887497901917
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 0.6202972137948463,
+          "measurement_residual_ratio": 0.38334070257678576,
+          "gt_correction_relative_norm": 0.7407275438308716,
+          "observable_correction_norm_ratio": 0.1573714315891266,
+          "observable_correction_energy_ratio": 0.02476576901972294,
+          "adjoint_observable_cosine": 0.3207966387271881,
+          "gt_correction_l2": 12.073429107666016,
+          "observable_target_l2": 1.9000128507614136,
+          "adjoint_evidence_l2": 1.2150814533233643
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 0.6248327016477947,
+          "measurement_residual_ratio": 0.3785841269720994,
+          "gt_correction_relative_norm": 0.7407275438308716,
+          "observable_correction_norm_ratio": 0.1906258910894394,
+          "observable_correction_energy_ratio": 0.03633823245763779,
+          "adjoint_observable_cosine": 0.3177165389060974,
+          "gt_correction_l2": 12.073429107666016,
+          "observable_target_l2": 2.3015081882476807,
+          "adjoint_evidence_l2": 1.7730567455291748
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0147",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32732,
+      "unique_tet_count": 8492,
+      "tet_coverage_ratio": 0.9998116838418898,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3781,
+          "unique_tet_count": 3139
+        },
+        "core": {
+          "query_count": 11228,
+          "unique_tet_count": 861
+        },
+        "halo": {
+          "query_count": 13118,
+          "unique_tet_count": 1096
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 4605,
+          "unique_tet_count": 3750
+        }
+      },
+      "subsample_2048_coverage_mean": 0.2751359497493153,
+      "subsample_2048_coverage_std": 0.0043774217752092885,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.07726302527075193,
+          "evidence_l2": 0.038990872002735794,
+          "evidence_abs_mean": 3.819803112421864e-05,
+          "evidence_abs_max": 0.007400201633651529
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 0.23384761451514652,
+          "evidence_l2": 0.12003393089315596,
+          "evidence_abs_mean": 0.00011794534721653173,
+          "evidence_abs_max": 0.026698103533070325
+        },
+        "least_squares_stage1_scale": {
+          "scale": 0.2669493555650112,
+          "residual_norm": 0.0023503052579689587,
+          "evidence_l2": 0.00118426396813814,
+          "evidence_abs_mean": 1.1583701349884448e-06,
+          "evidence_abs_max": 0.00021610815384874485
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.9709441926217437,
+        "l2__least_squares_stage1_scale": 0.9990057122961541,
+        "max__least_squares_stage1_scale": 0.9593099673433227
+      },
+      "projector_decomposition_max_error": 2.384185791015625e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.0010845651850104332,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 0.2669493555650112,
+          "measurement_residual_ratio": 0.07720536637085251,
+          "gt_correction_relative_norm": 0.8031671047210693,
+          "observable_correction_norm_ratio": 0.00278433202765882,
+          "observable_correction_energy_ratio": 7.752504643576685e-06,
+          "adjoint_observable_cosine": 0.3108992874622345,
+          "gt_correction_l2": 14.07809829711914,
+          "observable_target_l2": 0.039198100566864014,
+          "adjoint_evidence_l2": 0.0024287679698318243
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 0.2623271612579123,
+          "measurement_residual_ratio": 0.11888711981608571,
+          "gt_correction_relative_norm": 0.8031671047210693,
+          "observable_correction_norm_ratio": 0.004013736266642809,
+          "observable_correction_energy_ratio": 1.6110079741338268e-05,
+          "adjoint_observable_cosine": -0.027085913345217705,
+          "gt_correction_l2": 14.07809829711914,
+          "observable_target_l2": 0.056505776941776276,
+          "adjoint_evidence_l2": 0.005019213072955608
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 0.253266468630146,
+          "measurement_residual_ratio": 0.13600248704059037,
+          "gt_correction_relative_norm": 0.8031671047210693,
+          "observable_correction_norm_ratio": 0.006807225756347179,
+          "observable_correction_energy_ratio": 4.633832213585265e-05,
+          "adjoint_observable_cosine": -0.4709742069244385,
+          "gt_correction_l2": 14.07809829711914,
+          "observable_target_l2": 0.09583279490470886,
+          "adjoint_evidence_l2": 0.010188274085521698
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 0.24679759469586093,
+          "measurement_residual_ratio": 0.15613330986346566,
+          "gt_correction_relative_norm": 0.8031671047210693,
+          "observable_correction_norm_ratio": 0.009434191510081291,
+          "observable_correction_energy_ratio": 8.900397369870916e-05,
+          "adjoint_observable_cosine": -0.6688435673713684,
+          "gt_correction_l2": 14.07809829711914,
+          "observable_target_l2": 0.13281548023223877,
+          "adjoint_evidence_l2": 0.018305258825421333
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0156",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32753,
+      "unique_tet_count": 9361,
+      "tet_coverage_ratio": 0.9966610723715419,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3703,
+          "unique_tet_count": 3109
+        },
+        "core": {
+          "query_count": 11114,
+          "unique_tet_count": 1684
+        },
+        "halo": {
+          "query_count": 13007,
+          "unique_tet_count": 1054
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 4929,
+          "unique_tet_count": 4034
+        }
+      },
+      "subsample_2048_coverage_mean": 0.2592273627297433,
+      "subsample_2048_coverage_std": 0.003981522985362408,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.9073932128382985,
+          "evidence_l2": 0.5434448221512657,
+          "evidence_abs_mean": 0.0005190694238787857,
+          "evidence_abs_max": 0.11185132968747363
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 2.4907547468077027,
+          "evidence_l2": 1.4477372254698637,
+          "evidence_abs_mean": 0.001422268942879667,
+          "evidence_abs_max": 0.2416685582210253
+        },
+        "least_squares_stage1_scale": {
+          "scale": 0.08753271270534611,
+          "residual_norm": 0.026448373502530022,
+          "evidence_l2": 0.01503934627841672,
+          "evidence_abs_mean": 1.4525506614203944e-05,
+          "evidence_abs_max": 0.0024360710076197596
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.9675114751170539,
+        "l2__least_squares_stage1_scale": 0.8856495859009217,
+        "max__least_squares_stage1_scale": 0.9742774625419055
+      },
+      "projector_decomposition_max_error": 2.384185791015625e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.0007265799795277417,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 0.08753271270534611,
+          "measurement_residual_ratio": 0.8086292010713836,
+          "gt_correction_relative_norm": 1.1735061407089233,
+          "observable_correction_norm_ratio": 0.01207907684147358,
+          "observable_correction_energy_ratio": 0.0001459040940972045,
+          "adjoint_observable_cosine": -0.5960860252380371,
+          "gt_correction_l2": 14.614875793457031,
+          "observable_target_l2": 0.17653420567512512,
+          "adjoint_evidence_l2": 0.025967400521039963
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 0.08756463051583928,
+          "measurement_residual_ratio": 0.8146640797609446,
+          "gt_correction_relative_norm": 1.1735061407089233,
+          "observable_correction_norm_ratio": 0.018670503050088882,
+          "observable_correction_energy_ratio": 0.00034858769504353404,
+          "adjoint_observable_cosine": -0.6201211214065552,
+          "gt_correction_l2": 14.614875793457031,
+          "observable_target_l2": 0.2728670835494995,
+          "adjoint_evidence_l2": 0.045383892953395844
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 0.08436011653270271,
+          "measurement_residual_ratio": 0.834538476275898,
+          "gt_correction_relative_norm": 1.1735061407089233,
+          "observable_correction_norm_ratio": 0.03515918552875519,
+          "observable_correction_energy_ratio": 0.0012361683184280992,
+          "adjoint_observable_cosine": -0.433455228805542,
+          "gt_correction_l2": 14.614875793457031,
+          "observable_target_l2": 0.5138471126556396,
+          "adjoint_evidence_l2": 0.07691696286201477
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 0.08234202593122826,
+          "measurement_residual_ratio": 0.8393636936460462,
+          "gt_correction_relative_norm": 1.1735061407089233,
+          "observable_correction_norm_ratio": 0.04581643268465996,
+          "observable_correction_energy_ratio": 0.002099145669490099,
+          "adjoint_observable_cosine": -0.1958737075328827,
+          "gt_correction_l2": 14.614875793457031,
+          "observable_target_l2": 0.6696015000343323,
+          "adjoint_evidence_l2": 0.09495320916175842
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0162",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32750,
+      "unique_tet_count": 8123,
+      "tet_coverage_ratio": 1.0,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3697,
+          "unique_tet_count": 3118
+        },
+        "core": {
+          "query_count": 11132,
+          "unique_tet_count": 907
+        },
+        "halo": {
+          "query_count": 12948,
+          "unique_tet_count": 848
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 4973,
+          "unique_tet_count": 3820
+        }
+      },
+      "subsample_2048_coverage_mean": 0.290289627224317,
+      "subsample_2048_coverage_std": 0.0038798295102397793,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.16503426620584055,
+          "evidence_l2": 0.08943144725888902,
+          "evidence_abs_mean": 0.00012021014602882998,
+          "evidence_abs_max": 0.01473056974623342
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 0.5181563369542241,
+          "evidence_l2": 0.29325556505345357,
+          "evidence_abs_mean": 0.0003848861873463694,
+          "evidence_abs_max": 0.05173932870630775
+        },
+        "least_squares_stage1_scale": {
+          "scale": 0.4121276521301623,
+          "residual_norm": 0.4334022308381257,
+          "evidence_l2": 0.2378491449200611,
+          "evidence_abs_mean": 0.0003161564193876953,
+          "evidence_abs_max": 0.03923033057821822
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.9613605244786595,
+        "l2__least_squares_stage1_scale": 0.9963263067903392,
+        "max__least_squares_stage1_scale": 0.9814043146087448
+      },
+      "projector_decomposition_max_error": 2.384185791015625e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.0010514459572732449,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 0.4121276521301623,
+          "measurement_residual_ratio": 0.1644714413944309,
+          "gt_correction_relative_norm": 0.7537148594856262,
+          "observable_correction_norm_ratio": 0.2650690972805023,
+          "observable_correction_energy_ratio": 0.07026161998510361,
+          "adjoint_observable_cosine": 0.5094764828681946,
+          "gt_correction_l2": 10.887986183166504,
+          "observable_target_l2": 2.88606858253479,
+          "adjoint_evidence_l2": 0.32720494270324707
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 0.39201987566864405,
+          "measurement_residual_ratio": 0.20800045848153131,
+          "gt_correction_relative_norm": 0.7537148594856262,
+          "observable_correction_norm_ratio": 0.35371026396751404,
+          "observable_correction_energy_ratio": 0.1251109540462494,
+          "adjoint_observable_cosine": 0.22579394280910492,
+          "gt_correction_l2": 10.887986183166504,
+          "observable_target_l2": 3.8511924743652344,
+          "adjoint_evidence_l2": 0.4675925374031067
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 0.3924042658646859,
+          "measurement_residual_ratio": 0.21244392417395205,
+          "gt_correction_relative_norm": 0.7537148594856262,
+          "observable_correction_norm_ratio": 0.3956579267978668,
+          "observable_correction_energy_ratio": 0.15654520690441132,
+          "adjoint_observable_cosine": 0.17845699191093445,
+          "gt_correction_l2": 10.887986183166504,
+          "observable_target_l2": 4.307918071746826,
+          "adjoint_evidence_l2": 0.7297942042350769
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 0.38955764224639033,
+          "measurement_residual_ratio": 0.2491125105287593,
+          "gt_correction_relative_norm": 0.7537148594856262,
+          "observable_correction_norm_ratio": 0.41124454140663147,
+          "observable_correction_energy_ratio": 0.16912207007408142,
+          "adjoint_observable_cosine": 0.06407410651445389,
+          "gt_correction_l2": 10.887986183166504,
+          "observable_target_l2": 4.477624893188477,
+          "adjoint_evidence_l2": 1.046247959136963
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0171",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32736,
+      "unique_tet_count": 8104,
+      "tet_coverage_ratio": 1.0,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3757,
+          "unique_tet_count": 3125
+        },
+        "core": {
+          "query_count": 11279,
+          "unique_tet_count": 873
+        },
+        "halo": {
+          "query_count": 13245,
+          "unique_tet_count": 1044
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 4455,
+          "unique_tet_count": 3512
+        }
+      },
+      "subsample_2048_coverage_mean": 0.30480330067701644,
+      "subsample_2048_coverage_std": 0.004486015369017596,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.10468089649994627,
+          "evidence_l2": 0.03857891790354353,
+          "evidence_abs_mean": 5.015947239574721e-05,
+          "evidence_abs_max": 0.005637605502523374
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 0.30872407943800156,
+          "evidence_l2": 0.12362767782466094,
+          "evidence_abs_mean": 0.0001592255224507686,
+          "evidence_abs_max": 0.024731763176444176
+        },
+        "least_squares_stage1_scale": {
+          "scale": 2.3125893797270822,
+          "residual_norm": 0.6532165178545463,
+          "evidence_l2": 0.23887640714639627,
+          "evidence_abs_mean": 0.0003135744778637421,
+          "evidence_abs_max": 0.034679538425645515
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.9236979687377627,
+        "l2__least_squares_stage1_scale": 0.9977223980626061,
+        "max__least_squares_stage1_scale": 0.8957511496793054
+      },
+      "projector_decomposition_max_error": 1.1920928955078125e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.0006278003565967083,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 2.3125893797270822,
+          "measurement_residual_ratio": 0.1045374106021964,
+          "gt_correction_relative_norm": 0.7415575385093689,
+          "observable_correction_norm_ratio": 0.1907377541065216,
+          "observable_correction_energy_ratio": 0.036380890756845474,
+          "adjoint_observable_cosine": 0.6509679555892944,
+          "gt_correction_l2": 20.55645179748535,
+          "observable_target_l2": 3.920891523361206,
+          "adjoint_evidence_l2": 1.0224193334579468
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 2.296660942540447,
+          "measurement_residual_ratio": 0.13712577648052118,
+          "gt_correction_relative_norm": 0.7415575385093689,
+          "observable_correction_norm_ratio": 0.3001544177532196,
+          "observable_correction_energy_ratio": 0.09009267389774323,
+          "adjoint_observable_cosine": 0.6735854148864746,
+          "gt_correction_l2": 20.55645179748535,
+          "observable_target_l2": 6.170109748840332,
+          "adjoint_evidence_l2": 2.1666383743286133
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 2.3832338581763435,
+          "measurement_residual_ratio": 0.21989582202472657,
+          "gt_correction_relative_norm": 0.7415575385093689,
+          "observable_correction_norm_ratio": 0.3615514636039734,
+          "observable_correction_energy_ratio": 0.13071945309638977,
+          "adjoint_observable_cosine": 0.5659654140472412,
+          "gt_correction_l2": 20.55645179748535,
+          "observable_target_l2": 7.432215213775635,
+          "adjoint_evidence_l2": 3.02871036529541
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 2.4796807592481804,
+          "measurement_residual_ratio": 0.287729649013177,
+          "gt_correction_relative_norm": 0.7415575385093689,
+          "observable_correction_norm_ratio": 0.41881948709487915,
+          "observable_correction_energy_ratio": 0.17540976405143738,
+          "adjoint_observable_cosine": 0.5188611745834351,
+          "gt_correction_l2": 20.55645179748535,
+          "observable_target_l2": 8.609442710876465,
+          "adjoint_evidence_l2": 4.4754862785339355
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0177",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32736,
+      "unique_tet_count": 10369,
+      "tet_coverage_ratio": 0.9835832990758363,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3675,
+          "unique_tet_count": 3132
+        },
+        "core": {
+          "query_count": 11017,
+          "unique_tet_count": 2446
+        },
+        "halo": {
+          "query_count": 12813,
+          "unique_tet_count": 1341
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 5231,
+          "unique_tet_count": 4275
+        }
+      },
+      "subsample_2048_coverage_mean": 0.2394490908973439,
+      "subsample_2048_coverage_std": 0.0035042005654805095,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.41785729032122665,
+          "evidence_l2": 0.25679939654399736,
+          "evidence_abs_mean": 0.00025548195694822834,
+          "evidence_abs_max": 0.07279341183690677
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 1.4645345899859408,
+          "evidence_l2": 0.8281972699665974,
+          "evidence_abs_mean": 0.0009045314473128304,
+          "evidence_abs_max": 0.22513686119822662
+        },
+        "least_squares_stage1_scale": {
+          "scale": 0.5237791658105581,
+          "residual_norm": 0.2760319729591475,
+          "evidence_l2": 0.17788197551565546,
+          "evidence_abs_mean": 0.00017087712327954401,
+          "evidence_abs_max": 0.05561475632678349
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.8458111848303199,
+        "l2__least_squares_stage1_scale": 0.9785469147114544,
+        "max__least_squares_stage1_scale": 0.7177556924246872
+      },
+      "projector_decomposition_max_error": 1.1920928955078125e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.000562831643037498,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 0.5237791658105581,
+          "measurement_residual_ratio": 0.40863555542326735,
+          "gt_correction_relative_norm": 0.7617142796516418,
+          "observable_correction_norm_ratio": 0.033083800226449966,
+          "observable_correction_energy_ratio": 0.0010945377871394157,
+          "adjoint_observable_cosine": 0.5591256022453308,
+          "gt_correction_l2": 17.245861053466797,
+          "observable_target_l2": 0.5705586075782776,
+          "adjoint_evidence_l2": 0.23855115473270416
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 0.4784585355029526,
+          "measurement_residual_ratio": 0.468692907383366,
+          "gt_correction_relative_norm": 0.7617142796516418,
+          "observable_correction_norm_ratio": 0.051950689405202866,
+          "observable_correction_energy_ratio": 0.002698874333873391,
+          "adjoint_observable_cosine": 0.5926428437232971,
+          "gt_correction_l2": 17.245861053466797,
+          "observable_target_l2": 0.8959344029426575,
+          "adjoint_evidence_l2": 0.3337610065937042
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 0.4741163829990191,
+          "measurement_residual_ratio": 0.49383265506693025,
+          "gt_correction_relative_norm": 0.7617142796516418,
+          "observable_correction_norm_ratio": 0.07118741422891617,
+          "observable_correction_energy_ratio": 0.005067647434771061,
+          "adjoint_observable_cosine": 0.5814780592918396,
+          "gt_correction_l2": 17.245861053466797,
+          "observable_target_l2": 1.227688193321228,
+          "adjoint_evidence_l2": 0.4772820472717285
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 0.44780133386380644,
+          "measurement_residual_ratio": 0.5375850987871348,
+          "gt_correction_relative_norm": 0.7617142796516418,
+          "observable_correction_norm_ratio": 0.08868365734815598,
+          "observable_correction_energy_ratio": 0.007864790968596935,
+          "adjoint_observable_cosine": 0.32707273960113525,
+          "gt_correction_l2": 17.245861053466797,
+          "observable_target_l2": 1.5294259786605835,
+          "adjoint_evidence_l2": 0.8383395075798035
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0181",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32743,
+      "unique_tet_count": 7836,
+      "tet_coverage_ratio": 0.9995368818640556,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3858,
+          "unique_tet_count": 3122
+        },
+        "core": {
+          "query_count": 11466,
+          "unique_tet_count": 826
+        },
+        "halo": {
+          "query_count": 13490,
+          "unique_tet_count": 930
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 3929,
+          "unique_tet_count": 3124
+        }
+      },
+      "subsample_2048_coverage_mean": 0.33892487500313184,
+      "subsample_2048_coverage_std": 0.00418660395818369,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.11613278713166351,
+          "evidence_l2": 0.06410719514092625,
+          "evidence_abs_mean": 7.221562493862195e-05,
+          "evidence_abs_max": 0.012818130949397497
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 0.4812724757605542,
+          "evidence_l2": 0.30823550399664446,
+          "evidence_abs_mean": 0.0003487697487859015,
+          "evidence_abs_max": 0.060986077454574
+        },
+        "least_squares_stage1_scale": {
+          "scale": 0.9914100641069774,
+          "residual_norm": 0.25724082935677217,
+          "evidence_l2": 0.14399817140914706,
+          "evidence_abs_mean": 0.0001608273089890447,
+          "evidence_abs_max": 0.029361220379596757
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.7628526431482973,
+        "l2__least_squares_stage1_scale": 0.9981098988906236,
+        "max__least_squares_stage1_scale": 0.8011454210550026
+      },
+      "projector_decomposition_max_error": 1.1920928955078125e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.00045427275472320616,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 0.9914100641069774,
+          "measurement_residual_ratio": 0.11593683953143476,
+          "gt_correction_relative_norm": 0.7959503531455994,
+          "observable_correction_norm_ratio": 0.020581118762493134,
+          "observable_correction_energy_ratio": 0.0004235824744682759,
+          "adjoint_observable_cosine": 0.7757933735847473,
+          "gt_correction_l2": 18.745481491088867,
+          "observable_target_l2": 0.3858029842376709,
+          "adjoint_evidence_l2": 0.23685604333877563
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 0.9782665397095208,
+          "measurement_residual_ratio": 0.15679747296436666,
+          "gt_correction_relative_norm": 0.7959503531455994,
+          "observable_correction_norm_ratio": 0.03180995583534241,
+          "observable_correction_energy_ratio": 0.0010118732461705804,
+          "adjoint_observable_cosine": 0.7116996645927429,
+          "gt_correction_l2": 18.745481491088867,
+          "observable_target_l2": 0.5962929129600525,
+          "adjoint_evidence_l2": 0.3842350244522095
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 0.9840651354300897,
+          "measurement_residual_ratio": 0.18793757780842638,
+          "gt_correction_relative_norm": 0.7959503531455994,
+          "observable_correction_norm_ratio": 0.06104068085551262,
+          "observable_correction_energy_ratio": 0.0037259645760059357,
+          "adjoint_observable_cosine": 0.8053746223449707,
+          "gt_correction_l2": 18.745481491088867,
+          "observable_target_l2": 1.1442369222640991,
+          "adjoint_evidence_l2": 0.7362446784973145
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 1.0057593592481238,
+          "measurement_residual_ratio": 0.22796769103001807,
+          "gt_correction_relative_norm": 0.7959503531455994,
+          "observable_correction_norm_ratio": 0.0909973680973053,
+          "observable_correction_energy_ratio": 0.00828052032738924,
+          "adjoint_observable_cosine": 0.8221273422241211,
+          "gt_correction_l2": 18.745481491088867,
+          "observable_target_l2": 1.7057894468307495,
+          "adjoint_evidence_l2": 1.3471187353134155
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0205",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32750,
+      "unique_tet_count": 8225,
+      "tet_coverage_ratio": 0.9987346785127186,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3660,
+          "unique_tet_count": 3120
+        },
+        "core": {
+          "query_count": 11004,
+          "unique_tet_count": 1187
+        },
+        "halo": {
+          "query_count": 12814,
+          "unique_tet_count": 746
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 5272,
+          "unique_tet_count": 3853
+        }
+      },
+      "subsample_2048_coverage_mean": 0.2782102516324988,
+      "subsample_2048_coverage_std": 0.003400313933766137,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.10953804197317346,
+          "evidence_l2": 0.06717685967108601,
+          "evidence_abs_mean": 0.00010216076934634649,
+          "evidence_abs_max": 0.01620163309197365
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 0.27852629353045383,
+          "evidence_l2": 0.17167346341324058,
+          "evidence_abs_mean": 0.00026427337286974483,
+          "evidence_abs_max": 0.04175091467772429
+        },
+        "least_squares_stage1_scale": {
+          "scale": 0.8502262670448902,
+          "residual_norm": 0.9747443682005004,
+          "evidence_l2": 0.5995605142538181,
+          "evidence_abs_mean": 0.0008831095931093136,
+          "evidence_abs_max": 0.14624864990693437
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.8994704724492139,
+        "l2__least_squares_stage1_scale": 0.9988621406395135,
+        "max__least_squares_stage1_scale": 0.9192870540476855
+      },
+      "projector_decomposition_max_error": 1.1920928955078125e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.0004618269740603864,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 0.8502262670448902,
+          "measurement_residual_ratio": 0.10937363104426943,
+          "gt_correction_relative_norm": 0.5913964509963989,
+          "observable_correction_norm_ratio": 0.11736848205327988,
+          "observable_correction_energy_ratio": 0.013775360770523548,
+          "adjoint_observable_cosine": 0.23039330542087555,
+          "gt_correction_l2": 13.294562339782715,
+          "observable_target_l2": 1.5603625774383545,
+          "adjoint_evidence_l2": 0.7648177146911621
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 0.8468780384155402,
+          "measurement_residual_ratio": 0.11139743122420058,
+          "gt_correction_relative_norm": 0.5913964509963989,
+          "observable_correction_norm_ratio": 0.16155408322811127,
+          "observable_correction_energy_ratio": 0.02609972283244133,
+          "adjoint_observable_cosine": 0.30309656262397766,
+          "gt_correction_l2": 13.294562339782715,
+          "observable_target_l2": 2.1477909088134766,
+          "adjoint_evidence_l2": 1.146193504333496
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 0.8416864123087764,
+          "measurement_residual_ratio": 0.12856774165199591,
+          "gt_correction_relative_norm": 0.5913964509963989,
+          "observable_correction_norm_ratio": 0.20633654296398163,
+          "observable_correction_energy_ratio": 0.042574770748615265,
+          "adjoint_observable_cosine": 0.4394276440143585,
+          "gt_correction_l2": 13.294562339782715,
+          "observable_target_l2": 2.7431540489196777,
+          "adjoint_evidence_l2": 1.7280796766281128
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 0.8340949331274224,
+          "measurement_residual_ratio": 0.1451666764421882,
+          "gt_correction_relative_norm": 0.5913964509963989,
+          "observable_correction_norm_ratio": 0.23900005221366882,
+          "observable_correction_energy_ratio": 0.057121023535728455,
+          "adjoint_observable_cosine": 0.4129045903682709,
+          "gt_correction_l2": 13.294562339782715,
+          "observable_target_l2": 3.177401065826416,
+          "adjoint_evidence_l2": 2.150664806365967
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0208",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32749,
+      "unique_tet_count": 8990,
+      "tet_coverage_ratio": 0.9987558273018975,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3702,
+          "unique_tet_count": 3121
+        },
+        "core": {
+          "query_count": 10965,
+          "unique_tet_count": 1323
+        },
+        "halo": {
+          "query_count": 12843,
+          "unique_tet_count": 864
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 5239,
+          "unique_tet_count": 4203
+        }
+      },
+      "subsample_2048_coverage_mean": 0.2689376491823573,
+      "subsample_2048_coverage_std": 0.003185433385729715,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.9763497534749757,
+          "evidence_l2": 0.5844161517296271,
+          "evidence_abs_mean": 0.0006001358147954451,
+          "evidence_abs_max": 0.1087175660411108
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 2.283366503904448,
+          "evidence_l2": 1.5668775226495781,
+          "evidence_abs_mean": 0.001427552275650181,
+          "evidence_abs_max": 0.3299113832782641
+        },
+        "least_squares_stage1_scale": {
+          "scale": 0.8586979253507425,
+          "residual_norm": 1.0930520138395146,
+          "evidence_l2": 0.7866720593500036,
+          "evidence_abs_mean": 0.0006718393383838082,
+          "evidence_abs_max": 0.16979879330515374
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.9599611159661489,
+        "l2__least_squares_stage1_scale": 0.9187493990003839,
+        "max__least_squares_stage1_scale": 0.9925718485552636
+      },
+      "projector_decomposition_max_error": 1.1920928955078125e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.0006769747706130147,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 0.8586979253507425,
+          "measurement_residual_ratio": 0.8521051853159161,
+          "gt_correction_relative_norm": 0.8016306161880493,
+          "observable_correction_norm_ratio": 0.03356793522834778,
+          "observable_correction_energy_ratio": 0.001126806135289371,
+          "adjoint_observable_cosine": 0.9354685544967651,
+          "gt_correction_l2": 26.90498161315918,
+          "observable_target_l2": 0.9031446576118469,
+          "adjoint_evidence_l2": 0.8251557946205139
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 0.7640823441159864,
+          "measurement_residual_ratio": 0.8596347719349022,
+          "gt_correction_relative_norm": 0.8016306161880493,
+          "observable_correction_norm_ratio": 0.04314640164375305,
+          "observable_correction_energy_ratio": 0.001861611963249743,
+          "adjoint_observable_cosine": 0.875654935836792,
+          "gt_correction_l2": 26.90498161315918,
+          "observable_target_l2": 1.1608531475067139,
+          "adjoint_evidence_l2": 0.9831134676933289
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 0.6965838033503772,
+          "measurement_residual_ratio": 0.8671504901548701,
+          "gt_correction_relative_norm": 0.8016306161880493,
+          "observable_correction_norm_ratio": 0.05755865201354027,
+          "observable_correction_energy_ratio": 0.0033129986841231585,
+          "adjoint_observable_cosine": 0.8231984972953796,
+          "gt_correction_l2": 26.90498161315918,
+          "observable_target_l2": 1.548614501953125,
+          "adjoint_evidence_l2": 1.2410696744918823
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 0.6617558973455864,
+          "measurement_residual_ratio": 0.8757315629336573,
+          "gt_correction_relative_norm": 0.8016306161880493,
+          "observable_correction_norm_ratio": 0.07018586993217468,
+          "observable_correction_energy_ratio": 0.004926056135445833,
+          "adjoint_observable_cosine": 0.7335863709449768,
+          "gt_correction_l2": 26.90498161315918,
+          "observable_target_l2": 1.8883495330810547,
+          "adjoint_evidence_l2": 2.2078280448913574
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0221",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32711,
+      "unique_tet_count": 8733,
+      "tet_coverage_ratio": 0.9998513022368719,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3723,
+          "unique_tet_count": 3124
+        },
+        "core": {
+          "query_count": 11072,
+          "unique_tet_count": 1007
+        },
+        "halo": {
+          "query_count": 12994,
+          "unique_tet_count": 872
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 4922,
+          "unique_tet_count": 4086
+        }
+      },
+      "subsample_2048_coverage_mean": 0.2396923350714367,
+      "subsample_2048_coverage_std": 0.004267936136921169,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.24501012952577153,
+          "evidence_l2": 0.09502036138163236,
+          "evidence_abs_mean": 0.00010305419322784068,
+          "evidence_abs_max": 0.01315885912295765
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 0.5974173436220621,
+          "evidence_l2": 0.25747581973037714,
+          "evidence_abs_mean": 0.0002700870496548874,
+          "evidence_abs_max": 0.03958515698032114
+        },
+        "least_squares_stage1_scale": {
+          "scale": 0.11022471341322485,
+          "residual_norm": 0.0012264496822937522,
+          "evidence_l2": 0.0005012890897945775,
+          "evidence_abs_mean": 5.347428749442648e-07,
+          "evidence_abs_max": 6.960192497666097e-05
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.9718121137002316,
+        "l2__least_squares_stage1_scale": 0.9929844642217314,
+        "max__least_squares_stage1_scale": 0.9928713544218957
+      },
+      "projector_decomposition_max_error": 2.384185791015625e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.0007910652202554047,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 0.11022471341322485,
+          "measurement_residual_ratio": 0.24316495024239926,
+          "gt_correction_relative_norm": 1.6617368459701538,
+          "observable_correction_norm_ratio": 0.0027872633654624224,
+          "observable_correction_energy_ratio": 7.768836439936422e-06,
+          "adjoint_observable_cosine": 0.4775626063346863,
+          "gt_correction_l2": 13.337126731872559,
+          "observable_target_l2": 0.03717408329248428,
+          "adjoint_evidence_l2": 0.0021554972045123577
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 0.09904158930494644,
+          "measurement_residual_ratio": 0.30053296588206446,
+          "gt_correction_relative_norm": 1.6617368459701538,
+          "observable_correction_norm_ratio": 0.004327257629483938,
+          "observable_correction_energy_ratio": 1.872515531431418e-05,
+          "adjoint_observable_cosine": 0.2750496566295624,
+          "gt_correction_l2": 13.337126731872559,
+          "observable_target_l2": 0.05771318078041077,
+          "adjoint_evidence_l2": 0.003858632408082485
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 0.09244375349266228,
+          "measurement_residual_ratio": 0.32935252706289797,
+          "gt_correction_relative_norm": 1.6617368459701538,
+          "observable_correction_norm_ratio": 0.006441578269004822,
+          "observable_correction_energy_ratio": 4.149393134866841e-05,
+          "adjoint_observable_cosine": -0.16287977993488312,
+          "gt_correction_l2": 13.337126731872559,
+          "observable_target_l2": 0.08591214567422867,
+          "adjoint_evidence_l2": 0.007408694364130497
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 0.09176438094351227,
+          "measurement_residual_ratio": 0.335443107187017,
+          "gt_correction_relative_norm": 1.6617368459701538,
+          "observable_correction_norm_ratio": 0.012377386912703514,
+          "observable_correction_energy_ratio": 0.00015319969679694623,
+          "adjoint_observable_cosine": -0.09177511185407639,
+          "gt_correction_l2": 13.337126731872559,
+          "observable_target_l2": 0.1650787740945816,
+          "adjoint_evidence_l2": 0.014090902172029018
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0229",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32727,
+      "unique_tet_count": 9222,
+      "tet_coverage_ratio": 0.9979871266241183,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3716,
+          "unique_tet_count": 3124
+        },
+        "core": {
+          "query_count": 11061,
+          "unique_tet_count": 1373
+        },
+        "halo": {
+          "query_count": 12914,
+          "unique_tet_count": 1028
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 5036,
+          "unique_tet_count": 4045
+        }
+      },
+      "subsample_2048_coverage_mean": 0.24660271723972554,
+      "subsample_2048_coverage_std": 0.0033969714152330983,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.3715628051484509,
+          "evidence_l2": 0.18834969194596063,
+          "evidence_abs_mean": 0.0001883451611114011,
+          "evidence_abs_max": 0.035037929644438456
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 1.2833898037593756,
+          "evidence_l2": 0.6510510113081105,
+          "evidence_abs_mean": 0.0006513296040307516,
+          "evidence_abs_max": 0.13545229295932718
+        },
+        "least_squares_stage1_scale": {
+          "scale": 0.24794915528524056,
+          "residual_norm": 0.005276728767086341,
+          "evidence_l2": 0.0026796367033226102,
+          "evidence_abs_mean": 2.67424098172962e-06,
+          "evidence_abs_max": 0.0005729485788367405
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.9866438811732943,
+        "l2__least_squares_stage1_scale": 0.9788596525580455,
+        "max__least_squares_stage1_scale": 0.9991027192884684
+      },
+      "projector_decomposition_max_error": 1.1920928955078125e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.0005964011652395129,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 0.24794915528524056,
+          "measurement_residual_ratio": 0.36509445979259364,
+          "gt_correction_relative_norm": 1.5092825889587402,
+          "observable_correction_norm_ratio": 0.0027395160868763924,
+          "observable_correction_energy_ratio": 7.50494837120641e-06,
+          "adjoint_observable_cosine": -0.09554135054349899,
+          "gt_correction_l2": 12.35855484008789,
+          "observable_target_l2": 0.033856458961963654,
+          "adjoint_evidence_l2": 0.006872136145830154
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 0.23679348071087405,
+          "measurement_residual_ratio": 0.4553547276559882,
+          "gt_correction_relative_norm": 1.5092825889587402,
+          "observable_correction_norm_ratio": 0.007295042276382446,
+          "observable_correction_energy_ratio": 5.32176491105929e-05,
+          "adjoint_observable_cosine": -0.13758854568004608,
+          "gt_correction_l2": 12.35855484008789,
+          "observable_target_l2": 0.0901561826467514,
+          "adjoint_evidence_l2": 0.023594658821821213
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 0.23197511662277231,
+          "measurement_residual_ratio": 0.49898726882792066,
+          "gt_correction_relative_norm": 1.5092825889587402,
+          "observable_correction_norm_ratio": 0.01214910764247179,
+          "observable_correction_energy_ratio": 0.00014760081830900162,
+          "adjoint_observable_cosine": -0.25061091780662537,
+          "gt_correction_l2": 12.35855484008789,
+          "observable_target_l2": 0.15014541149139404,
+          "adjoint_evidence_l2": 0.04889105632901192
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 0.23879309783166502,
+          "measurement_residual_ratio": 0.5091062588574103,
+          "gt_correction_relative_norm": 1.5092825889587402,
+          "observable_correction_norm_ratio": 0.018168900161981583,
+          "observable_correction_energy_ratio": 0.00033010897459462285,
+          "adjoint_observable_cosine": -0.3179732859134674,
+          "gt_correction_l2": 12.35855484008789,
+          "observable_target_l2": 0.22454135119915009,
+          "adjoint_evidence_l2": 0.08252917230129242
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0232",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32746,
+      "unique_tet_count": 9156,
+      "tet_coverage_ratio": 0.9981049571749587,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3693,
+          "unique_tet_count": 3124
+        },
+        "core": {
+          "query_count": 11053,
+          "unique_tet_count": 1497
+        },
+        "halo": {
+          "query_count": 12876,
+          "unique_tet_count": 832
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 5124,
+          "unique_tet_count": 4168
+        }
+      },
+      "subsample_2048_coverage_mean": 0.2520275546475375,
+      "subsample_2048_coverage_std": 0.0031643842791534644,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.6367521784372948,
+          "evidence_l2": 0.4061021992356523,
+          "evidence_abs_mean": 0.00038026464421517204,
+          "evidence_abs_max": 0.06956528498198644
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 1.836390121412766,
+          "evidence_l2": 1.2007992464072565,
+          "evidence_abs_mean": 0.0010705895338360889,
+          "evidence_abs_max": 0.22125240843322647
+        },
+        "least_squares_stage1_scale": {
+          "scale": 0.04126136219354854,
+          "residual_norm": 0.004522619462451101,
+          "evidence_l2": 0.00296769284982882,
+          "evidence_abs_mean": 2.6183332626606172e-06,
+          "evidence_abs_max": 0.0005499854455446023
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.9674013982728347,
+        "l2__least_squares_stage1_scale": 0.95449488858697,
+        "max__least_squares_stage1_scale": 0.9989051420842077
+      },
+      "projector_decomposition_max_error": 1.1920928955078125e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.0011086947051808238,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 0.04126136219354854,
+          "measurement_residual_ratio": 0.603618827111074,
+          "gt_correction_relative_norm": 1.199423909187317,
+          "observable_correction_norm_ratio": 0.00820982176810503,
+          "observable_correction_energy_ratio": 6.740116805303842e-05,
+          "adjoint_observable_cosine": 0.3147917091846466,
+          "gt_correction_l2": 15.368400573730469,
+          "observable_target_l2": 0.12617182731628418,
+          "adjoint_evidence_l2": 0.002564290538430214
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 0.040649718924256756,
+          "measurement_residual_ratio": 0.5930741634035317,
+          "gt_correction_relative_norm": 1.199423909187317,
+          "observable_correction_norm_ratio": 0.012353836558759212,
+          "observable_correction_energy_ratio": 0.00015261727094184607,
+          "adjoint_observable_cosine": 0.3081907033920288,
+          "gt_correction_l2": 15.368400573730469,
+          "observable_target_l2": 0.18985870480537415,
+          "adjoint_evidence_l2": 0.0035953011829406023
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 0.039270619100414184,
+          "measurement_residual_ratio": 0.5919677253126008,
+          "gt_correction_relative_norm": 1.199423909187317,
+          "observable_correction_norm_ratio": 0.019599484279751778,
+          "observable_correction_energy_ratio": 0.0003841397992800921,
+          "adjoint_observable_cosine": 0.22492821514606476,
+          "gt_correction_l2": 15.368400573730469,
+          "observable_target_l2": 0.30121272802352905,
+          "adjoint_evidence_l2": 0.006128458771854639
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 0.03869907163514833,
+          "measurement_residual_ratio": 0.5833956250552716,
+          "gt_correction_relative_norm": 1.199423909187317,
+          "observable_correction_norm_ratio": 0.029140377417206764,
+          "observable_correction_energy_ratio": 0.0008491615881212056,
+          "adjoint_observable_cosine": 0.007629541680216789,
+          "gt_correction_l2": 15.368400573730469,
+          "observable_target_l2": 0.44784098863601685,
+          "adjoint_evidence_l2": 0.014860585331916809
+        }
+      }
+    },
+    {
+      "sample_id": "sample_0237",
+      "candidate_pool_size": 32768,
+      "n_valid_candidate_pool": 32748,
+      "unique_tet_count": 9187,
+      "tet_coverage_ratio": 0.9989922507987407,
+      "proposal_locate_fail": 0,
+      "role_stats": {
+        "bg": {
+          "query_count": 3714,
+          "unique_tet_count": 3114
+        },
+        "core": {
+          "query_count": 11130,
+          "unique_tet_count": 1541
+        },
+        "halo": {
+          "query_count": 12993,
+          "unique_tet_count": 1028
+        },
+        "sentinel": {
+          "query_count": 0,
+          "unique_tet_count": 0
+        },
+        "proposal": {
+          "query_count": 4911,
+          "unique_tet_count": 3984
+        }
+      },
+      "subsample_2048_coverage_mean": 0.2728004615032552,
+      "subsample_2048_coverage_std": 0.003050430722581772,
+      "evidence_by_normalization": {
+        "l2": {
+          "scale": 1.0,
+          "residual_norm": 0.20249670981530982,
+          "evidence_l2": 0.10049213414194874,
+          "evidence_abs_mean": 0.00010710309153954029,
+          "evidence_abs_max": 0.01843969406981042
+        },
+        "max": {
+          "scale": 1.0,
+          "residual_norm": 0.43805342499617905,
+          "evidence_l2": 0.21358408048234134,
+          "evidence_abs_mean": 0.00023073112062087014,
+          "evidence_abs_max": 0.03973675425721944
+        },
+        "least_squares_stage1_scale": {
+          "scale": 0.20171812430778405,
+          "residual_norm": 0.02367676385383094,
+          "evidence_l2": 0.011663711596902819,
+          "evidence_abs_mean": 1.2469278517534506e-05,
+          "evidence_abs_max": 0.0021679356709575085
+        }
+      },
+      "evidence_correlations": {
+        "l2__max": 0.9709736361693451,
+        "l2__least_squares_stage1_scale": 0.994978261410868,
+        "max__least_squares_stage1_scale": 0.9900381407113018
+      },
+      "projector_decomposition_max_error": 1.1920928955078125e-07,
+      "ambiguous_measurement_leakage_norm_ratio": 0.0006480248412117362,
+      "projector_backward_finite": true,
+      "correction_information_by_rank": {
+        "64": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank64.npz",
+          "measurement_scale": 0.20171812430778405,
+          "measurement_residual_ratio": 0.20145612622283152,
+          "gt_correction_relative_norm": 1.10010826587677,
+          "observable_correction_norm_ratio": 0.040077339857816696,
+          "observable_correction_energy_ratio": 0.0016061931382864714,
+          "adjoint_observable_cosine": -0.28953874111175537,
+          "gt_correction_l2": 14.883196830749512,
+          "observable_target_l2": 0.5964789390563965,
+          "adjoint_evidence_l2": 0.029337849467992783
+        },
+        "128": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank128.npz",
+          "measurement_scale": 0.20950895428202876,
+          "measurement_residual_ratio": 0.22790010776702202,
+          "gt_correction_relative_norm": 1.10010826587677,
+          "observable_correction_norm_ratio": 0.05688091367483139,
+          "observable_correction_energy_ratio": 0.0032354381401091814,
+          "adjoint_observable_cosine": -0.2872491478919983,
+          "gt_correction_l2": 14.883196830749512,
+          "observable_target_l2": 0.846569836139679,
+          "adjoint_evidence_l2": 0.05176175385713577
+        },
+        "256": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank256.npz",
+          "measurement_scale": 0.2027796269897123,
+          "measurement_residual_ratio": 0.2691723175642055,
+          "gt_correction_relative_norm": 1.10010826587677,
+          "observable_correction_norm_ratio": 0.07218817621469498,
+          "observable_correction_energy_ratio": 0.005211133509874344,
+          "adjoint_observable_cosine": -0.21372435986995697,
+          "gt_correction_l2": 14.883196830749512,
+          "observable_target_l2": 1.0743908882141113,
+          "adjoint_evidence_l2": 0.08978291600942612
+        },
+        "512": {
+          "operator_cache": "/home/foods/pro/DU2Vox/physics_cache/v2_3k_20k_transport_rank512.npz",
+          "measurement_scale": 0.20083532278059998,
+          "measurement_residual_ratio": 0.294158123800107,
+          "gt_correction_relative_norm": 1.10010826587677,
+          "observable_correction_norm_ratio": 0.08901212364435196,
+          "observable_correction_energy_ratio": 0.007923158816993237,
+          "adjoint_observable_cosine": -0.04782542958855629,
+          "gt_correction_l2": 14.883196830749512,
+          "observable_target_l2": 1.3247849941253662,
+          "adjoint_evidence_l2": 0.15455004572868347
+        }
+      }
+    }
+  ],
+  "correction_information_summary_by_rank": {
+    "64": {
+      "measurement_residual_ratio": {
+        "mean": 0.3026511396094028,
+        "median": 0.20145612622283152,
+        "min": 0.04785398734193263,
+        "max": 0.8521051853159161
+      },
+      "gt_correction_relative_norm": {
+        "mean": 0.8956014680862426,
+        "median": 0.7959503531455994,
+        "min": 0.5106185674667358,
+        "max": 1.6617368459701538
+      },
+      "observable_correction_norm_ratio": {
+        "mean": 0.07097405939828605,
+        "median": 0.03249995782971382,
+        "min": 0.001533443690277636,
+        "max": 0.2650690972805023
+      },
+      "observable_correction_energy_ratio": {
+        "mean": 0.012182117594556984,
+        "median": 0.0010562472743913531,
+        "min": 2.3514496660936857e-06,
+        "max": 0.07026161998510361
+      },
+      "adjoint_observable_cosine": {
+        "mean": 0.2933256457699463,
+        "median": 0.3147917091846466,
+        "min": -0.5960860252380371,
+        "max": 0.9354685544967651
+      }
+    },
+    "128": {
+      "measurement_residual_ratio": {
+        "mean": 0.33057523559704693,
+        "median": 0.22790010776702202,
+        "min": 0.05595202003519082,
+        "max": 0.8596347719349022
+      },
+      "gt_correction_relative_norm": {
+        "mean": 0.8956014680862426,
+        "median": 0.7959503531455994,
+        "min": 0.5106185674667358,
+        "max": 1.6617368459701538
+      },
+      "observable_correction_norm_ratio": {
+        "mean": 0.0977189308218658,
+        "median": 0.04314640164375305,
+        "min": 0.0023333742283284664,
+        "max": 0.35371026396751404
+      },
+      "observable_correction_energy_ratio": {
+        "mean": 0.02225652400244144,
+        "median": 0.001861611963249743,
+        "min": 5.444634552986827e-06,
+        "max": 0.1251109540462494
+      },
+      "adjoint_observable_cosine": {
+        "mean": 0.24425191186368467,
+        "median": 0.2750496566295624,
+        "min": -0.6201211214065552,
+        "max": 0.875654935836792
+      }
+    },
+    "256": {
+      "measurement_residual_ratio": {
+        "mean": 0.3522225012623917,
+        "median": 0.2691723175642055,
+        "min": 0.08444433826724491,
+        "max": 0.8671504901548701
+      },
+      "gt_correction_relative_norm": {
+        "mean": 0.8956014680862426,
+        "median": 0.7959503531455994,
+        "min": 0.5106185674667358,
+        "max": 1.6617368459701538
+      },
+      "observable_correction_norm_ratio": {
+        "mean": 0.12055490300059318,
+        "median": 0.06104068085551262,
+        "min": 0.004086426459252834,
+        "max": 0.3956579267978668
+      },
+      "observable_correction_energy_ratio": {
+        "mean": 0.031402443054685134,
+        "median": 0.0037259645760059357,
+        "min": 1.669888115429785e-05,
+        "max": 0.15654520690441132
+      },
+      "adjoint_observable_cosine": {
+        "mean": 0.23524872228503227,
+        "median": 0.1958741694688797,
+        "min": -0.4709742069244385,
+        "max": 0.8242784738540649
+      }
+    },
+    "512": {
+      "measurement_residual_ratio": {
+        "mean": 0.374601892635794,
+        "median": 0.294158123800107,
+        "min": 0.0917922709099887,
+        "max": 0.8757315629336573
+      },
+      "gt_correction_relative_norm": {
+        "mean": 0.8956014680862426,
+        "median": 0.7959503531455994,
+        "min": 0.5106185674667358,
+        "max": 1.6617368459701538
+      },
+      "observable_correction_norm_ratio": {
+        "mean": 0.13817100441083313,
+        "median": 0.08868365734815598,
+        "min": 0.007159915287047625,
+        "max": 0.41881948709487915
+      },
+      "observable_correction_energy_ratio": {
+        "mean": 0.038051571359974334,
+        "median": 0.007864790968596935,
+        "min": 5.1264389185234904e-05,
+        "max": 0.17540976405143738
+      },
+      "adjoint_observable_cosine": {
+        "mean": 0.24059331856667995,
+        "median": 0.3177165389060974,
+        "min": -0.6688435673713684,
+        "max": 0.9057872295379639
+      }
+    }
+  },
+  "operator_scope": "CQR candidate-supported correction operator; not full-volume quadrature"
+}

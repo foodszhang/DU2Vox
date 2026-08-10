@@ -105,7 +105,12 @@ def build_stage2_model(ModelCls, cfg: dict, prior_dim: int, view_feat_dim: int =
                 "measurement_normalization", "least_squares_stage1_scale"
             ),
         )
-        model.set_phase(cfg.get("training", {}).get("phase", "lifter"))
+        model.set_phase(
+            cfg.get("training", {}).get("phase", "lifter"),
+            freeze_lifter_after_phase_a=bool(
+                cfg.get("training", {}).get("freeze_lifter_after_phase_a", False)
+            ),
+        )
         return model
     if ModelCls is CQRResidualINR:
         validate_residual_gate_contract(cfg["model"])
@@ -338,6 +343,16 @@ def train_step(
         "alpha_anchor": torch.tensor(0.0, device=coords.device),
         "observable_residual": torch.tensor(0.0, device=coords.device),
         "ambiguous_leakage": torch.tensor(0.0, device=coords.device),
+        "observable_target": torch.tensor(0.0, device=coords.device),
+        "ambiguous_target": torch.tensor(0.0, device=coords.device),
+        "observable_target_relative": torch.tensor(0.0, device=coords.device),
+        "ambiguous_target_relative": torch.tensor(0.0, device=coords.device),
+        "raw_observable_activity": torch.tensor(0.0, device=coords.device),
+        "observable_activity": torch.tensor(0.0, device=coords.device),
+        "raw_ambiguous_activity": torch.tensor(0.0, device=coords.device),
+        "ambiguous_activity": torch.tensor(0.0, device=coords.device),
+        "observable_projection_ratio": torch.tensor(0.0, device=coords.device),
+        "ambiguous_projection_ratio": torch.tensor(0.0, device=coords.device),
     }
 
     with torch.amp.autocast("cuda", enabled=use_amp, dtype=amp_dtype):
@@ -612,6 +627,7 @@ def train_step(
                     }
             if isinstance(model, TransportObservabilityCQRINR):
                 cfg_loss = loss_cfg or {}
+                reconstruction_loss = loss
                 alpha_target = prior[..., 4:8]
                 alpha_each = torch.abs(output["alpha"] - alpha_target).mean(dim=-1)
                 full_weight = torch.ones_like(alpha_each)
@@ -623,8 +639,10 @@ def train_step(
                         + float(cfg_loss.get("residual_indicator_weight", 0.5))
                         * batch["residual_indicator"].cuda()
                     )
+                full_weight = full_weight * valid.float()
                 full_weight = full_weight / (full_weight.mean().detach() + 1e-6)
-                alpha_anchor = (alpha_each * full_weight).mean()
+                weight_sum = full_weight.sum() + eps
+                alpha_anchor = (alpha_each * full_weight).sum() / weight_sum
                 if "physics_prior_lift" not in batch:
                     raise ValueError(
                         "transport model requires fixed physics quadrature fields from the dataset"
@@ -641,26 +659,94 @@ def train_step(
                 correction_l2 = (
                     (output["observable_correction"].square() + output["ambiguous_correction"].square())
                     * full_weight
-                ).mean()
+                ).sum() / weight_sum
+                with torch.no_grad():
+                    gt_correction_target = gt - output["rho0"].detach()
+                    target_a_query = output["a_query"].detach()
+                    observable_target = model.projector.project_observable(
+                        gt_correction_target.float(), target_a_query.float()
+                    )
+                    ambiguous_target = gt_correction_target - observable_target
+
+                def weighted_abs_mean(value: torch.Tensor) -> torch.Tensor:
+                    return (value.abs() * full_weight).sum() / weight_sum
+
+                observable_target_loss = weighted_abs_mean(
+                    output["observable_correction"] - observable_target
+                )
+                ambiguous_target_loss = weighted_abs_mean(
+                    output["ambiguous_correction"] - ambiguous_target
+                )
+                observable_target_scale = weighted_abs_mean(observable_target)
+                ambiguous_target_scale = weighted_abs_mean(ambiguous_target)
+                observable_target_relative = observable_target_loss / (
+                    observable_target_scale + eps
+                )
+                ambiguous_target_relative = ambiguous_target_loss / (
+                    ambiguous_target_scale + eps
+                )
+                raw_observable_activity = weighted_abs_mean(output["raw_observable"])
+                observable_activity = weighted_abs_mean(output["observable_correction"])
+                raw_ambiguous_activity = weighted_abs_mean(output["raw_ambiguous"])
+                ambiguous_activity = weighted_abs_mean(output["ambiguous_correction"])
+                observable_projection_ratio = observable_activity / (
+                    raw_observable_activity + eps
+                )
+                ambiguous_projection_ratio = ambiguous_activity / (
+                    raw_ambiguous_activity + eps
+                )
                 phase = getattr(model, "training_phase", "lifter")
                 loss = (
-                    loss
+                    reconstruction_loss
                     + float(cfg_loss.get("lambda_transport", 1.0)) * transport_loss
                     + float(cfg_loss.get("lambda_alpha_anchor", 0.01)) * alpha_anchor
                 )
                 if phase in {"observable", "full"}:
                     loss = (
-                        loss
-                        + float(cfg_loss.get("lambda_data", 0.1)) * correction_l2
-                        + float(cfg_loss.get("lambda_observable_residual", 0.1))
+                        float(cfg_loss.get("lambda_recon", 1.0)) * reconstruction_loss
+                        + float(cfg_loss.get("lambda_transport", 1.0)) * transport_loss
+                        + float(cfg_loss.get("lambda_alpha_anchor", 0.01)) * alpha_anchor
+                        + float(cfg_loss.get("lambda_obs_target", 0.0))
+                        * observable_target_loss
+                        + float(cfg_loss.get("lambda_correction_l2", 0.0)) * correction_l2
+                        + float(
+                            cfg_loss.get(
+                                "lambda_data",
+                                cfg_loss.get("lambda_observable_residual", 0.1),
+                            )
+                        )
                         * observable_residual
                     )
                 if phase == "full":
-                    loss = loss + float(cfg_loss.get("lambda_ambiguous_leakage", 0.1)) * ambiguous_leakage
+                    loss = (
+                        loss
+                        + float(cfg_loss.get("lambda_amb_target", 0.0))
+                        * ambiguous_target_loss
+                        + float(cfg_loss.get("lambda_ambiguous_leakage", 0.1))
+                        * ambiguous_leakage
+                    )
                 loss_components["transport"] = transport_loss.detach()
                 loss_components["alpha_anchor"] = alpha_anchor.detach()
                 loss_components["observable_residual"] = observable_residual.detach()
                 loss_components["ambiguous_leakage"] = ambiguous_leakage.detach()
+                loss_components["observable_target"] = observable_target_loss.detach()
+                loss_components["ambiguous_target"] = ambiguous_target_loss.detach()
+                loss_components["observable_target_relative"] = (
+                    observable_target_relative.detach()
+                )
+                loss_components["ambiguous_target_relative"] = (
+                    ambiguous_target_relative.detach()
+                )
+                loss_components["raw_observable_activity"] = raw_observable_activity.detach()
+                loss_components["observable_activity"] = observable_activity.detach()
+                loss_components["raw_ambiguous_activity"] = raw_ambiguous_activity.detach()
+                loss_components["ambiguous_activity"] = ambiguous_activity.detach()
+                loss_components["observable_projection_ratio"] = (
+                    observable_projection_ratio.detach()
+                )
+                loss_components["ambiguous_projection_ratio"] = (
+                    ambiguous_projection_ratio.detach()
+                )
         else:
             loss = torch.tensor(0.0, device=coords.device)
 
@@ -724,6 +810,56 @@ def train_step(
         else 0.0,
         "ambiguous_leakage": loss_components.get(
             "ambiguous_leakage", torch.tensor(0.0)
+        ).item()
+        if valid_mask.sum() > 0
+        else 0.0,
+        "observable_target": loss_components.get(
+            "observable_target", torch.tensor(0.0)
+        ).item()
+        if valid_mask.sum() > 0
+        else 0.0,
+        "ambiguous_target": loss_components.get(
+            "ambiguous_target", torch.tensor(0.0)
+        ).item()
+        if valid_mask.sum() > 0
+        else 0.0,
+        "observable_target_relative": loss_components.get(
+            "observable_target_relative", torch.tensor(0.0)
+        ).item()
+        if valid_mask.sum() > 0
+        else 0.0,
+        "ambiguous_target_relative": loss_components.get(
+            "ambiguous_target_relative", torch.tensor(0.0)
+        ).item()
+        if valid_mask.sum() > 0
+        else 0.0,
+        "raw_observable_activity": loss_components.get(
+            "raw_observable_activity", torch.tensor(0.0)
+        ).item()
+        if valid_mask.sum() > 0
+        else 0.0,
+        "observable_activity": loss_components.get(
+            "observable_activity", torch.tensor(0.0)
+        ).item()
+        if valid_mask.sum() > 0
+        else 0.0,
+        "raw_ambiguous_activity": loss_components.get(
+            "raw_ambiguous_activity", torch.tensor(0.0)
+        ).item()
+        if valid_mask.sum() > 0
+        else 0.0,
+        "ambiguous_activity": loss_components.get(
+            "ambiguous_activity", torch.tensor(0.0)
+        ).item()
+        if valid_mask.sum() > 0
+        else 0.0,
+        "observable_projection_ratio": loss_components.get(
+            "observable_projection_ratio", torch.tensor(0.0)
+        ).item()
+        if valid_mask.sum() > 0
+        else 0.0,
+        "ambiguous_projection_ratio": loss_components.get(
+            "ambiguous_projection_ratio", torch.tensor(0.0)
         ).item()
         if valid_mask.sum() > 0
         else 0.0,
@@ -959,12 +1095,40 @@ def main():
     parser.add_argument("--checkpoint_dir", type=str, default="checkpoints/stage2")
     parser.add_argument("--resume_checkpoint", type=str, default=None)
     parser.add_argument("--phase", choices=("lifter", "observable", "full"), default=None)
+    parser.add_argument("--learning_rate", type=float, default=None)
+    parser.add_argument("--grad_accum_steps", type=int, default=None)
+    parser.add_argument("--early_stopping_patience", type=int, default=None)
+    parser.add_argument("--disable_query_resampling", action="store_true")
+    parser.add_argument(
+        "--loss_override",
+        action="append",
+        default=[],
+        metavar="KEY=FLOAT",
+        help="Override a scalar loss weight for focused diagnostics",
+    )
     args = parser.parse_args()
 
     with open(args.config) as f:
         cfg = yaml.safe_load(f)
     if args.phase is not None:
         cfg.setdefault("training", {})["phase"] = args.phase
+    if args.learning_rate is not None:
+        cfg.setdefault("training", {})["lr"] = args.learning_rate
+    if args.grad_accum_steps is not None:
+        cfg.setdefault("training", {})["grad_accum_steps"] = args.grad_accum_steps
+    if args.early_stopping_patience is not None:
+        cfg.setdefault("training", {})["early_stopping_patience"] = (
+            args.early_stopping_patience
+        )
+    if args.disable_query_resampling:
+        cfg.setdefault("data", {})["resample_queries_each_epoch"] = False
+    for override in args.loss_override:
+        if "=" not in override:
+            raise ValueError(f"Invalid --loss_override {override!r}; expected KEY=FLOAT")
+        key, raw_value = override.split("=", 1)
+        if not key:
+            raise ValueError("Loss override key cannot be empty")
+        cfg.setdefault("loss", {})[key] = float(raw_value)
     if cfg.get("data", {}).get("shared_dir"):
         os.environ["DU2VOX_SHARED_DIR"] = str(cfg["data"]["shared_dir"])
     if cfg.get("data", {}).get("allow_stale_frame_manifest", False):
@@ -1237,6 +1401,19 @@ def main():
         epoch_alpha_anchor = 0.0
         epoch_observable_residual = 0.0
         epoch_ambiguous_leakage = 0.0
+        branch_metric_keys = (
+            "observable_target",
+            "ambiguous_target",
+            "observable_target_relative",
+            "ambiguous_target_relative",
+            "raw_observable_activity",
+            "observable_activity",
+            "raw_ambiguous_activity",
+            "ambiguous_activity",
+            "observable_projection_ratio",
+            "ambiguous_projection_ratio",
+        )
+        epoch_branch_metrics = {key: 0.0 for key in branch_metric_keys}
         epoch_valid = 0
         n_steps = 0
         optimizer.zero_grad(set_to_none=True)
@@ -1283,6 +1460,8 @@ def main():
             epoch_alpha_anchor += metrics["alpha_anchor"]
             epoch_observable_residual += metrics["observable_residual"]
             epoch_ambiguous_leakage += metrics["ambiguous_leakage"]
+            for key in branch_metric_keys:
+                epoch_branch_metrics[key] += metrics[key]
             epoch_valid += metrics["valid_count"]
             n_steps += 1
 
@@ -1307,6 +1486,9 @@ def main():
         avg_alpha_anchor = epoch_alpha_anchor / max(n_steps, 1)
         avg_observable_residual = epoch_observable_residual / max(n_steps, 1)
         avg_ambiguous_leakage = epoch_ambiguous_leakage / max(n_steps, 1)
+        avg_branch_metrics = {
+            key: value / max(n_steps, 1) for key, value in epoch_branch_metrics.items()
+        }
 
         entry = {
             "epoch": epoch,
@@ -1327,6 +1509,7 @@ def main():
             "alpha_anchor": avg_alpha_anchor,
             "observable_residual_loss": avg_observable_residual,
             "ambiguous_leakage": avg_ambiguous_leakage,
+            **avg_branch_metrics,
             "valid_count": epoch_valid,
             "elapsed_s": elapsed,
             "lr": optimizer.param_groups[0]["lr"],
@@ -1347,6 +1530,22 @@ def main():
             print(
                 f"         transport={avg_transport:.3e}  alpha={avg_alpha_anchor:.3e}  "
                 f"obs_res={avg_observable_residual:.3e}  amb_leak={avg_ambiguous_leakage:.3e}"
+            )
+            print(
+                "         "
+                f"obs_target={avg_branch_metrics['observable_target']:.3e} "
+                f"(rel={avg_branch_metrics['observable_target_relative']:.3e})  "
+                f"amb_target={avg_branch_metrics['ambiguous_target']:.3e} "
+                f"(rel={avg_branch_metrics['ambiguous_target_relative']:.3e})"
+            )
+            print(
+                "         "
+                f"raw_obs={avg_branch_metrics['raw_observable_activity']:.3e}  "
+                f"proj_obs={avg_branch_metrics['observable_activity']:.3e}  "
+                f"k_obs={avg_branch_metrics['observable_projection_ratio']:.3e}  "
+                f"raw_amb={avg_branch_metrics['raw_ambiguous_activity']:.3e}  "
+                f"proj_amb={avg_branch_metrics['ambiguous_activity']:.3e}  "
+                f"k_amb={avg_branch_metrics['ambiguous_projection_ratio']:.3e}"
             )
 
         grouped_metrics = None
@@ -1433,6 +1632,14 @@ def main():
             )
         elif not use_grouped_best:
             patience_counter += 1
+
+        latest_path = Path(args.checkpoint_dir) / exp_name / "latest.pth"
+        save_stage2_checkpoint(
+            latest_path,
+            model,
+            view_encoder,
+            extra={"epoch": epoch, "sampled_val_metrics": val_metrics},
+        )
 
         # Early stopping
         if patience_counter >= patience and epoch > warmup_epochs:

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "branch": "feat/cqr-transport-observability",
+  "implementation_base_commit": "f995bdd32955b791e09dfc15481e8b27384dd4ef",
+  "dataset": "fmt_simgen_v2_3k_20k",
+  "residual_information": {
+    "train100_rank64": {
+      "measurement_residual_ratio_mean": 0.1697785,
+      "gt_correction_relative_norm_mean": 0.8184038,
+      "observable_correction_energy_ratio_mean": 0.0234116,
+      "adjoint_observable_cosine_mean": 0.3452509
+    },
+    "val25_rank_sweep": {
+      "64": {"retained_energy": 0.1176096, "residual_ratio": 0.3027, "observable_gt_energy": 0.0122, "adjoint_cosine": 0.2933},
+      "128": {"retained_energy": 0.21099218, "residual_ratio": 0.3306, "observable_gt_energy": 0.0223, "adjoint_cosine": 0.2443},
+      "256": {"retained_energy": 0.35570846, "residual_ratio": 0.3522, "observable_gt_energy": 0.0314, "adjoint_cosine": 0.2352},
+      "512": {"retained_energy": 0.54364659, "residual_ratio": 0.3746, "observable_gt_energy": 0.0381, "adjoint_cosine": 0.2406}
+    }
+  },
+  "branch_overfit": {
+    "observable": {
+      "experiment": "cqr_obs_target_pure_overfit4_continue50",
+      "initial_reference_l1": 0.01073,
+      "best_l1": 0.0009198264,
+      "best_epoch_in_continuation": 46,
+      "projected_to_raw_activity_ratio_at_best": 0.1184273
+    },
+    "ambiguous": {
+      "experiment": "cqr_amb_target_pure_overfit4_e30",
+      "initial_l1": 0.2091480,
+      "best_l1": 0.1238326,
+      "best_target_epoch": 29,
+      "best_smoke_val_delta_dice": 0.1335309,
+      "best_smoke_val_epoch": 15
+    }
+  },
+  "physics_quadrature_val25": {
+    "stratified_1024_transport_error_mean": 3.4360771e-8,
+    "all_tet_transport_error_mean": 4.0216960e-8,
+    "absolute_delta_mean": 7.4694055e-9,
+    "absolute_delta_max": 2.2587201e-8,
+    "p1_consistency_passed": true
+  },
+  "recommend_full_pilot": false,
+  "blocking_reason": "The data-consistency objective reaches O(1e2) when corrections activate and overwhelms branch-target losses; use a target-first curriculum and recalibrate the consistency term before the next 100/25 pilot."
+}

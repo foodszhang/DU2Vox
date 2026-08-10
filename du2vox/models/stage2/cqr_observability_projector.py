@@ -60,8 +60,11 @@ class CQRObservabilityProjector(nn.Module):
         a, squeezed = self._batched(a_query)
         residual = residual_modes.unsqueeze(0) if residual_modes.ndim == 1 else residual_modes
         with torch.amp.autocast(a.device.type, enabled=False):
+            solved = self._solve(residual.float(), a.float())
+            if solved.ndim == 1:
+                solved = solved.unsqueeze(0)
             evidence = (
-                a.float().transpose(-1, -2) @ residual.float().unsqueeze(-1)
+                a.float().transpose(-1, -2) @ solved.unsqueeze(-1)
             ).squeeze(-1)
         evidence = evidence.to(residual_modes.dtype)
         return evidence.squeeze(0) if squeezed else evidence

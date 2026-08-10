@@ -38,18 +38,99 @@ def residual_modes(y: np.ndarray, y_h: np.ndarray, mode: str) -> tuple[np.ndarra
     raise ValueError(mode)
 
 
+def cosine_similarity(left: torch.Tensor, right: torch.Tensor, eps: float = 1e-12) -> float:
+    denominator = torch.linalg.vector_norm(left) * torch.linalg.vector_norm(right)
+    if float(denominator) <= eps:
+        return 0.0
+    return float(torch.dot(left, right) / denominator)
+
+
+def correction_information_metrics(
+    operator: CompressedGreenOperator,
+    projector: CQRObservabilityProjector,
+    elements: np.ndarray,
+    tet_ids: np.ndarray,
+    prior_8d: np.ndarray,
+    gt: np.ndarray,
+    chosen: np.ndarray,
+    cell_weight: np.ndarray,
+    n_valid: int,
+    measurement: np.ndarray,
+    coarse: np.ndarray,
+    device: torch.device,
+) -> dict[str, float]:
+    vertices = elements[tet_ids[chosen]]
+    node_modes = operator.green_node_modes[:, vertices]
+    query_green = np.einsum(
+        "nk,rnk->nr", prior_8d[chosen, 4:8].astype(np.float64), node_modes
+    ).astype(np.float32)
+    sampled_weight = cell_weight[chosen] * n_valid / max(len(chosen), 1)
+    a_query = torch.from_numpy(query_green.T * sampled_weight[None, :]).to(device)
+    correction = torch.from_numpy(
+        (
+            gt[chosen]
+            - np.sum(prior_8d[chosen, :4] * prior_8d[chosen, 4:8], axis=1)
+        ).astype(np.float32)
+    ).to(device)
+    measured_modes = operator.measurement_basis.astype(np.float64).T @ measurement
+    stage1_modes = operator.projected_forward_modes.astype(np.float64) @ coarse
+    residual, scale = residual_modes(
+        measured_modes, stage1_modes, "least_squares_stage1_scale"
+    )
+    residual_t = torch.from_numpy(residual.astype(np.float32)).to(device)
+    with torch.no_grad():
+        observable = projector.project_observable(correction, a_query)
+        adjoint = projector.adjoint_evidence(residual_t, a_query)
+    correction_norm = torch.linalg.vector_norm(correction)
+    observable_norm = torch.linalg.vector_norm(observable)
+    gt_norm = torch.linalg.vector_norm(torch.from_numpy(gt[chosen]).to(device))
+    residual_ratio = np.linalg.norm(residual) / max(
+        np.linalg.norm(measured_modes), np.finfo(np.float64).tiny
+    )
+    return {
+        "measurement_scale": float(scale),
+        "measurement_residual_ratio": float(residual_ratio),
+        "gt_correction_relative_norm": float(correction_norm / (gt_norm + 1e-12)),
+        "observable_correction_norm_ratio": float(
+            observable_norm / (correction_norm + 1e-12)
+        ),
+        "observable_correction_energy_ratio": float(
+            observable_norm.square() / (correction_norm.square() + 1e-12)
+        ),
+        "adjoint_observable_cosine": cosine_similarity(adjoint, observable),
+        "gt_correction_l2": float(correction_norm),
+        "observable_target_l2": float(observable_norm),
+        "adjoint_evidence_l2": float(torch.linalg.vector_norm(adjoint)),
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", required=True)
     parser.add_argument("--split", default="train", choices=("train", "val", "test"))
     parser.add_argument("--max_samples", type=int, default=4)
     parser.add_argument("--subsample_repeats", type=int, default=20)
+    parser.add_argument(
+        "--operator_cache",
+        action="append",
+        default=None,
+        help="Operator cache to audit; repeat for a rank sweep",
+    )
+    parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--out_json", default="diagnosis/cqr_observability.json")
     parser.add_argument("--out_md", default="diagnosis/cqr_observability.md")
     args = parser.parse_args()
     cfg = yaml.safe_load(Path(args.config).read_text())
     transport = cfg.get("transport", {}) or {}
-    operator = CompressedGreenOperator.load(transport["operator_cache"])
+    operator_paths = args.operator_cache or [transport["operator_cache"]]
+    operators = []
+    for raw_path in operator_paths:
+        path = Path(raw_path)
+        if not path.is_absolute():
+            path = REPO_ROOT / path
+        operators.append((path, CompressedGreenOperator.load(path)))
+    operator = operators[0][1]
+    device = torch.device(args.device)
     with np.load(Path(cfg["data"]["shared_dir"]) / "mesh.npz", allow_pickle=False) as mesh:
         elements = mesh["elements"].astype(np.int64)
     ids = load_split(cfg["data"][f"{args.split}_split"])[: args.max_samples]
@@ -70,7 +151,9 @@ def main() -> None:
         ) as sidecar:
             tet_ids = cqr["tet_ids"].astype(np.int64)
             role = cqr["role"].astype(np.int64)
-            barycentric = cqr["prior_8d"][:, 4:8].astype(np.float64)
+            prior_8d = cqr["prior_8d"].astype(np.float32)
+            barycentric = prior_8d[:, 4:8].astype(np.float64)
+            gt = cqr["gt_values"].astype(np.float32)
             valid = sidecar["candidate_valid_physics_mask"].astype(bool)
             cell_weight = sidecar["candidate_cell_weight"].astype(np.float64)
             n_valid = int(sidecar["n_valid_candidate_pool"])
@@ -136,6 +219,25 @@ def main() -> None:
         projector = CQRObservabilityProjector(
             **{key: cfg["observability"][key] for key in ("mu_relative", "jitter")}
         )
+        information_by_rank = {}
+        for operator_path, rank_operator in operators:
+            information_by_rank[str(rank_operator.rank)] = {
+                "operator_cache": str(operator_path),
+                **correction_information_metrics(
+                    rank_operator,
+                    projector,
+                    elements,
+                    tet_ids,
+                    prior_8d,
+                    gt,
+                    chosen,
+                    cell_weight,
+                    n_valid,
+                    measurement,
+                    coarse,
+                    device,
+                ),
+            }
         raw = torch.from_numpy(rng.standard_normal(len(chosen))).float().requires_grad_(True)
         observable = projector.project_observable(raw, a_query)
         ambiguous = projector.project_ambiguous(raw, a_query)
@@ -161,8 +263,31 @@ def main() -> None:
                 "projector_decomposition_max_error": decomposition_error,
                 "ambiguous_measurement_leakage_norm_ratio": ambiguous_leakage,
                 "projector_backward_finite": bool(torch.isfinite(raw.grad).all()),
+                "correction_information_by_rank": information_by_rank,
             }
         )
+    metric_names = (
+        "measurement_residual_ratio",
+        "gt_correction_relative_norm",
+        "observable_correction_norm_ratio",
+        "observable_correction_energy_ratio",
+        "adjoint_observable_cosine",
+    )
+    information_summary = {}
+    for _, rank_operator in operators:
+        rank_key = str(rank_operator.rank)
+        rank_rows = [
+            row["correction_information_by_rank"][rank_key] for row in records
+        ]
+        information_summary[rank_key] = {
+            name: {
+                "mean": float(np.mean([row[name] for row in rank_rows])),
+                "median": float(np.median([row[name] for row in rank_rows])),
+                "min": float(np.min([row[name] for row in rank_rows])),
+                "max": float(np.max([row[name] for row in rank_rows])),
+            }
+            for name in metric_names
+        }
     report = {
         "schema_version": 1,
         "split": args.split,
@@ -173,6 +298,7 @@ def main() -> None:
             "max": float(np.max(scales)) if scales else None,
         },
         "samples": records,
+        "correction_information_summary_by_rank": information_summary,
         "operator_scope": "CQR candidate-supported correction operator; not full-volume quadrature",
     }
     out_json = REPO_ROOT / args.out_json
@@ -186,7 +312,20 @@ def main() -> None:
         f"- Least-squares Stage 1 scale distribution: `{report['scale_distribution']}`",
         "- Scope: candidate-supported correction operator; strict forward checks use fixed quadrature.",
         "",
+        "## Residual and oracle correction information",
+        "",
+        "| rank | residual / y | GT correction / GT | observable norm fraction | observable energy | adjoint cosine |",
+        "| ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
+    for rank, values in information_summary.items():
+        lines.append(
+            f"| {rank} | {values['measurement_residual_ratio']['mean']:.4f} | "
+            f"{values['gt_correction_relative_norm']['mean']:.4f} | "
+            f"{values['observable_correction_norm_ratio']['mean']:.4f} | "
+            f"{values['observable_correction_energy_ratio']['mean']:.4f} | "
+            f"{values['adjoint_observable_cosine']['mean']:.4f} |"
+        )
+    lines.extend(["", "## Per sample", ""])
     for row in records:
         lines.append(
             f"- {row['sample_id']}: pool={row['candidate_pool_size']}, "
