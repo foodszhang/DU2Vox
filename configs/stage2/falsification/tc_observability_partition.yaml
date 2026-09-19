@@ -1,0 +1,95 @@
+experiment: {name: innovation_falsification_model_c}
+data:
+  dataset_root: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k
+  samples_dir: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples
+  shared_dir: /home/foods/pro/FMT-SimGen/output/shared_mesh_20k
+  allow_stale_frame_manifest: true
+  frame_manifest_sha256: 25b77f5d11430ebf4d9735f19534782afb56f7fe5cab525a569028b0f3c02e2b
+  train_split: diagnosis/innovation_falsification_train100.txt
+  val_split: diagnosis/innovation_falsification_val25.txt
+  test_split: diagnosis/innovation_falsification_test25.txt
+  train_bridge_dir: output/bridge_v2_3k_train_balanced_v2
+  val_bridge_dir: output/bridge_v2_3k_val_balanced_v2
+  test_bridge_dir: output/bridge_v2_3k_test_balanced_v2
+  precomputed_train_dir: precomputed/cqr_v2_3k_rgl_main/train
+  precomputed_val_dir: precomputed/cqr_v2_3k_rgl_main/val
+  precomputed_test_dir: precomputed/cqr_v2_3k_rgl_main/test
+  projection_file: proj.npz
+  fallback_projection_file: null
+  projection_norm: per_view_max
+  projection_transform: none
+  projection_eps: 1.0e-8
+  n_query_points: 2048
+  precompute_query_points: 32768
+  resample_queries_each_epoch: true
+  query_epoch_seed_stride: 1000003
+  roi_padding_mm: 1.0
+model:
+  model_type: transport_observability_cqr_inr
+  prior_source: prior_lift
+  prior_dim: 15
+  residual_scale: 1.0
+  use_band_embedding: true
+  band_embed_dim: 8
+  num_bands: 5
+  n_freqs: 10
+  hidden_dim: 256
+  n_hidden_layers: 4
+  skip_connection: false
+  view_encoder: true
+  freeze_view_encoder: false
+  view_feat_dim: 32
+  fusion_method: attn
+  encoder_base_channels: 32
+  encoder_out_channels: 32
+  view_encoder_lr_scale: 0.2
+  view_projection_transform: none
+  view_multiscale: {enabled: true, scales: [s1, s2, s3], fusion: concat_mlp, hidden_dim: 64}
+transport:
+  operator_cache: physics_cache/v2_3k_20k_transport_rank64.npz
+  sidecar_root: precomputed/cqr_v2_3k_rgl_main_physics
+  quadrature_root: precomputed/cqr_v2_3k_rgl_main_physics_quadrature
+  max_logit_delta: 2.0
+  measurement_normalization: least_squares_stage1_scale
+observability: {mu_relative: 1.0e-3, jitter: 1.0e-6}
+training:
+  phase: joint
+  freeze_lifter_after_phase_a: false
+  seed: 20260722
+  batch_size: 1
+  grad_accum_steps: 8
+  amp: true
+  amp_dtype: bf16
+  lr: 5.0e-5
+  weight_decay: 1.0e-5
+  warmup_epochs: 3
+  max_epochs: 25
+  early_stopping_patience: 6
+  grad_clip_norm: 1.0
+  num_workers: 2
+  scheduler: {type: CosineAnnealingLR, T_max: 25, eta_min: 1.0e-6}
+loss:
+  type: sparse_support
+  bce_weight: 0.4
+  dice_weight: 0.4
+  mse_weight: 0.2
+  pos_weight: 80.0
+  support_threshold: 0.5
+  residual_indicator_weight: 0.5
+  lambda_recon: 1.0
+  lambda_correction_l2: 1.0e-3
+  lambda_correction_physics: 0.0
+  lambda_transport: 0.0
+  lambda_alpha_anchor: 0.0
+  lambda_obs_target_relative: 0.0
+  lambda_obs_target_cosine: 0.0
+  lambda_amb_target_relative: 0.0
+  lambda_amb_target_cosine: 0.0
+  lambda_ambiguous_leakage: 0.0
+  lambda_data: 0.0
+  lambda_nonworse: 0.0
+validation: {save_best_by: grouped_s2_dice, grouped_eval_interval: 1, grouped_eval_split: val, grouped_batch_points: 32768}
+cqr:
+  ratios: {core: 0.30, halo: 0.35, bg: 0.10, proposal: 0.25, sentinel: 0.00}
+  measurement_proposal: {enabled: true}
+logging: {print_every: 1, detail_every: 5}

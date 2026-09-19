@@ -1,0 +1,288 @@
+{
+  "dataset_root": "/home/foods/pro/DU2Vox/data/lpr_continuous_gaussian_mixture_3k_20k",
+  "n_samples": 12,
+  "num_foci": {
+    "1": 5,
+    "2": 4,
+    "3": 3
+  },
+  "amplitude": {
+    "min": 0.5126742586330312,
+    "median": 0.9991461963784203,
+    "mean": 0.99336632203756,
+    "max": 1.4846661530342986,
+    "n": 22
+  },
+  "principal_sigma_mm": {
+    "min": 0.38070073870394044,
+    "median": 0.6834258598332451,
+    "mean": 0.74375431847475,
+    "max": 1.3373720621141798,
+    "n": 66
+  },
+  "principal_fwhm_mm": {
+    "min": 0.8964817306463462,
+    "median": 1.6093449140066858,
+    "mean": 1.7514075776996552,
+    "max": 3.1492705394894553,
+    "n": 66
+  },
+  "pair_separation_mm": {
+    "min": 4.024922359499622,
+    "median": 7.866384175718851,
+    "mean": 11.003810517286801,
+    "max": 32.24965116090405,
+    "n": 13
+  },
+  "summary": {
+    "node_max_abs_error": {
+      "min": 0.0,
+      "median": 0.0,
+      "mean": 0.0,
+      "max": 0.0,
+      "n": 12
+    },
+    "node_rmse": {
+      "min": 0.0,
+      "median": 0.0,
+      "mean": 0.0,
+      "max": 0.0,
+      "n": 12
+    },
+    "voxel_probe_max_abs_error": {
+      "min": 6.258487701416016e-07,
+      "median": 1.3634562492370605e-06,
+      "mean": 1.4764567216237385e-06,
+      "max": 3.039836883544922e-06,
+      "n": 12
+    },
+    "gt_peak": {
+      "min": 0.5035329461097717,
+      "median": 1.0749263763427734,
+      "mean": 1.0517961134513218,
+      "max": 1.4656703472137451,
+      "n": 12
+    },
+    "gt_positive_mass": {
+      "min": 523.9594591564965,
+      "median": 1389.634353011963,
+      "mean": 1603.3935462501831,
+      "max": 4859.569232816808,
+      "n": 12
+    },
+    "valid_mass_fraction": {
+      "min": 1.0,
+      "median": 1.0,
+      "mean": 1.0,
+      "max": 1.0,
+      "n": 12
+    },
+    "measurement_max": {
+      "min": 0.0040560267666326704,
+      "median": 0.014354826925276013,
+      "mean": 0.020124785840323327,
+      "max": 0.048879274341133955,
+      "n": 12
+    },
+    "measurement_min": {
+      "min": 0.0,
+      "median": 0.0,
+      "mean": 0.0,
+      "max": 0.0,
+      "n": 12
+    },
+    "rotation_orthogonality_error": {
+      "min": 2.220446049250313e-16,
+      "median": 2.220446049250313e-16,
+      "mean": 2.9605947323337506e-16,
+      "max": 5.551115123125783e-16,
+      "n": 12
+    },
+    "rotation_det_error": {
+      "min": 0.0,
+      "median": 2.220446049250313e-16,
+      "mean": 2.7755575615628914e-16,
+      "max": 5.551115123125783e-16,
+      "n": 12
+    }
+  },
+  "acceptance": {
+    "analytic_node_max_abs_error_le_1e-6": true,
+    "analytic_voxel_probe_max_abs_error_le_1e-6": false,
+    "measurement_min_nonnegative": true,
+    "measurement_max_min_ge_5e-4": true,
+    "gt_peak_max_le_fixed_data_range_2": true,
+    "valid_mass_fraction_min_ge_0_95": true,
+    "rotation_contract": true
+  },
+  "per_sample": [
+    {
+      "sample_id": "sample_0000",
+      "num_foci": 2,
+      "node_max_abs_error": 0.0,
+      "node_rmse": 0.0,
+      "voxel_probe_max_abs_error": 1.5497207641601562e-06,
+      "gt_peak": 1.2077598571777344,
+      "gt_positive_mass": 620.2588693182915,
+      "valid_mass_fraction": 1.0,
+      "measurement_max": 0.04571142888278198,
+      "measurement_min": 0.0,
+      "rotation_orthogonality_error": 2.220446049250313e-16,
+      "rotation_det_error": 2.220446049250313e-16
+    },
+    {
+      "sample_id": "sample_0001",
+      "num_foci": 3,
+      "node_max_abs_error": 0.0,
+      "node_rmse": 0.0,
+      "voxel_probe_max_abs_error": 2.0265579223632812e-06,
+      "gt_peak": 1.4656703472137451,
+      "gt_positive_mass": 4859.569232816808,
+      "valid_mass_fraction": 1.0,
+      "measurement_max": 0.028331373568201278,
+      "measurement_min": 0.0,
+      "rotation_orthogonality_error": 5.551115123125783e-16,
+      "rotation_det_error": 5.551115123125783e-16
+    },
+    {
+      "sample_id": "sample_0002",
+      "num_foci": 2,
+      "node_max_abs_error": 0.0,
+      "node_rmse": 0.0,
+      "voxel_probe_max_abs_error": 3.039836883544922e-06,
+      "gt_peak": 1.4233732223510742,
+      "gt_positive_mass": 2148.9003851925954,
+      "valid_mass_fraction": 1.0,
+      "measurement_max": 0.012124336489307289,
+      "measurement_min": 0.0,
+      "rotation_orthogonality_error": 5.551115123125783e-16,
+      "rotation_det_error": 4.440892098500626e-16
+    },
+    {
+      "sample_id": "sample_0003",
+      "num_foci": 2,
+      "node_max_abs_error": 0.0,
+      "node_rmse": 0.0,
+      "voxel_probe_max_abs_error": 1.1771917343139648e-06,
+      "gt_peak": 0.869221568107605,
+      "gt_positive_mass": 1206.969255122589,
+      "valid_mass_fraction": 1.0,
+      "measurement_max": 0.048879274341133955,
+      "measurement_min": 0.0,
+      "rotation_orthogonality_error": 2.220446049250313e-16,
+      "rotation_det_error": 2.220446049250313e-16
+    },
+    {
+      "sample_id": "sample_0004",
+      "num_foci": 1,
+      "node_max_abs_error": 0.0,
+      "node_rmse": 0.0,
+      "voxel_probe_max_abs_error": 6.854534149169922e-07,
+      "gt_peak": 0.5035329461097717,
+      "gt_positive_mass": 523.9594591564965,
+      "valid_mass_fraction": 1.0,
+      "measurement_max": 0.0040560267666326704,
+      "measurement_min": 0.0,
+      "rotation_orthogonality_error": 2.220446049250313e-16,
+      "rotation_det_error": 4.440892098500626e-16
+    },
+    {
+      "sample_id": "sample_0005",
+      "num_foci": 3,
+      "node_max_abs_error": 0.0,
+      "node_rmse": 0.0,
+      "voxel_probe_max_abs_error": 1.7285346984863281e-06,
+      "gt_peak": 1.193426251411438,
+      "gt_positive_mass": 1092.876123533817,
+      "valid_mass_fraction": 1.0,
+      "measurement_max": 0.016433252990159096,
+      "measurement_min": 0.0,
+      "rotation_orthogonality_error": 4.440892098500626e-16,
+      "rotation_det_error": 4.440892098500626e-16
+    },
+    {
+      "sample_id": "sample_0006",
+      "num_foci": 1,
+      "node_max_abs_error": 0.0,
+      "node_rmse": 0.0,
+      "voxel_probe_max_abs_error": 6.854534149169922e-07,
+      "gt_peak": 0.6836796998977661,
+      "gt_positive_mass": 1594.520106564276,
+      "valid_mass_fraction": 1.0,
+      "measurement_max": 0.012854623053898012,
+      "measurement_min": 0.0,
+      "rotation_orthogonality_error": 2.220446049250313e-16,
+      "rotation_det_error": 2.220446049250313e-16
+    },
+    {
+      "sample_id": "sample_0007",
+      "num_foci": 3,
+      "node_max_abs_error": 0.0,
+      "node_rmse": 0.0,
+      "voxel_probe_max_abs_error": 1.6689300537109375e-06,
+      "gt_peak": 0.8681957721710205,
+      "gt_positive_mass": 1854.231758079026,
+      "valid_mass_fraction": 1.0,
+      "measurement_max": 0.007848536316707564,
+      "measurement_min": 0.0,
+      "rotation_orthogonality_error": 2.220446049250313e-16,
+      "rotation_det_error": 2.220446049250313e-16
+    },
+    {
+      "sample_id": "sample_0008",
+      "num_foci": 1,
+      "node_max_abs_error": 0.0,
+      "node_rmse": 0.0,
+      "voxel_probe_max_abs_error": 6.258487701416016e-07,
+      "gt_peak": 0.939795732498169,
+      "gt_positive_mass": 680.8389181178063,
+      "valid_mass_fraction": 1.0,
+      "measurement_max": 0.015855030796654013,
+      "measurement_min": 0.0,
+      "rotation_orthogonality_error": 2.220446049250313e-16,
+      "rotation_det_error": 1.1102230246251565e-16
+    },
+    {
+      "sample_id": "sample_0009",
+      "num_foci": 1,
+      "node_max_abs_error": 0.0,
+      "node_rmse": 0.0,
+      "voxel_probe_max_abs_error": 1.0728836059570312e-06,
+      "gt_peak": 1.105985403060913,
+      "gt_positive_mass": 2089.82896206202,
+      "valid_mass_fraction": 1.0,
+      "measurement_max": 0.009319257999479736,
+      "measurement_min": 0.0,
+      "rotation_orthogonality_error": 2.220446049250313e-16,
+      "rotation_det_error": 0.0
+    },
+    {
+      "sample_id": "sample_0010",
+      "num_foci": 2,
+      "node_max_abs_error": 0.0,
+      "node_rmse": 0.0,
+      "voxel_probe_max_abs_error": 2.5033950805664062e-06,
+      "gt_peak": 1.3170452117919922,
+      "gt_positive_mass": 996.4700341371354,
+      "valid_mass_fraction": 1.0,
+      "measurement_max": 0.00880003749954119,
+      "measurement_min": 0.0,
+      "rotation_orthogonality_error": 2.220446049250313e-16,
+      "rotation_det_error": 4.440892098500626e-16
+    },
+    {
+      "sample_id": "sample_0011",
+      "num_foci": 1,
+      "node_max_abs_error": 0.0,
+      "node_rmse": 0.0,
+      "voxel_probe_max_abs_error": 9.5367431640625e-07,
+      "gt_peak": 1.0438673496246338,
+      "gt_positive_mass": 1572.299450901337,
+      "valid_mass_fraction": 1.0,
+      "measurement_max": 0.03128425137938314,
+      "measurement_min": 0.0,
+      "rotation_orthogonality_error": 2.220446049250313e-16,
+      "rotation_det_error": 0.0
+    }
+  ]
+}

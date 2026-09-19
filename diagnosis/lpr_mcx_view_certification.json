@@ -1,0 +1,67 @@
+{
+  "gate": "1",
+  "name": "lpr_mcx_view_certification",
+  "dataset_root": "/home/foods/pro/DU2Vox/data/lpr_continuous_gaussian_mixture_3k_20k",
+  "n_requested": 3000,
+  "n_audited": 3000,
+  "view_contract": {
+    "angles": [
+      "-90",
+      "-60",
+      "-30",
+      "0",
+      "30",
+      "60",
+      "90"
+    ],
+    "shape": [
+      256,
+      256
+    ],
+    "dtype": "float32"
+  },
+  "counts": {
+    "jnii_present": 3000,
+    "proj_present": 3000,
+    "keys_ok": 3000
+  },
+  "violations": {
+    "missing_jnii": [],
+    "missing_proj": [],
+    "bad_angle_keys": [],
+    "bad_shape": [],
+    "non_finite": [],
+    "negative_values": [],
+    "degenerate_views": []
+  },
+  "signal_stats": {
+    "view_max": {
+      "min": 0.28935888409614563,
+      "median": 1333.2547607421875,
+      "max": 432776.03125
+    },
+    "view_nonzero_fraction": {
+      "min": 0.1121826171875,
+      "median": 0.13665771484375,
+      "max": 0.1612701416015625
+    }
+  },
+  "failure_scan": {
+    "log": "logs/lpr_mcx_5e6.log",
+    "mcx_failures": [
+      "sample_0444",
+      "sample_1870"
+    ],
+    "projection_failures": [],
+    "mcx_failures_explained_as_pause_artefacts": [
+      "sample_0444",
+      "sample_1870"
+    ],
+    "mcx_failures_unexplained": []
+  },
+  "artefact_hashes": {
+    "frame_manifest.json": "a89d36a52cc0d33e4764f6a65056a2dfa7fbe9fa55ed3458c0beb84d5ba31ee3",
+    "mesh.npz": "718cb70f0b12c3c8f5e7f10d9e216295efc79ff3221602b934ba04c137f34c64"
+  },
+  "status": "passed"
+}

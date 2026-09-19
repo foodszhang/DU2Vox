@@ -1,0 +1,56 @@
+{
+  "status": "validation_candidate_not_final_freeze",
+  "date": "2026-09-19",
+  "split": "val",
+  "n_samples": 300,
+  "test_accessed": false,
+  "candidate": {
+    "epoch": 20,
+    "checkpoint": "runs/lpr_continuous_v4_centered_finetune_2400/checkpoints/candidate_balanced_val_epoch20.pth",
+    "checkpoint_sha256": "0817568b4d548f0a795e824f9fff7a0f1c43bb5e6a74c5f2b39d2d2ded9eb367",
+    "config": "configs/stage2/lpr_continuous_v4_2400.yaml",
+    "config_sha256": "9e26f7949490698d60a541965eff3e8646eba63b91c571f4fc53611e7cbb3d44",
+    "initialization": "LPR epoch-5 mass-stable checkpoint followed by volume-centered fine-tuning",
+    "volume_center_neural_update": true,
+    "lambda_negative_mass_excess": 0.01
+  },
+  "metrics": {
+    "stage1": {
+      "ccc": 0.7618714179538914,
+      "psnr_db": 46.23293914719272,
+      "relative_l2": 0.5652736739466566,
+      "mse": 0.00014095434907052093,
+      "integrated_relative_error": 0.19166228372353827,
+      "peak_relative_error": 0.4415315898562848,
+      "dice_50": 0.2335877825983755
+    },
+    "candidate_epoch20": {
+      "ccc": 0.8016544652242904,
+      "psnr_db": 46.607001429508585,
+      "relative_l2": 0.5424006890260226,
+      "mse": 0.00012874453959561661,
+      "integrated_ratio_signed": 1.0012833850945908,
+      "integrated_relative_error": 0.1869581322600769,
+      "positive_mass_ratio": 1.1099622205896122,
+      "negative_mass_ratio": 0.10867883549502139,
+      "peak_relative_error": 0.3319143440865513,
+      "dice_50": 0.38246130062126404
+    }
+  },
+  "selection_rationale": {
+    "note": "Epoch 15 maximized CCC alone (0.802262) but had negative-mass ratio 0.315756. Epoch 20 loses 0.000608 CCC while improving PSNR, relative L2, MSE, integrated error, and negative mass. It is the balanced continuous-field candidate, not yet a final validation freeze.",
+    "p1_oracle_negative_mass_ratio_mean": 0.07893289422678591,
+    "paired_bootstrap_draws": 10000,
+    "paired_bootstrap_seed": 20260919,
+    "candidate_vs_stage1": {
+      "ccc_delta": 0.039783047270399136,
+      "ccc_ci95": [0.036033143372863244, 0.04357503315981354],
+      "psnr_delta_db": 0.3740622823158676,
+      "psnr_ci95": [0.2920074338380719, 0.45256703536237763],
+      "relative_l2_reduction": 0.022872984920634075,
+      "relative_l2_reduction_ci95": [0.01838382150521716, 0.02717538168933566],
+      "mse_reduction": 0.000012209809474904363,
+      "mse_reduction_ci95": [0.000010328245654871902, 0.00001415033387323478]
+    }
+  }
+}

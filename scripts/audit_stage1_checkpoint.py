@@ -30,7 +30,9 @@ def build_activation(activation: str, leaky_slope: float):
     if activation == "sigmoid":
         return torch.sigmoid
     if activation == "leaky_relu":
-        return lambda x: torch.nn.functional.leaky_relu(x, negative_slope=leaky_slope).clamp(max=1.0)
+        return lambda x: torch.nn.functional.leaky_relu(x, negative_slope=leaky_slope).clamp(
+            max=1.0
+        )
     return lambda x: x.clamp(0.0, 1.0)
 
 
@@ -64,6 +66,8 @@ def build_model(cfg: dict, dataset: FMTSimGenDataset, device: torch.device) -> G
         sens_w=dataset.sens_w.to(device),
         num_layer=model_cfg.get("num_layer", 6),
         feat_dim=model_cfg.get("feat_dim", 6),
+        physics_evidence=model_cfg.get("physics_evidence", "raw"),
+        profiled_evidence_rms=model_cfg.get("profiled_evidence_rms", 0.05),
     ).to(device)
     return model
 
@@ -72,7 +76,9 @@ def load_checkpoint(model: torch.nn.Module, checkpoint: str, device: torch.devic
     ckpt = torch.load(checkpoint, map_location=device)
     if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
         model.load_state_dict(ckpt["model_state_dict"])
-        print(f"[Audit] checkpoint epoch={ckpt.get('epoch', '?')}, primary={ckpt.get('primary_metric', '?')}")
+        print(
+            f"[Audit] checkpoint epoch={ckpt.get('epoch', '?')}, primary={ckpt.get('primary_metric', '?')}"
+        )
     else:
         model.load_state_dict(ckpt)
 
@@ -124,14 +130,20 @@ def mean_rows(rows: list[dict[str, float]]) -> dict[str, float]:
     keys = sorted({key for row in rows for key in row})
     out = {}
     for key in keys:
-        vals = [row[key] for row in rows if key in row and isinstance(row[key], int | float | np.floating)]
+        vals = [
+            row[key]
+            for row in rows
+            if key in row and isinstance(row[key], int | float | np.floating)
+        ]
         if vals:
             out[key] = float(np.mean(vals))
     return out
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Audit Stage1 checkpoint mesh and ROI support metrics")
+    parser = argparse.ArgumentParser(
+        description="Audit Stage1 checkpoint mesh and ROI support metrics"
+    )
     parser.add_argument("--config", required=True)
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--split", default="val")
@@ -187,9 +199,28 @@ def main() -> None:
                     "pred_max": float(pred_np[i].max()),
                     "pred_std": float(pred_np[i].std()),
                 }
-                row.update({f"{key}_03": value for key, value in binary_stats(pred_np[i], gt_np[i], 0.3).items()})
-                row.update({f"{key}_05": value for key, value in binary_stats(pred_np[i], gt_np[i], 0.5).items()})
-                row.update(audit_roi(pred_np[i], gt_np[i], nodes_np, elements, args.tau_values, args.dilate_layers))
+                row.update(
+                    {
+                        f"{key}_03": value
+                        for key, value in binary_stats(pred_np[i], gt_np[i], 0.3).items()
+                    }
+                )
+                row.update(
+                    {
+                        f"{key}_05": value
+                        for key, value in binary_stats(pred_np[i], gt_np[i], 0.5).items()
+                    }
+                )
+                row.update(
+                    audit_roi(
+                        pred_np[i],
+                        gt_np[i],
+                        nodes_np,
+                        elements,
+                        args.tau_values,
+                        args.dilate_layers,
+                    )
+                )
                 rows.append(row)
             sample_offset += pred_np.shape[0]
 

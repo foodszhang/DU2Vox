@@ -1,0 +1,62 @@
+experiment:
+  name: information_audit_base
+
+runs_root: runs
+
+data:
+  samples_dir: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples
+  shared_dir: /home/foods/pro/FMT-SimGen/output/shared_mesh_20k
+  train_split: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/train.txt
+  val_split: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/val.txt
+  test_split: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/test.txt
+  operator_cache: experiments/cross_discretization_decomposition/artifacts/operator_cache
+  projection_targets_dir: precomputed/error_structured_projection_targets
+  v4_states_root: precomputed/complement_voxel_detail/v4_states
+  v4_latents_root: precomputed/information_audit/v4_terminal_hidden
+  projection_file: proj.npz
+  projection_norm: per_view_max
+  projection_transform: none
+
+frozen_backbone:
+  config: configs/stage2/unified_dual_evidence_fem_v4_2400.yaml
+  checkpoint: runs/unified_dual_evidence_fem_v4_2400/checkpoints/best_dense_val_delta_dice.pth
+  expected_epoch: 15
+
+model:
+  coordinate_frequencies: 6
+  hidden_dim: 160
+  hidden_layers: 3
+  latent_dim: 144
+  view_feat_dim: 32
+  matched_input_dim: 231
+  chunk_size: 65536
+  boundary_temperature: 0.1
+
+training:
+  seed: 20260901
+  epochs: 5
+  lr: 1.0e-4
+  weight_decay: 1.0e-5
+  grad_clip_norm: 1.0
+  amp_dtype: bf16
+
+loss:
+  smooth_l1_beta: 0.1
+  lambda_detail_l1: 1.0
+  lambda_detail_mse: 0.1
+  lambda_support: 0.1
+  support_temperature: 0.1
+  tversky_alpha: 0.5
+  tversky_beta: 0.5
+
+validation:
+  threshold: 0.5
+
+audit:
+  arm: A0
+  maximum_peak_gib: 16.0
+  activation_checkpointing: true
+  bootstrap_draws: 10000
+  selection_split: val
+  development_test_after_freeze_only: true
+  confirmation_data_allowed: false

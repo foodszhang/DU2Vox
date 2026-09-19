@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import random
 import sys
 import time
 from pathlib import Path
@@ -33,6 +34,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from du2vox.models.stage2.residual_inr import ResidualINR
 from du2vox.models.stage2.cqr_residual_inr import CQRResidualINR
+from du2vox.models.stage2.plain_cqr_residual_control import PlainCQRResidualControl
 from du2vox.models.stage2.transport_observability_cqr_inr import (
     TransportObservabilityCQRINR,
 )
@@ -79,12 +81,15 @@ def build_stage2_model(ModelCls, cfg: dict, prior_dim: int, view_feat_dim: int =
         skip_connection=cfg["model"]["skip_connection"],
         view_feat_dim=view_feat_dim,
     )
-    if ModelCls is TransportObservabilityCQRINR:
+    if ModelCls in {TransportObservabilityCQRINR, PlainCQRResidualControl}:
         transport_cfg = cfg.get("transport", {}) or {}
         operator = CompressedGreenOperator.load(transport_cfg["operator_cache"])
         with np.load(Path(cfg["data"]["shared_dir"]) / "mesh.npz", allow_pickle=False) as mesh:
             elements = mesh["elements"].copy()
         observability_cfg = cfg.get("observability", {}) or {}
+        extra_kwargs = {}
+        if ModelCls is PlainCQRResidualControl:
+            extra_kwargs["lifting_mode"] = cfg["model"].get("lifting_mode", "p1")
         model = ModelCls(
             green_node_modes=operator.green_node_modes,
             elements=elements,
@@ -104,13 +109,15 @@ def build_stage2_model(ModelCls, cfg: dict, prior_dim: int, view_feat_dim: int =
             measurement_normalization=transport_cfg.get(
                 "measurement_normalization", "least_squares_stage1_scale"
             ),
+            **extra_kwargs,
         )
-        model.set_phase(
-            cfg.get("training", {}).get("phase", "lifter"),
-            freeze_lifter_after_phase_a=bool(
-                cfg.get("training", {}).get("freeze_lifter_after_phase_a", False)
-            ),
-        )
+        if ModelCls is TransportObservabilityCQRINR:
+            model.set_phase(
+                cfg.get("training", {}).get("phase", "lifter"),
+                freeze_lifter_after_phase_a=bool(
+                    cfg.get("training", {}).get("freeze_lifter_after_phase_a", False)
+                ),
+            )
         return model
     if ModelCls is CQRResidualINR:
         validate_residual_gate_contract(cfg["model"])
@@ -178,6 +185,39 @@ def load_split(split_file: str):
         return [line.strip() for line in f if line.strip()]
 
 
+def set_reproducibility_seed(seed: int) -> None:
+    """Seed model initialization, sampling, shuffling, and CUDA RNGs."""
+
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
+def trainable_parameter_report(model: nn.Module, view_encoder: nn.Module | None) -> dict[str, int]:
+    def count(module: nn.Module | None) -> int:
+        if module is None:
+            return 0
+        return sum(
+            parameter.numel() for parameter in module.parameters() if parameter.requires_grad
+        )
+
+    lifter = getattr(model, "lifter", None)
+    projector = getattr(model, "projector", None)
+    lifter_count = count(lifter)
+    projector_count = count(projector)
+    view_count = count(view_encoder)
+    model_count = count(model)
+    return {
+        "total_trainable": model_count + view_count,
+        "inr": model_count - lifter_count - projector_count,
+        "lifter": lifter_count,
+        "view_encoder": view_count,
+        "projector": projector_count,
+    }
+
+
 def build_dataloader(
     cfg: dict,
     sample_ids: list,
@@ -198,7 +238,9 @@ def build_dataloader(
     quadrature_dir = str(Path(quadrature_root) / split) if quadrature_root and split else None
 
     if precomputed_dir and Path(precomputed_dir).exists():
-        resample_train = bool(cfg["data"].get("resample_queries_each_epoch", False)) and not deterministic
+        resample_train = (
+            bool(cfg["data"].get("resample_queries_each_epoch", False)) and not deterministic
+        )
         # Check if multiview mode is enabled
         if cfg["model"].get("view_encoder", False):
             dataset = Stage2DatasetPrecomputedMultiview(
@@ -282,9 +324,9 @@ def forward_stage2_model(
     batch: dict,
     view_feat: torch.Tensor | None = None,
 ):
-    if isinstance(model, TransportObservabilityCQRINR):
+    if isinstance(model, (TransportObservabilityCQRINR, PlainCQRResidualControl)):
         if correction_band is None:
-            raise ValueError("transport_observability_cqr_inr requires correction_band")
+            raise ValueError("physics-aware CQR models require correction_band")
         return model(
             coords,
             prior,
@@ -680,7 +722,7 @@ def train_step(
                 observable_residual = data_relative_after
                 ambiguous_leakage = output["ambiguous_measurement_leakage"].mean()
                 correction_l2 = (
-                    (output["observable_correction"].square() + output["ambiguous_correction"].square())
+                    (output["observable_correction"] + output["ambiguous_correction"]).square()
                     * full_weight
                 ).sum() / weight_sum
                 with torch.no_grad():
@@ -714,9 +756,7 @@ def train_step(
                 observable_target_relative = observable_target_loss / (
                     observable_target_scale + eps
                 )
-                ambiguous_target_relative = ambiguous_target_loss / (
-                    ambiguous_target_scale + eps
-                )
+                ambiguous_target_relative = ambiguous_target_loss / (ambiguous_target_scale + eps)
                 observable_target_cosine = weighted_cosine(
                     output["observable_correction"], observable_target
                 )
@@ -727,12 +767,8 @@ def train_step(
                 observable_activity = weighted_abs_mean(output["observable_correction"])
                 raw_ambiguous_activity = weighted_abs_mean(output["raw_ambiguous"])
                 ambiguous_activity = weighted_abs_mean(output["ambiguous_correction"])
-                observable_projection_ratio = observable_activity / (
-                    raw_observable_activity + eps
-                )
-                ambiguous_projection_ratio = ambiguous_activity / (
-                    raw_ambiguous_activity + eps
-                )
+                observable_projection_ratio = observable_activity / (raw_observable_activity + eps)
+                ambiguous_projection_ratio = ambiguous_activity / (raw_ambiguous_activity + eps)
                 raw_observable_norm = weighted_rms(output["raw_observable"])
                 observable_norm = weighted_rms(output["observable_correction"])
                 raw_ambiguous_norm = weighted_rms(output["raw_ambiguous"])
@@ -751,13 +787,10 @@ def train_step(
                     output["a_query"].float() @ combined_correction.float().unsqueeze(-1)
                 ).squeeze(-1)
                 target_correction_modes = (
-                    output["a_query"].float()
-                    @ gt_correction_target.float().unsqueeze(-1)
+                    output["a_query"].float() @ gt_correction_target.float().unsqueeze(-1)
                 ).squeeze(-1)
                 correction_physics_relative = (
-                    (predicted_correction_modes - target_correction_modes)
-                    .square()
-                    .sum(dim=-1)
+                    (predicted_correction_modes - target_correction_modes).square().sum(dim=-1)
                     / (target_correction_modes.square().sum(dim=-1) + eps)
                 ).mean()
                 phase = getattr(model, "training_phase", "lifter")
@@ -766,28 +799,22 @@ def train_step(
                     + float(cfg_loss.get("lambda_transport", 1.0)) * transport_loss
                     + float(cfg_loss.get("lambda_alpha_anchor", 0.01)) * alpha_anchor
                 )
-                observable_supervision = (
-                    float(
-                        cfg_loss.get(
-                            "lambda_obs_target_relative",
-                            cfg_loss.get("lambda_obs_target", 1.0),
-                        )
+                observable_supervision = float(
+                    cfg_loss.get(
+                        "lambda_obs_target_relative",
+                        cfg_loss.get("lambda_obs_target", 1.0),
                     )
-                    * observable_target_relative
-                    + float(cfg_loss.get("lambda_obs_target_cosine", 0.0))
-                    * (1.0 - observable_target_cosine)
-                )
-                ambiguous_supervision = (
-                    float(
-                        cfg_loss.get(
-                            "lambda_amb_target_relative",
-                            cfg_loss.get("lambda_amb_target", 1.0),
-                        )
+                ) * observable_target_relative + float(
+                    cfg_loss.get("lambda_obs_target_cosine", 0.0)
+                ) * (1.0 - observable_target_cosine)
+                ambiguous_supervision = float(
+                    cfg_loss.get(
+                        "lambda_amb_target_relative",
+                        cfg_loss.get("lambda_amb_target", 1.0),
                     )
-                    * ambiguous_target_relative
-                    + float(cfg_loss.get("lambda_amb_target_cosine", 0.0))
-                    * (1.0 - ambiguous_target_cosine)
-                )
+                ) * ambiguous_target_relative + float(
+                    cfg_loss.get("lambda_amb_target_cosine", 0.0)
+                ) * (1.0 - ambiguous_target_cosine)
                 if phase == "lifter":
                     loss = lifter_loss
                 elif phase == "observable_pretrain":
@@ -812,8 +839,7 @@ def train_step(
                 if phase == "full":
                     loss = (
                         loss
-                        + float(cfg_loss.get("lambda_ambiguous_leakage", 0.1))
-                        * ambiguous_leakage
+                        + float(cfg_loss.get("lambda_ambiguous_leakage", 0.1)) * ambiguous_leakage
                         + float(measurement_consistency_weight) * nonworse_loss
                     )
                 loss_components["transport"] = transport_loss.detach()
@@ -822,12 +848,8 @@ def train_step(
                 loss_components["ambiguous_leakage"] = ambiguous_leakage.detach()
                 loss_components["observable_target"] = observable_target_loss.detach()
                 loss_components["ambiguous_target"] = ambiguous_target_loss.detach()
-                loss_components["observable_target_relative"] = (
-                    observable_target_relative.detach()
-                )
-                loss_components["ambiguous_target_relative"] = (
-                    ambiguous_target_relative.detach()
-                )
+                loss_components["observable_target_relative"] = observable_target_relative.detach()
+                loss_components["ambiguous_target_relative"] = ambiguous_target_relative.detach()
                 loss_components["raw_observable_activity"] = raw_observable_activity.detach()
                 loss_components["observable_activity"] = observable_activity.detach()
                 loss_components["raw_ambiguous_activity"] = raw_ambiguous_activity.detach()
@@ -835,25 +857,65 @@ def train_step(
                 loss_components["observable_projection_ratio"] = (
                     observable_projection_ratio.detach()
                 )
-                loss_components["ambiguous_projection_ratio"] = (
-                    ambiguous_projection_ratio.detach()
-                )
+                loss_components["ambiguous_projection_ratio"] = ambiguous_projection_ratio.detach()
                 loss_components["observable_target_cosine"] = observable_target_cosine.detach()
                 loss_components["ambiguous_target_cosine"] = ambiguous_target_cosine.detach()
                 loss_components["raw_observable_norm"] = raw_observable_norm.detach()
                 loss_components["observable_norm"] = observable_norm.detach()
                 loss_components["raw_ambiguous_norm"] = raw_ambiguous_norm.detach()
                 loss_components["ambiguous_norm"] = ambiguous_norm.detach()
-                loss_components["observable_energy_fraction"] = (
-                    observable_energy_fraction.detach()
-                )
-                loss_components["ambiguous_energy_fraction"] = (
-                    ambiguous_energy_fraction.detach()
-                )
+                loss_components["observable_energy_fraction"] = observable_energy_fraction.detach()
+                loss_components["ambiguous_energy_fraction"] = ambiguous_energy_fraction.detach()
                 loss_components["data_relative_before"] = data_relative_before.detach()
                 loss_components["data_relative_after"] = data_relative_after.detach()
                 loss_components["data_nonworse"] = data_nonworse.detach()
                 loss_components["data_nonworse_robust"] = data_nonworse_robust.detach()
+                loss_components["correction_physics_relative"] = (
+                    correction_physics_relative.detach()
+                )
+            elif isinstance(model, PlainCQRResidualControl):
+                cfg_loss = loss_cfg or {}
+                full_weight = valid.float()
+                if "query_weight" in batch:
+                    full_weight = full_weight * batch["query_weight"].cuda()
+                if "residual_indicator" in batch:
+                    full_weight = full_weight * (
+                        1.0
+                        + float(cfg_loss.get("residual_indicator_weight", 0.5))
+                        * batch["residual_indicator"].cuda()
+                    )
+                full_weight = full_weight / (full_weight.mean().detach() + 1e-6)
+                weight_sum = full_weight.sum() + eps
+                correction = output["plain_correction"]
+                correction_l2 = (correction.square() * full_weight).sum() / weight_sum
+                gt_correction_target = gt - output["rho0"].detach()
+                predicted_correction_modes = (
+                    output["a_query"].float() @ correction.float().unsqueeze(-1)
+                ).squeeze(-1)
+                target_correction_modes = (
+                    output["a_query"].float() @ gt_correction_target.float().unsqueeze(-1)
+                ).squeeze(-1)
+                correction_physics_relative = (
+                    (predicted_correction_modes - target_correction_modes).square().sum(dim=-1)
+                    / (target_correction_modes.square().sum(dim=-1) + eps)
+                ).mean()
+                loss = (
+                    float(cfg_loss.get("lambda_recon", 1.0)) * loss
+                    + float(cfg_loss.get("lambda_correction_l2", 0.0)) * correction_l2
+                    + float(cfg_loss.get("lambda_correction_physics", 0.0))
+                    * correction_physics_relative
+                )
+                alpha_target = prior[..., 4:8]
+                alpha_anchor = (
+                    torch.abs(output["alpha"] - alpha_target).mean(dim=-1) * full_weight
+                ).sum() / weight_sum
+                loss_components["alpha_anchor"] = alpha_anchor.detach()
+                loss_components["data_relative_before"] = (
+                    output["data_relative_before"].mean().detach()
+                )
+                loss_components["data_relative_after"] = (
+                    output["data_relative_after"].mean().detach()
+                )
                 loss_components["correction_physics_relative"] = (
                     correction_physics_relative.detach()
                 )
@@ -913,24 +975,16 @@ def train_step(
         "alpha_anchor": loss_components.get("alpha_anchor", torch.tensor(0.0)).item()
         if valid_mask.sum() > 0
         else 0.0,
-        "observable_residual": loss_components.get(
-            "observable_residual", torch.tensor(0.0)
-        ).item()
+        "observable_residual": loss_components.get("observable_residual", torch.tensor(0.0)).item()
         if valid_mask.sum() > 0
         else 0.0,
-        "ambiguous_leakage": loss_components.get(
-            "ambiguous_leakage", torch.tensor(0.0)
-        ).item()
+        "ambiguous_leakage": loss_components.get("ambiguous_leakage", torch.tensor(0.0)).item()
         if valid_mask.sum() > 0
         else 0.0,
-        "observable_target": loss_components.get(
-            "observable_target", torch.tensor(0.0)
-        ).item()
+        "observable_target": loss_components.get("observable_target", torch.tensor(0.0)).item()
         if valid_mask.sum() > 0
         else 0.0,
-        "ambiguous_target": loss_components.get(
-            "ambiguous_target", torch.tensor(0.0)
-        ).item()
+        "ambiguous_target": loss_components.get("ambiguous_target", torch.tensor(0.0)).item()
         if valid_mask.sum() > 0
         else 0.0,
         "observable_target_relative": loss_components.get(
@@ -948,9 +1002,7 @@ def train_step(
         ).item()
         if valid_mask.sum() > 0
         else 0.0,
-        "observable_activity": loss_components.get(
-            "observable_activity", torch.tensor(0.0)
-        ).item()
+        "observable_activity": loss_components.get("observable_activity", torch.tensor(0.0)).item()
         if valid_mask.sum() > 0
         else 0.0,
         "raw_ambiguous_activity": loss_components.get(
@@ -958,9 +1010,7 @@ def train_step(
         ).item()
         if valid_mask.sum() > 0
         else 0.0,
-        "ambiguous_activity": loss_components.get(
-            "ambiguous_activity", torch.tensor(0.0)
-        ).item()
+        "ambiguous_activity": loss_components.get("ambiguous_activity", torch.tensor(0.0)).item()
         if valid_mask.sum() > 0
         else 0.0,
         "observable_projection_ratio": loss_components.get(
@@ -974,9 +1024,7 @@ def train_step(
         if valid_mask.sum() > 0
         else 0.0,
         **{
-            key: loss_components.get(key, torch.tensor(0.0)).item()
-            if valid_mask.sum() > 0
-            else 0.0
+            key: loss_components.get(key, torch.tensor(0.0)).item() if valid_mask.sum() > 0 else 0.0
             for key in (
                 "observable_target_cosine",
                 "ambiguous_target_cosine",
@@ -1002,9 +1050,7 @@ def scheduled_measurement_consistency_weight(training_cfg: dict, epoch: int) -> 
     schedule = training_cfg.get("measurement_consistency_schedule", []) or []
     if not schedule:
         return float(training_cfg.get("measurement_consistency_weight", 0.0))
-    points = sorted(
-        (int(item["epoch"]), float(item["weight"])) for item in schedule
-    )
+    points = sorted((int(item["epoch"]), float(item["weight"])) for item in schedule)
     if epoch <= points[0][0]:
         return points[0][1]
     for (left_epoch, left_weight), (right_epoch, right_weight) in zip(
@@ -1148,12 +1194,16 @@ def save_stage2_checkpoint(
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     extra = dict(extra or {})
-    if isinstance(model, TransportObservabilityCQRINR):
+    if isinstance(model, (TransportObservabilityCQRINR, PlainCQRResidualControl)):
         extra["transport_metadata"] = {
-            "model_type": "transport_observability_cqr_inr",
+            "model_type": model.__class__.__name__,
             "phase": getattr(model, "training_phase", None),
             "measurement_normalization": model.measurement_normalization,
-            "rank": int(model.lifter.green_node_modes.shape[0]),
+            "rank": int(
+                model.lifter.green_node_modes.shape[0]
+                if model.lifter is not None
+                else model.green_node_modes.shape[0]
+            ),
         }
     if view_encoder is not None:
         payload = {
@@ -1182,6 +1232,7 @@ def grouped_validate(
         evaluate_sample,
         get_num_foci,
         mean_dict,
+        read_json,
         run_model_on_sample,
     )
     from du2vox.utils.frame import FrameManifest
@@ -1228,6 +1279,9 @@ def grouped_validate(
                     residual,
                     valid,
                     diagnostics,
+                    tumor_params=read_json(samples_dir / sample_id / "tumor_params.json")
+                    if samples_dir is not None
+                    else None,
                 )
             )
     if was_training:
@@ -1279,9 +1333,7 @@ def main():
     if args.grad_accum_steps is not None:
         cfg.setdefault("training", {})["grad_accum_steps"] = args.grad_accum_steps
     if args.early_stopping_patience is not None:
-        cfg.setdefault("training", {})["early_stopping_patience"] = (
-            args.early_stopping_patience
-        )
+        cfg.setdefault("training", {})["early_stopping_patience"] = args.early_stopping_patience
     if args.disable_query_resampling:
         cfg.setdefault("data", {})["resample_queries_each_epoch"] = False
     for override in args.loss_override:
@@ -1291,15 +1343,16 @@ def main():
         if not key:
             raise ValueError("Loss override key cannot be empty")
         cfg.setdefault("loss", {})[key] = float(raw_value)
+    seed = int(cfg.get("training", {}).get("seed", 20260722))
+    cfg.setdefault("data", {}).setdefault("query_base_seed", seed)
+    set_reproducibility_seed(seed)
     if cfg.get("data", {}).get("shared_dir"):
         os.environ["DU2VOX_SHARED_DIR"] = str(cfg["data"]["shared_dir"])
     if cfg.get("data", {}).get("allow_stale_frame_manifest", False):
         os.environ["DU2VOX_ALLOW_STALE_FRAME_MANIFEST"] = "1"
         print("[Stage2][WARN] stale frame manifest explicitly allowed by config")
     if cfg.get("data", {}).get("frame_manifest_sha256"):
-        os.environ["DU2VOX_FRAME_MANIFEST_SHA256"] = str(
-            cfg["data"]["frame_manifest_sha256"]
-        )
+        os.environ["DU2VOX_FRAME_MANIFEST_SHA256"] = str(cfg["data"]["frame_manifest_sha256"])
 
     exp_name = args.experiment_name or cfg["experiment"]["name"]
     max_epochs = args.max_epochs or cfg["training"]["max_epochs"]
@@ -1325,9 +1378,17 @@ def main():
     expected_prior_dim = 8 if prior_source == "prior_8d" else prior_dim
     model_type = cfg["model"].get("model_type", "")
     use_transport_model = model_type == "transport_observability_cqr_inr"
-    use_cqr_model = use_transport_model or (model_type == "cqr_residual_inr") or (prior_dim > 8)
+    use_plain_control = model_type == "plain_cqr_residual_control"
+    use_cqr_model = (
+        use_transport_model
+        or use_plain_control
+        or (model_type == "cqr_residual_inr")
+        or (prior_dim > 8)
+    )
     if use_transport_model:
         ModelCls = TransportObservabilityCQRINR
+    elif use_plain_control:
+        ModelCls = PlainCQRResidualControl
     else:
         ModelCls = CQRResidualINR if use_cqr_model else ResidualINR
 
@@ -1335,17 +1396,22 @@ def main():
         print(f"[Stage2] Mode: precomputed (train={precomputed_train}, val={precomputed_val})")
     else:
         print("[Stage2] Mode: on-demand (bridge_dir fallback)")
-    print(f"[Stage2] Data root: {cfg['data'].get('dataset_root', cfg['data'].get('samples_dir', ''))}")
+    print(
+        f"[Stage2] Data root: {cfg['data'].get('dataset_root', cfg['data'].get('samples_dir', ''))}"
+    )
     print(
         f"[Stage2] Splits: train={cfg['data']['train_split']}, "
         f"val={cfg['data']['val_split']}, test={test_split or 'N/A'}"
     )
-    print(f"[Stage2] Training: {len(train_ids)} samples, Val: {len(val_ids)} samples, Test: {test_count} samples")
+    print(
+        f"[Stage2] Training: {len(train_ids)} samples, Val: {len(val_ids)} samples, Test: {test_count} samples"
+    )
     print(
         f"[Stage2] Model: model_type={model_type or 'residual_inr'}, "
         f"prior_dim={prior_dim}, prior_source={prior_source}, use_cqr_model={use_cqr_model}, "
         f"output_mode={cfg['model'].get('output_mode', 'residual')}"
     )
+    print(f"[Stage2] Reproducibility seed: {seed}")
     if ModelCls is CQRResidualINR:
         print(
             f"[Stage2] CQR prior_source={prior_source}, prior_dim={prior_dim}, "
@@ -1371,7 +1437,9 @@ def main():
         f"[Stage2] LR: base_lr={cfg['training']['lr']}, "
         f"view_encoder_lr_scale={cfg['model'].get('view_encoder_lr_scale', 1.0)}"
     )
-    print(f"[Stage2] Data: train_precomputed={precomputed_train}, val_precomputed={precomputed_val}")
+    print(
+        f"[Stage2] Data: train_precomputed={precomputed_train}, val_precomputed={precomputed_val}"
+    )
     print(
         f"[Projection] input_file={cfg['data'].get('projection_file', 'proj.npz')}, "
         f"norm={cfg['data'].get('projection_norm', 'none')}, "
@@ -1445,6 +1513,9 @@ def main():
             lr=cfg["training"]["lr"],
             weight_decay=cfg["training"]["weight_decay"],
         )
+
+    parameter_report = trainable_parameter_report(model, view_encoder)
+    print(f"[Stage2] Trainable parameters: {parameter_report}")
 
     if args.resume_checkpoint:
         ckpt = torch.load(args.resume_checkpoint, map_location="cuda")
@@ -1611,7 +1682,9 @@ def main():
         )
 
         for batch_idx, batch in enumerate(train_loader):
-            step_optimizer = ((batch_idx + 1) % grad_accum_steps == 0) or (batch_idx + 1 == len(train_loader))
+            step_optimizer = ((batch_idx + 1) % grad_accum_steps == 0) or (
+                batch_idx + 1 == len(train_loader)
+            )
             metrics = train_step(
                 model,
                 batch,
@@ -1752,7 +1825,11 @@ def main():
         grouped_metrics = None
         grouped_improved = False
         if grouped_interval > 0 and epoch % grouped_interval == 0:
-            grouped_ids = val_ids if grouped_split == "val" else load_split(cfg["data"][f"{grouped_split}_split"])
+            grouped_ids = (
+                val_ids
+                if grouped_split == "val"
+                else load_split(cfg["data"][f"{grouped_split}_split"])
+            )
             print(f"[GroupedVal] epoch={epoch}, split={grouped_split}, samples={len(grouped_ids)}")
             grouped_metrics = grouped_validate(
                 model=model,
@@ -1785,7 +1862,11 @@ def main():
             if use_grouped_best and grouped_score > best_grouped + 0.0005:
                 grouped_improved = True
                 best_grouped = grouped_score
-                best_grouped_info = {"epoch": epoch, "grouped_score": grouped_score, **grouped_metrics}
+                best_grouped_info = {
+                    "epoch": epoch,
+                    "grouped_score": grouped_score,
+                    **grouped_metrics,
+                }
                 extra = {
                     "epoch": epoch,
                     "grouped_metrics": grouped_metrics,
@@ -1795,7 +1876,12 @@ def main():
                 group_path = Path(args.checkpoint_dir) / exp_name / "best_grouped.pth"
                 save_stage2_checkpoint(group_path, model, view_encoder, extra=extra)
                 if use_grouped_best:
-                    save_stage2_checkpoint(Path(args.checkpoint_dir) / exp_name / "best.pth", model, view_encoder, extra=extra)
+                    save_stage2_checkpoint(
+                        Path(args.checkpoint_dir) / exp_name / "best.pth",
+                        model,
+                        view_encoder,
+                        extra=extra,
+                    )
                 print(f"  -> Best grouped ckpt saved: score={best_grouped:+.4f} at ep={epoch}")
                 if grouped_metrics["delta_dice_05"] < 0:
                     print("[GroupedVal][WARN] best grouped checkpoint is still below FEM baseline")
@@ -1826,7 +1912,12 @@ def main():
             best_val_loss = val_metrics["val_loss"]
         if improved and not use_grouped_best:
             ckpt_path = Path(args.checkpoint_dir) / exp_name / "best.pth"
-            save_stage2_checkpoint(ckpt_path, model, view_encoder, extra={"epoch": epoch, "sampled_val_metrics": val_metrics})
+            save_stage2_checkpoint(
+                ckpt_path,
+                model,
+                view_encoder,
+                extra={"epoch": epoch, "sampled_val_metrics": val_metrics},
+            )
             patience_counter = 0
             print(
                 f"  -> Best ckpt saved: ΔDice={delta:+.4f} (S2={val_metrics['stage2_dice_05']:.4f} vs FEM={val_metrics['fem_dice_05']:.4f})"

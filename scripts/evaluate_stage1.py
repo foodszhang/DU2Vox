@@ -43,23 +43,27 @@ from du2vox.models.stage1.gcain import GCAIN_full
 
 # ── Paper-style matplotlib settings ──
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-plt.rcParams.update({
-    "font.family": "serif",
-    "font.serif": ["Times New Roman"],
-    "font.size": 11,
-    "axes.linewidth": 1.0,
-    "axes.grid": True,
-    "grid.alpha": 0.3,
-    "figure.dpi": 300,
-})
+plt.rcParams.update(
+    {
+        "font.family": "serif",
+        "font.serif": ["Times New Roman"],
+        "font.size": 11,
+        "axes.linewidth": 1.0,
+        "axes.grid": True,
+        "grid.alpha": 0.3,
+        "figure.dpi": 300,
+    }
+)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Part A: Inference and Metrics
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def build_model(cfg, checkpoint_path, device="cuda"):
     """Build model and load checkpoint."""
@@ -90,11 +94,18 @@ def build_model(cfg, checkpoint_path, device="cuda"):
     nodes = dataset.nodes.to(device)
 
     model = GCAIN_full(
-        L=L, A=A,
-        L0=L0, L1=L1, L2=L2, L3=L3,
-        knn_idx=knn_idx, sens_w=sens_w,
+        L=L,
+        A=A,
+        L0=L0,
+        L1=L1,
+        L2=L2,
+        L3=L3,
+        knn_idx=knn_idx,
+        sens_w=sens_w,
         num_layer=model_cfg["num_layer"],
         feat_dim=model_cfg["feat_dim"],
+        physics_evidence=model_cfg.get("physics_evidence", "raw"),
+        profiled_evidence_rms=model_cfg.get("profiled_evidence_rms", 0.05),
     ).to(device)
 
     ckpt = torch.load(checkpoint_path, map_location=device)
@@ -232,8 +243,26 @@ def compute_all_metrics_for_sample(pred, gt, nodes):
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Note: evaluate_batch returns dice_bin_0.5, dice_bin_0.3, dice_bin_0.1
-METRIC_COLS = ["Dice@0.5", "Dice@0.3", "Dice@0.1", "Recall@0.1", "Recall@0.3", "Precision@0.3", "LocErr", "MSE"]
-METRIC_KEYS = ["dice_bin_0.5", "dice_bin_0.3", "dice_bin_0.1", "recall_0.1", "recall_0.3", "precision_0.3", "location_error", "mse"]
+METRIC_COLS = [
+    "Dice@0.5",
+    "Dice@0.3",
+    "Dice@0.1",
+    "Recall@0.1",
+    "Recall@0.3",
+    "Precision@0.3",
+    "LocErr",
+    "MSE",
+]
+METRIC_KEYS = [
+    "dice_bin_0.5",
+    "dice_bin_0.3",
+    "dice_bin_0.1",
+    "recall_0.1",
+    "recall_0.3",
+    "precision_0.3",
+    "location_error",
+    "mse",
+]
 
 
 def build_metrics_dataframe(all_metrics, all_sample_ids, samples_dir, source_type):
@@ -255,7 +284,7 @@ def build_metrics_dataframe(all_metrics, all_sample_ids, samples_dir, source_typ
             "source": source_type,
             "num_foci": num_foci,
             "depth_tier": depth_tier,
-            **metrics
+            **metrics,
         }
         rows.append(row)
     return pd.DataFrame(rows)
@@ -359,6 +388,7 @@ def save_csv_latex(df, base_path):
 # Part C: Training Curves
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def parse_training_logs(log_dir):
     """Parse training logs to extract CSV rows."""
     log_files = glob.glob(str(Path(log_dir) / "train_*.log"))
@@ -369,19 +399,21 @@ def parse_training_logs(log_dir):
                 if line.startswith("[CSV]") and "epoch," not in line:
                     parts = line.strip().replace("[CSV] ", "").split(",")
                     try:
-                        rows.append({
-                            "epoch": int(parts[0]),
-                            "train_loss": float(parts[1]),
-                            "val_loss": float(parts[2]),
-                            "dice": float(parts[3]),
-                            "dice_03": float(parts[4]),
-                            "dice_01": float(parts[5]),
-                            "recall_01": float(parts[6]),
-                            "prec_03": float(parts[7]),
-                            "loc_err": float(parts[8]),
-                            "mse": float(parts[9]),
-                            "lr": float(parts[13]) if len(parts) > 13 else 0.0,
-                        })
+                        rows.append(
+                            {
+                                "epoch": int(parts[0]),
+                                "train_loss": float(parts[1]),
+                                "val_loss": float(parts[2]),
+                                "dice": float(parts[3]),
+                                "dice_03": float(parts[4]),
+                                "dice_01": float(parts[5]),
+                                "recall_01": float(parts[6]),
+                                "prec_03": float(parts[7]),
+                                "loc_err": float(parts[8]),
+                                "mse": float(parts[9]),
+                                "lr": float(parts[13]) if len(parts) > 13 else 0.0,
+                            }
+                        )
                     except (ValueError, IndexError):
                         continue
     if not rows:
@@ -398,27 +430,29 @@ def parse_training_logs(log_dir):
 
 # Organ color map: tissue_label -> (r, g, b, alpha)
 ORGAN_STYLE = {
-    1: (0.95, 0.85, 0.75, 0.15),   # 皮肤 - skin
-    2: (0.95, 0.95, 0.95, 0.30),    # 骨骼 - bone
-    3: (0.70, 0.85, 0.95, 0.20),    # 肺 - lung
-    4: (0.90, 0.30, 0.30, 0.25),    # 心脏 - heart
-    5: (0.55, 0.15, 0.15, 0.25),    # 肝脏 - liver
-    6: (0.60, 0.35, 0.20, 0.25),    # 肾脏 - kidney
-    7: (0.90, 0.80, 0.80, 0.15),    # 肌肉 - muscle
-    8: (0.80, 0.80, 0.90, 0.15),    # 脑 - brain
-    9: (0.80, 0.20, 0.20, 0.30),    # 心脏 - heart (alternate)
-    10: (0.70, 0.60, 0.50, 0.20),   # 脂肪 - fat
-    11: (0.80, 0.70, 0.60, 0.15),   # 其他软组织
+    1: (0.95, 0.85, 0.75, 0.15),  # 皮肤 - skin
+    2: (0.95, 0.95, 0.95, 0.30),  # 骨骼 - bone
+    3: (0.70, 0.85, 0.95, 0.20),  # 肺 - lung
+    4: (0.90, 0.30, 0.30, 0.25),  # 心脏 - heart
+    5: (0.55, 0.15, 0.15, 0.25),  # 肝脏 - liver
+    6: (0.60, 0.35, 0.20, 0.25),  # 肾脏 - kidney
+    7: (0.90, 0.80, 0.80, 0.15),  # 肌肉 - muscle
+    8: (0.80, 0.80, 0.90, 0.15),  # 脑 - brain
+    9: (0.80, 0.20, 0.20, 0.30),  # 心脏 - heart (alternate)
+    10: (0.70, 0.60, 0.50, 0.20),  # 脂肪 - fat
+    11: (0.80, 0.70, 0.60, 0.15),  # 其他软组织
 }
 
 
 def build_tet_mesh(nodes, elements, scalars=None, name="value"):
     """Build PyVista UnstructuredGrid from tet mesh."""
     n_tets = elements.shape[0]
-    cells = np.hstack([
-        np.full((n_tets, 1), 4, dtype=elements.dtype),
-        elements,
-    ]).ravel()
+    cells = np.hstack(
+        [
+            np.full((n_tets, 1), 4, dtype=elements.dtype),
+            elements,
+        ]
+    ).ravel()
     celltypes = np.full(n_tets, pv.CellType.TETRA, dtype=np.uint8)
     grid = pv.UnstructuredGrid(cells, celltypes, nodes.astype(np.float64))
     if scalars is not None:
@@ -458,10 +492,17 @@ def get_organ_surfaces(nodes, elements, tissue_labels, organ_ids):
 
 
 def render_intensity_plot(
-    nodes, elements, tissue_labels,
-    values, title, colormap, clim,
-    save_path, body_surf, organ_surfs,
-    show_colorbar=True
+    nodes,
+    elements,
+    tissue_labels,
+    values,
+    title,
+    colormap,
+    clim,
+    save_path,
+    body_surf,
+    organ_surfs,
+    show_colorbar=True,
 ):
     """Render intensity on mesh with organ overlay."""
     plotter = pv.Plotter(off_screen=True, window_size=(800, 700))
@@ -480,7 +521,9 @@ def render_intensity_plot(
     for oid, surf in organ_surfs.items():
         style = ORGAN_STYLE.get(oid, (0.7, 0.7, 0.7, 0.1))
         plotter.add_mesh(
-            surf, color=style[:3], opacity=style[3],
+            surf,
+            color=style[:3],
+            opacity=style[3],
             smooth_shading=True,
         )
 
@@ -506,8 +549,7 @@ def render_intensity_plot(
             }
         plotter.add_mesh(pts, **scalar_args)
 
-    plotter.add_text(title, position="upper_left", font_size=12,
-                     font="times", color="black")
+    plotter.add_text(title, position="upper_left", font_size=12, font="times", color="black")
     plotter.camera_position = [(18, 50, 40), (18, 50, 10), (0, 0, 1)]
     plotter.camera.zoom(1.2)
     plotter.screenshot(save_path, transparent_background=False)
@@ -515,10 +557,17 @@ def render_intensity_plot(
 
 
 def render_segmentation_overlay(
-    nodes, elements, tissue_labels,
-    gt, pred, threshold_gt, threshold_pred,
-    save_path, body_surf, organ_surfs,
-    title=""
+    nodes,
+    elements,
+    tissue_labels,
+    gt,
+    pred,
+    threshold_gt,
+    threshold_pred,
+    save_path,
+    body_surf,
+    organ_surfs,
+    title="",
 ):
     """Render TP/FP/FN overlay."""
     gt_bin = gt > threshold_gt
@@ -544,37 +593,57 @@ def render_segmentation_overlay(
     for oid, surf in organ_surfs.items():
         style = ORGAN_STYLE.get(oid, (0.7, 0.7, 0.7, 0.1))
         plotter.add_mesh(
-            surf, color=style[:3], opacity=style[3],
+            surf,
+            color=style[:3],
+            opacity=style[3],
             smooth_shading=True,
         )
 
     # TP - green
     if tp_mask.any():
         tp_cloud = pv.PolyData(nodes[tp_mask])
-        plotter.add_mesh(tp_cloud, color=(0.2, 0.8, 0.2), opacity=0.9,
-                        point_size=5, render_points_as_spheres=True)
+        plotter.add_mesh(
+            tp_cloud,
+            color=(0.2, 0.8, 0.2),
+            opacity=0.9,
+            point_size=5,
+            render_points_as_spheres=True,
+        )
 
     # FP - blue
     if fp_mask.any():
         fp_cloud = pv.PolyData(nodes[fp_mask])
-        plotter.add_mesh(fp_cloud, color=(0.2, 0.4, 0.9), opacity=0.7,
-                        point_size=5, render_points_as_spheres=True)
+        plotter.add_mesh(
+            fp_cloud,
+            color=(0.2, 0.4, 0.9),
+            opacity=0.7,
+            point_size=5,
+            render_points_as_spheres=True,
+        )
 
     # FN - red
     if fn_mask.any():
         fn_cloud = pv.PolyData(nodes[fn_mask])
-        plotter.add_mesh(fn_cloud, color=(0.9, 0.2, 0.2), opacity=0.9,
-                        point_size=5, render_points_as_spheres=True)
+        plotter.add_mesh(
+            fn_cloud,
+            color=(0.9, 0.2, 0.2),
+            opacity=0.9,
+            point_size=5,
+            render_points_as_spheres=True,
+        )
 
     # Legend
-    plotter.add_legend([
-        ["TP", "(0.2,0.8,0.2)"],
-        ["FP", "(0.2,0.4,0.9)"],
-        ["FN", "(0.9,0.2,0.2)"],
-    ], bcolor="white", size=(0.12, 0.10))
+    plotter.add_legend(
+        [
+            ["TP", "(0.2,0.8,0.2)"],
+            ["FP", "(0.2,0.4,0.9)"],
+            ["FN", "(0.9,0.2,0.2)"],
+        ],
+        bcolor="white",
+        size=(0.12, 0.10),
+    )
 
-    plotter.add_text(title, position="upper_left", font_size=11,
-                     font="times", color="black")
+    plotter.add_text(title, position="upper_left", font_size=11, font="times", color="black")
     plotter.camera_position = [(18, 50, 40), (18, 50, 10), (0, 0, 1)]
     plotter.camera.zoom(1.2)
     plotter.screenshot(save_path, transparent_background=False)
@@ -615,6 +684,7 @@ def select_representative_samples(df, n=6):
 # Main
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def main():
     parser = argparse.ArgumentParser(description="Stage 1 comprehensive evaluation")
     parser.add_argument("--checkpoint_g", required=True, help="Gaussian checkpoint path")
@@ -652,7 +722,9 @@ def main():
     metrics_u, sample_ids_u = run_inference(model_u, dataset_u, nodes_u, device)
 
     # Build DataFrames
-    df_g = build_metrics_dataframe(metrics_g, sample_ids_g, cfg_g["data"]["samples_dir"], "Gaussian")
+    df_g = build_metrics_dataframe(
+        metrics_g, sample_ids_g, cfg_g["data"]["samples_dir"], "Gaussian"
+    )
     df_u = build_metrics_dataframe(metrics_u, sample_ids_u, cfg_u["data"]["samples_dir"], "Uniform")
 
     # Save per-sample CSVs
@@ -714,12 +786,28 @@ def main():
         ax.plot(log_g["epoch"], log_g["dice_03"], "b-", label="Gaussian", linewidth=1.5)
         best_g = log_g["dice_03"].max()
         best_ep_g = log_g.loc[log_g["dice_03"].idxmax(), "epoch"]
-        ax.scatter([best_ep_g], [best_g], color="blue", s=100, zorder=5, marker="*", label=f"Best={best_g:.4f}")
+        ax.scatter(
+            [best_ep_g],
+            [best_g],
+            color="blue",
+            s=100,
+            zorder=5,
+            marker="*",
+            label=f"Best={best_g:.4f}",
+        )
     if len(log_u) > 0:
         ax.plot(log_u["epoch"], log_u["dice_03"], "orange", label="Uniform", linewidth=1.5)
         best_u = log_u["dice_03"].max()
         best_ep_u = log_u.loc[log_u["dice_03"].idxmax(), "epoch"]
-        ax.scatter([best_ep_u], [best_u], color="orange", s=100, zorder=5, marker="*", label=f"Best={best_u:.4f}")
+        ax.scatter(
+            [best_ep_u],
+            [best_u],
+            color="orange",
+            s=100,
+            zorder=5,
+            marker="*",
+            label=f"Best={best_u:.4f}",
+        )
     ax.set_xlabel("Epoch")
     ax.set_ylabel("Dice@0.3")
     ax.set_title("(b) Dice@0.3")
@@ -742,10 +830,26 @@ def main():
     ax = axes[1, 1]
     if len(log_g) > 0:
         ax.plot(log_g["epoch"], log_g["prec_03"], "b--", label="Gaussian Prec@0.3", linewidth=1.2)
-        ax.plot(log_g["epoch"], log_g["recall_01"], "b:", label="Gaussian Recall@0.1", linewidth=1.2)
+        ax.plot(
+            log_g["epoch"], log_g["recall_01"], "b:", label="Gaussian Recall@0.1", linewidth=1.2
+        )
     if len(log_u) > 0:
-        ax.plot(log_u["epoch"], log_u["prec_03"], "orange", linestyle="--", label="Uniform Prec@0.3", linewidth=1.2)
-        ax.plot(log_u["epoch"], log_u["recall_01"], "orange", linestyle=":", label="Uniform Recall@0.1", linewidth=1.2)
+        ax.plot(
+            log_u["epoch"],
+            log_u["prec_03"],
+            "orange",
+            linestyle="--",
+            label="Uniform Prec@0.3",
+            linewidth=1.2,
+        )
+        ax.plot(
+            log_u["epoch"],
+            log_u["recall_01"],
+            "orange",
+            linestyle=":",
+            label="Uniform Recall@0.1",
+            linewidth=1.2,
+        )
     ax.set_xlabel("Epoch")
     ax.set_ylabel("Score")
     ax.set_title("(d) Precision@0.3 & Recall@0.1")
@@ -753,8 +857,9 @@ def main():
     ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
-    fig.savefig(out_dir / "fig1_training_curves.png", dpi=300, bbox_inches="tight",
-                facecolor="white")
+    fig.savefig(
+        out_dir / "fig1_training_curves.png", dpi=300, bbox_inches="tight", facecolor="white"
+    )
     plt.close(fig)
     print(f"  Saved fig1_training_curves.png")
 
@@ -766,8 +871,9 @@ def main():
     tissue_labels = mesh_data["tissue_labels"]
 
     body_surf = get_body_wireframe(mesh_nodes, elements, tissue_labels)
-    organ_surfs = get_organ_surfaces(mesh_nodes, elements, tissue_labels,
-                                     organ_ids=[1, 2, 3, 4, 5, 6, 7])
+    organ_surfs = get_organ_surfaces(
+        mesh_nodes, elements, tissue_labels, organ_ids=[1, 2, 3, 4, 5, 6, 7]
+    )
 
     # Select representative samples
     repr_g = select_representative_samples(df_g, n=6)
@@ -824,18 +930,18 @@ def main():
         pred_vals = pred_dict_g.get(sid, np.zeros(len(mesh_nodes)))
         error_vals = np.abs(gt_vals - pred_vals)
 
-        for col_idx, (vals, cmap, clim, label) in enumerate([
-            (gt_vals, "jet", (0, 1), "GT"),
-            (pred_vals, "jet", (0, 1), "Pred"),
-            (error_vals, "hot", (0, 0.5), "|GT-Pred|"),
-        ]):
+        for col_idx, (vals, cmap, clim, label) in enumerate(
+            [
+                (gt_vals, "jet", (0, 1), "GT"),
+                (pred_vals, "jet", (0, 1), "Pred"),
+                (error_vals, "hot", (0, 0.5), "|GT-Pred|"),
+            ]
+        ):
             ax = axes2[row_idx, col_idx]
             ax.set_facecolor("white")
             # Scatter in 2D (xz plane - dorsal view)
             scatter = ax.scatter(
-                mesh_nodes[:, 0], mesh_nodes[:, 2],
-                c=vals, cmap=cmap, clim=clim,
-                s=0.5, alpha=0.7
+                mesh_nodes[:, 0], mesh_nodes[:, 2], c=vals, cmap=cmap, clim=clim, s=0.5, alpha=0.7
             )
             ax.set_xlim([mesh_nodes[:, 0].min(), mesh_nodes[:, 0].max()])
             ax.set_ylim([mesh_nodes[:, 2].min(), mesh_nodes[:, 2].max()])
@@ -852,8 +958,9 @@ def main():
 
     fig2.suptitle("Fig.2 Gaussian Intensity Distribution", fontfamily="serif", fontsize=13)
     plt.tight_layout()
-    fig2.savefig(out_dir / "fig2_gaussian_intensity.png", dpi=300, bbox_inches="tight",
-                 facecolor="white")
+    fig2.savefig(
+        out_dir / "fig2_gaussian_intensity.png", dpi=300, bbox_inches="tight", facecolor="white"
+    )
     plt.close(fig2)
     print(f"  Saved fig2_gaussian_intensity.png")
 
@@ -880,8 +987,15 @@ def main():
         ax = axes3[row_idx, 0]
         ax.set_facecolor("white")
         mask_vals = np.where(gt_bin, 1.0, 0.0)
-        ax.scatter(mesh_nodes[:, 0], mesh_nodes[:, 2],
-                   c=mask_vals, cmap="Reds", clim=(0, 1), s=0.5, alpha=0.8)
+        ax.scatter(
+            mesh_nodes[:, 0],
+            mesh_nodes[:, 2],
+            c=mask_vals,
+            cmap="Reds",
+            clim=(0, 1),
+            s=0.5,
+            alpha=0.8,
+        )
         ax.set_xlim([mesh_nodes[:, 0].min(), mesh_nodes[:, 0].max()])
         ax.set_ylim([mesh_nodes[:, 2].min(), mesh_nodes[:, 2].max()])
         ax.set_aspect("equal")
@@ -896,8 +1010,15 @@ def main():
         ax = axes3[row_idx, 1]
         ax.set_facecolor("white")
         mask_vals = np.where(pred_bin, 1.0, 0.0)
-        ax.scatter(mesh_nodes[:, 0], mesh_nodes[:, 2],
-                   c=mask_vals, cmap="Blues", clim=(0, 1), s=0.5, alpha=0.8)
+        ax.scatter(
+            mesh_nodes[:, 0],
+            mesh_nodes[:, 2],
+            c=mask_vals,
+            cmap="Blues",
+            clim=(0, 1),
+            s=0.5,
+            alpha=0.8,
+        )
         ax.set_xlim([mesh_nodes[:, 0].min(), mesh_nodes[:, 0].max()])
         ax.set_ylim([mesh_nodes[:, 2].min(), mesh_nodes[:, 2].max()])
         ax.set_aspect("equal")
@@ -910,17 +1031,13 @@ def main():
         ax = axes3[row_idx, 2]
         ax.set_facecolor("white")
         # Background gray
-        ax.scatter(mesh_nodes[:, 0], mesh_nodes[:, 2],
-                   color=(0.9, 0.9, 0.9), s=0.3, alpha=0.3)
+        ax.scatter(mesh_nodes[:, 0], mesh_nodes[:, 2], color=(0.9, 0.9, 0.9), s=0.3, alpha=0.3)
         # TP green
-        ax.scatter(mesh_nodes[tp, 0], mesh_nodes[tp, 2],
-                   color=(0.2, 0.8, 0.2), s=1.5, alpha=0.9)
+        ax.scatter(mesh_nodes[tp, 0], mesh_nodes[tp, 2], color=(0.2, 0.8, 0.2), s=1.5, alpha=0.9)
         # FP blue
-        ax.scatter(mesh_nodes[fp, 0], mesh_nodes[fp, 2],
-                   color=(0.2, 0.4, 0.9), s=1.5, alpha=0.7)
+        ax.scatter(mesh_nodes[fp, 0], mesh_nodes[fp, 2], color=(0.2, 0.4, 0.9), s=1.5, alpha=0.7)
         # FN red
-        ax.scatter(mesh_nodes[fn, 0], mesh_nodes[fn, 2],
-                   color=(0.9, 0.2, 0.2), s=1.5, alpha=0.9)
+        ax.scatter(mesh_nodes[fn, 0], mesh_nodes[fn, 2], color=(0.9, 0.2, 0.2), s=1.5, alpha=0.9)
         ax.set_xlim([mesh_nodes[:, 0].min(), mesh_nodes[:, 0].max()])
         ax.set_ylim([mesh_nodes[:, 2].min(), mesh_nodes[:, 2].max()])
         ax.set_aspect("equal")
@@ -929,16 +1046,47 @@ def main():
         if row_idx == 0:
             ax.set_title("TP(gr)/FP(bl)/FN(rd)", fontfamily="serif", fontsize=12)
         if row_idx == n_rows - 1:
-            ax.legend(handles=[
-                plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=(0.2, 0.8, 0.2), markersize=6, label='TP'),
-                plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=(0.2, 0.4, 0.9), markersize=6, label='FP'),
-                plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=(0.9, 0.2, 0.2), markersize=6, label='FN'),
-            ], loc='upper right', fontsize=7)
+            ax.legend(
+                handles=[
+                    plt.Line2D(
+                        [0],
+                        [0],
+                        marker="o",
+                        color="w",
+                        markerfacecolor=(0.2, 0.8, 0.2),
+                        markersize=6,
+                        label="TP",
+                    ),
+                    plt.Line2D(
+                        [0],
+                        [0],
+                        marker="o",
+                        color="w",
+                        markerfacecolor=(0.2, 0.4, 0.9),
+                        markersize=6,
+                        label="FP",
+                    ),
+                    plt.Line2D(
+                        [0],
+                        [0],
+                        marker="o",
+                        color="w",
+                        markerfacecolor=(0.9, 0.2, 0.2),
+                        markersize=6,
+                        label="FN",
+                    ),
+                ],
+                loc="upper right",
+                fontsize=7,
+            )
 
-    fig3.suptitle("Fig.3 Gaussian Segmentation (GT>0.05, Pred>0.3)", fontfamily="serif", fontsize=13)
+    fig3.suptitle(
+        "Fig.3 Gaussian Segmentation (GT>0.05, Pred>0.3)", fontfamily="serif", fontsize=13
+    )
     plt.tight_layout()
-    fig3.savefig(out_dir / "fig3_gaussian_segmentation.png", dpi=300, bbox_inches="tight",
-                 facecolor="white")
+    fig3.savefig(
+        out_dir / "fig3_gaussian_segmentation.png", dpi=300, bbox_inches="tight", facecolor="white"
+    )
     plt.close(fig3)
     print(f"  Saved fig3_gaussian_segmentation.png")
 
@@ -967,8 +1115,15 @@ def main():
         ax = axes4[row_idx, 0]
         ax.set_facecolor("white")
         mask_vals = np.where(gt_bin, 1.0, 0.0)
-        ax.scatter(mesh_nodes[:, 0], mesh_nodes[:, 2],
-                   c=mask_vals, cmap="Reds", clim=(0, 1), s=0.5, alpha=0.8)
+        ax.scatter(
+            mesh_nodes[:, 0],
+            mesh_nodes[:, 2],
+            c=mask_vals,
+            cmap="Reds",
+            clim=(0, 1),
+            s=0.5,
+            alpha=0.8,
+        )
         ax.set_xlim([mesh_nodes[:, 0].min(), mesh_nodes[:, 0].max()])
         ax.set_ylim([mesh_nodes[:, 2].min(), mesh_nodes[:, 2].max()])
         ax.set_aspect("equal")
@@ -983,8 +1138,15 @@ def main():
         ax = axes4[row_idx, 1]
         ax.set_facecolor("white")
         mask_vals = np.where(pred_bin, 1.0, 0.0)
-        ax.scatter(mesh_nodes[:, 0], mesh_nodes[:, 2],
-                   c=mask_vals, cmap="Blues", clim=(0, 1), s=0.5, alpha=0.8)
+        ax.scatter(
+            mesh_nodes[:, 0],
+            mesh_nodes[:, 2],
+            c=mask_vals,
+            cmap="Blues",
+            clim=(0, 1),
+            s=0.5,
+            alpha=0.8,
+        )
         ax.set_xlim([mesh_nodes[:, 0].min(), mesh_nodes[:, 0].max()])
         ax.set_ylim([mesh_nodes[:, 2].min(), mesh_nodes[:, 2].max()])
         ax.set_aspect("equal")
@@ -996,14 +1158,10 @@ def main():
         # Col 2: TP/FP/FN
         ax = axes4[row_idx, 2]
         ax.set_facecolor("white")
-        ax.scatter(mesh_nodes[:, 0], mesh_nodes[:, 2],
-                   color=(0.9, 0.9, 0.9), s=0.3, alpha=0.3)
-        ax.scatter(mesh_nodes[tp, 0], mesh_nodes[tp, 2],
-                   color=(0.2, 0.8, 0.2), s=1.5, alpha=0.9)
-        ax.scatter(mesh_nodes[fp, 0], mesh_nodes[fp, 2],
-                   color=(0.2, 0.4, 0.9), s=1.5, alpha=0.7)
-        ax.scatter(mesh_nodes[fn, 0], mesh_nodes[fn, 2],
-                   color=(0.9, 0.2, 0.2), s=1.5, alpha=0.9)
+        ax.scatter(mesh_nodes[:, 0], mesh_nodes[:, 2], color=(0.9, 0.9, 0.9), s=0.3, alpha=0.3)
+        ax.scatter(mesh_nodes[tp, 0], mesh_nodes[tp, 2], color=(0.2, 0.8, 0.2), s=1.5, alpha=0.9)
+        ax.scatter(mesh_nodes[fp, 0], mesh_nodes[fp, 2], color=(0.2, 0.4, 0.9), s=1.5, alpha=0.7)
+        ax.scatter(mesh_nodes[fn, 0], mesh_nodes[fn, 2], color=(0.9, 0.2, 0.2), s=1.5, alpha=0.9)
         ax.set_xlim([mesh_nodes[:, 0].min(), mesh_nodes[:, 0].max()])
         ax.set_ylim([mesh_nodes[:, 2].min(), mesh_nodes[:, 2].max()])
         ax.set_aspect("equal")
@@ -1014,8 +1172,9 @@ def main():
 
     fig4.suptitle("Fig.4 Uniform Segmentation (GT>0.5, Pred>0.5)", fontfamily="serif", fontsize=13)
     plt.tight_layout()
-    fig4.savefig(out_dir / "fig4_uniform_segmentation.png", dpi=300, bbox_inches="tight",
-                 facecolor="white")
+    fig4.savefig(
+        out_dir / "fig4_uniform_segmentation.png", dpi=300, bbox_inches="tight", facecolor="white"
+    )
     plt.close(fig4)
     print(f"  Saved fig4_uniform_segmentation.png")
 
@@ -1040,18 +1199,18 @@ def main():
         gt_u = gt_dict_u.get(sid_u, np.zeros(len(mesh_nodes)))
         pred_u = pred_dict_u.get(sid_u, np.zeros(len(mesh_nodes)))
 
-        for col_idx, (vals, cmap, clim, title_prefix) in enumerate([
-            (gt_g, "jet", (0, 1), "GT(G)"),
-            (pred_g, "jet", (0, 1), "Pred(G)"),
-            (gt_u, "jet", (0, 1), "GT(U)"),
-            (pred_u, "jet", (0, 1), "Pred(U)"),
-        ]):
+        for col_idx, (vals, cmap, clim, title_prefix) in enumerate(
+            [
+                (gt_g, "jet", (0, 1), "GT(G)"),
+                (pred_g, "jet", (0, 1), "Pred(G)"),
+                (gt_u, "jet", (0, 1), "GT(U)"),
+                (pred_u, "jet", (0, 1), "Pred(U)"),
+            ]
+        ):
             ax = axes5[row_idx, col_idx]
             ax.set_facecolor("white")
             scatter = ax.scatter(
-                mesh_nodes[:, 0], mesh_nodes[:, 2],
-                c=vals, cmap=cmap, clim=clim,
-                s=0.5, alpha=0.7
+                mesh_nodes[:, 0], mesh_nodes[:, 2], c=vals, cmap=cmap, clim=clim, s=0.5, alpha=0.7
             )
             ax.set_xlim([mesh_nodes[:, 0].min(), mesh_nodes[:, 0].max()])
             ax.set_ylim([mesh_nodes[:, 2].min(), mesh_nodes[:, 2].max()])
@@ -1066,8 +1225,9 @@ def main():
 
     fig5.suptitle("Fig.5 Gaussian vs Uniform Source Comparison", fontfamily="serif", fontsize=13)
     plt.tight_layout()
-    fig5.savefig(out_dir / "fig5_source_comparison.png", dpi=300, bbox_inches="tight",
-                 facecolor="white")
+    fig5.savefig(
+        out_dir / "fig5_source_comparison.png", dpi=300, bbox_inches="tight", facecolor="white"
+    )
     plt.close(fig5)
     print(f"  Saved fig5_source_comparison.png")
 
@@ -1099,8 +1259,12 @@ def main():
 
     # (a) Dice@0.3
     ax = axes6[0]
-    bars_g = ax.bar(x - width/2, dice_g_vals, width, label="Gaussian", color="steelblue", alpha=0.85)
-    bars_u = ax.bar(x + width/2, dice_u_vals, width, label="Uniform", color="darkorange", alpha=0.85)
+    bars_g = ax.bar(
+        x - width / 2, dice_g_vals, width, label="Gaussian", color="steelblue", alpha=0.85
+    )
+    bars_u = ax.bar(
+        x + width / 2, dice_u_vals, width, label="Uniform", color="darkorange", alpha=0.85
+    )
     ax.set_ylabel("Dice@0.3")
     ax.set_title("(a) Dice@0.3 by Foci × Depth")
     ax.set_xticks(x)
@@ -1111,17 +1275,33 @@ def main():
     # Value labels
     for bar, val in zip(bars_g, dice_g_vals):
         if val > 0.05:
-            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.01,
-                    f"{val:.2f}", ha="center", va="bottom", fontsize=7)
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height() + 0.01,
+                f"{val:.2f}",
+                ha="center",
+                va="bottom",
+                fontsize=7,
+            )
     for bar, val in zip(bars_u, dice_u_vals):
         if val > 0.05:
-            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.01,
-                    f"{val:.2f}", ha="center", va="bottom", fontsize=7)
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height() + 0.01,
+                f"{val:.2f}",
+                ha="center",
+                va="bottom",
+                fontsize=7,
+            )
 
     # (b) Recall@0.1
     ax = axes6[1]
-    bars_g = ax.bar(x - width/2, recall_g_vals, width, label="Gaussian", color="steelblue", alpha=0.85)
-    bars_u = ax.bar(x + width/2, recall_u_vals, width, label="Uniform", color="darkorange", alpha=0.85)
+    bars_g = ax.bar(
+        x - width / 2, recall_g_vals, width, label="Gaussian", color="steelblue", alpha=0.85
+    )
+    bars_u = ax.bar(
+        x + width / 2, recall_u_vals, width, label="Uniform", color="darkorange", alpha=0.85
+    )
     ax.set_ylabel("Recall@0.1")
     ax.set_title("(b) Recall@0.1 by Foci × Depth")
     ax.set_xticks(x)
@@ -1132,8 +1312,7 @@ def main():
 
     fig6.suptitle("Fig.6 Grouped Performance: Gaussian vs Uniform", fontfamily="serif", fontsize=13)
     plt.tight_layout()
-    fig6.savefig(out_dir / "fig6_grouped_bar.png", dpi=300, bbox_inches="tight",
-                 facecolor="white")
+    fig6.savefig(out_dir / "fig6_grouped_bar.png", dpi=300, bbox_inches="tight", facecolor="white")
     plt.close(fig6)
     print(f"  Saved fig6_grouped_bar.png")
 

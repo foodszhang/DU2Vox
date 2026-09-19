@@ -1,0 +1,58 @@
+{
+  "validation_proposed_vs_b4": {
+    "n": 300,
+    "mean_difference": 0.0003903226602259398,
+    "paired_bootstrap_95_ci": [
+      -0.0003271397578672959,
+      0.0011248796405671645
+    ],
+    "two_sided_sign_flip_p_value": 0.296970302969703,
+    "effect_consistency_fraction_positive": 0.55,
+    "bootstrap_draws": 10000,
+    "seed": 20260901
+  },
+  "development_test": {
+    "proposed_vs_b4": {
+      "n": 300,
+      "mean_difference": 0.0009876050883334863,
+      "paired_bootstrap_95_ci": [
+        0.00020007302386516014,
+        0.001811956707610671
+      ],
+      "two_sided_sign_flip_p_value": 0.0156984301569843,
+      "effect_consistency_fraction_positive": 0.5633333333333334,
+      "bootstrap_draws": 10000,
+      "seed": 20260901,
+      "holm_adjusted_p_value": 0.0156984301569843
+    },
+    "proposed_vs_coarse_only": {
+      "n": 300,
+      "mean_difference": 0.014942821749708282,
+      "paired_bootstrap_95_ci": [
+        0.011628408347064951,
+        0.01827717750089087
+      ],
+      "two_sided_sign_flip_p_value": 9.999000099990002e-05,
+      "effect_consistency_fraction_positive": 0.6833333333333333,
+      "bootstrap_draws": 10000,
+      "seed": 20260901,
+      "holm_adjusted_p_value": 0.00029997000299970003
+    },
+    "proposed_vs_q_only": {
+      "n": 300,
+      "mean_difference": 0.08565211524174084,
+      "paired_bootstrap_95_ci": [
+        0.07677956895320884,
+        0.09462533504235467
+      ],
+      "two_sided_sign_flip_p_value": 9.999000099990002e-05,
+      "effect_consistency_fraction_positive": 0.89,
+      "bootstrap_draws": 10000,
+      "seed": 20260901,
+      "protocol_note": "Same sample identities but different frozen initial Stage-I checkpoints; reported as a responsibility contrast, not a matched decoder ablation.",
+      "holm_adjusted_p_value": 0.00029997000299970003
+    }
+  },
+  "multiple_comparison_correction": "Holm across three development-test Dice contrasts",
+  "confirmation_data_used": false
+}

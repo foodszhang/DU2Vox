@@ -1,0 +1,64 @@
+{
+  "status": "frozen_on_val300",
+  "selection_metric": "final_dice_at_fixed_threshold_0.5",
+  "selected_checkpoint": "/home/foods/pro/DU2Vox/runs/stage1_hard_q_views_lr3e-4_10ep/checkpoints/best_dense_val_dice.pth",
+  "selected_checkpoint_sha256": "f81285e6566838817924daebf2f99d071f7a86036552cc608e3a44b89f77f53f",
+  "selected_config": "/home/foods/pro/DU2Vox/runs/stage1_hard_q_views_lr3e-4_10ep/config.yaml",
+  "selected_config_sha256": "c82485cfdeca5d1080fbb218433aa65edff35d52976bf7b6d2bbc133f85678b0",
+  "selected_val_dice": 0.6545443557596672,
+  "selected_use_views": true,
+  "direct_views_baseline_comparison": {
+    "mean": 0.008268197466796441,
+    "paired_bootstrap_95_ci": [
+      0.006621810113581282,
+      0.00990437104056843
+    ],
+    "bootstrap_draws": 10000,
+    "seed": 20260901,
+    "passes_preregistered_gate": true
+  },
+  "candidates": [
+    {
+      "checkpoint": "/home/foods/pro/DU2Vox/runs/stage1_hard_q_seed20260901_hard/checkpoints/best_dense_val_dice.pth",
+      "checkpoint_sha256": "f3ecbf064887bcdf17189ce4947847f09d1378bde978d6bfb98e99e5ae697c5d",
+      "config": "/home/foods/pro/DU2Vox/runs/stage1_hard_q_seed20260901_hard/config.yaml",
+      "config_sha256": "50b06fcbf9a47769919615dee145db5c556240459ea790b2fbc3ce6b322442ef",
+      "use_views": false,
+      "lr": 0.0001,
+      "epochs": 5,
+      "val_dice": 0.6450179054903018
+    },
+    {
+      "checkpoint": "/home/foods/pro/DU2Vox/runs/stage1_hard_q_views_seed20260901_hard/checkpoints/best_dense_val_dice.pth",
+      "checkpoint_sha256": "1adc445cc6f610252ee9d00a09800a67f171a9e9fd792f76e6ab8aae9e131d26",
+      "config": "/home/foods/pro/DU2Vox/runs/stage1_hard_q_views_seed20260901_hard/config.yaml",
+      "config_sha256": "326f401ef544eac1ace35ca875567c7d5a348234ed2225710e3ddc004ebbe1e7",
+      "use_views": true,
+      "lr": 0.0001,
+      "epochs": 5,
+      "val_dice": 0.6532861029570982
+    },
+    {
+      "checkpoint": "/home/foods/pro/DU2Vox/runs/stage1_hard_q_views_lr3e-5_10ep/checkpoints/best_dense_val_dice.pth",
+      "checkpoint_sha256": "d172da92f4a786066406541e1d9a234ebbb80c5b8a0c5088f7152c1289c5e425",
+      "config": "/home/foods/pro/DU2Vox/runs/stage1_hard_q_views_lr3e-5_10ep/config.yaml",
+      "config_sha256": "2f7d249357f677574e20425694da4e6e0e10d39475d4a0b6520fee377c3d294c",
+      "use_views": true,
+      "lr": 3e-05,
+      "epochs": 10,
+      "val_dice": 0.6521459679996957
+    },
+    {
+      "checkpoint": "/home/foods/pro/DU2Vox/runs/stage1_hard_q_views_lr3e-4_10ep/checkpoints/best_dense_val_dice.pth",
+      "checkpoint_sha256": "f81285e6566838817924daebf2f99d071f7a86036552cc608e3a44b89f77f53f",
+      "config": "/home/foods/pro/DU2Vox/runs/stage1_hard_q_views_lr3e-4_10ep/config.yaml",
+      "config_sha256": "c82485cfdeca5d1080fbb218433aa65edff35d52976bf7b6d2bbc133f85678b0",
+      "use_views": true,
+      "lr": 0.0003,
+      "epochs": 10,
+      "val_dice": 0.6545443557596672
+    }
+  ],
+  "development_test_accessed_before_freeze": false,
+  "sealed_confirmation_accessed": false
+}

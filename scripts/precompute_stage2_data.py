@@ -43,6 +43,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from du2vox.bridge.fem_bridging import FEMBridge
 from du2vox.utils.frame import FrameManifest
+from du2vox.utils.gt_io import load_gt_volume
 
 
 def load_split(path: str) -> list[str]:
@@ -123,7 +124,7 @@ def precompute_sample(
 
     # ── GT trilinear lookup ────────────────────────────────────────────────
     t_gt = time.perf_counter()
-    gt_voxels = np.load(samples_dir / sid / "gt_voxels.npy").astype(np.float32)
+    gt_voxels = load_gt_volume(samples_dir / sid)
     idx_float = frame_manifest.world_to_gt_index(grid_coords)  # [G, 3]
 
     gt_values = map_coordinates(

@@ -1,0 +1,136 @@
+# Continuous-field V4 FEM corrector. The training target stays on the original
+# fluorophore scale; query stratification feeds two explicitly named losses.
+experiment:
+  name: lpr_continuous_v4_centered_finetune_2400
+
+runs_root: runs
+
+data:
+  dataset_root: /home/foods/pro/DU2Vox/data/lpr_continuous_gaussian_mixture_3k_20k
+  samples_dir: /home/foods/pro/DU2Vox/data/lpr_continuous_gaussian_mixture_3k_20k/samples
+  shared_dir: /home/foods/pro/FMT-SimGen/output/shared_mesh_20k
+  # Re-certified 2026-09-16 (Gate 0.5). The cached operator metadata was updated
+  # to the live manifest hash after a 21/21 operator/frame consistency audit; the
+  # two manifests are content-identical (34 keys, zero value differences, field
+  # order only). This pin is now ENFORCED rather than bypassed, so a future frame
+  # change fails loudly instead of being silently accepted.
+  allow_stale_frame_manifest: false
+  frame_manifest_sha256: a89d36a52cc0d33e4764f6a65056a2dfa7fbe9fa55ed3458c0beb84d5ba31ee3
+  train_split: /home/foods/pro/DU2Vox/data/lpr_continuous_gaussian_mixture_3k_20k/splits/train.txt
+  val_split: /home/foods/pro/DU2Vox/data/lpr_continuous_gaussian_mixture_3k_20k/splits/val.txt
+  test_split: /home/foods/pro/DU2Vox/data/lpr_continuous_gaussian_mixture_3k_20k/splits/test.txt
+  train_bridge_dir: output/bridge_lpr_continuous_train
+  val_bridge_dir: output/bridge_lpr_continuous_val
+  test_bridge_dir: output/bridge_lpr_continuous_test
+  operator_cache: experiments/cross_discretization_decomposition/artifacts/operator_cache
+  projection_targets_dir: precomputed/lpr_continuous_projection_targets
+  normalize_b: false
+  use_visible_mask: false
+  projection_file: proj.npz
+  projection_norm: per_view_max
+  projection_transform: none
+  gt_mode: continuous
+  normalize_gt: none
+  binary_threshold: 0.05
+  signal_query_fraction: 0.5
+
+model:
+  variant: unified_dual_evidence_v4
+  iterations: 3
+  hidden_dim: 144
+  context_blocks: 2
+  max_neural_update: 0.25
+  # Raw-amplitude LPR fields are extremely sparse. With the historical 0.1 cap,
+  # the nominally small initial DC step (about 0.002 per iteration) accumulated a
+  # full-domain pedestal: the 20/8 smoke changed mass ratio 0.996 -> 2.027 and
+  # worsened CCC/RelL2 before the zero-initialized neural head had learned. Keep
+  # the same trainable DC route but reduce its trust-region cap by one decade.
+  max_dc_update: 0.01
+  # The frozen epoch-5 counterfactual showed that the neural route produced all
+  # useful morphology change but also the systematic mass pedestal (turning DC
+  # off increased mass ratio 1.451 -> 1.534; DC-only remained near Stage1 at
+  # 0.972). Remove only the lumped-volume constant mode from each neural update.
+  # Spatial redistribution remains learned, while global mass change stays with
+  # the explicit physics/DC route.
+  volume_center_neural_update: true
+  view_encoder: true
+  view_feat_dim: 32
+  fusion_method: attn
+  encoder_base_channels: 32
+  encoder_out_channels: 32
+  view_projection_transform: none
+  view_multiscale:
+    enabled: true
+    scales: [s1, s2, s3]
+    hidden_dim: 64
+
+training:
+  seed: 20260915
+  n_query_points: 8192
+  batch_size: 4
+  num_workers: 4
+  amp: true
+  amp_dtype: bf16
+  lr: 1.0e-4
+  weight_decay: 1.0e-5
+  grad_clip_norm: 1.0
+  epochs: 50
+  early_stopping_patience: 4
+  # No initialization_checkpoint: the only available source
+  # (scale_calibrated_proximal_fem_v3_2400) was trained under normalize_b=true on
+  # a different cohort, while this config is raw-amplitude (normalize_b: false,
+  # normalize_gt: none). Loading it would splice a normalized-scale corrector onto
+  # a raw-amplitude field. Train the corrector from scratch instead.
+
+loss:
+  step_weights: [0.25, 0.5, 1.0]
+  lambda_final_state: 1.0
+  lambda_deep_supervision: 0.5
+  # Disabled: this sampled-query term would silently inherit the 50/50 sampler
+  # distribution. The two explicit terms below define the voxel objective.
+  lambda_projected: 0.0
+  lambda_cosine: 0.0
+  lambda_support: 0.0
+  # Support is PEAK-RELATIVE, so the objective scores exactly the set the
+  # Dice@50% metric scores. An absolute cut would be a different definition under
+  # the raw-amplitude contract, where per-case peaks run to ~1.4.
+  support_fraction: 0.5
+  support_temperature: 0.1
+  tversky_alpha: 0.5
+  tversky_beta: 0.5
+  lambda_data_consistency: 0.05
+  residual_target_ratio: 1.1
+  lambda_voxel_mse: 0.0
+  lambda_voxel_relative_l2: 0.0
+  lambda_field_cosine: 0.0
+  lambda_peak: 0.0
+  lambda_voxel_global_mse: 1.0
+  lambda_voxel_source_mse: 1.0
+  # Non-negativity prior on the final voxel field only. The nodal reference
+  # state inside the approximation space is expected to carry ~50% negative
+  # coefficients (it is the L2 optimum), so penalising the state would fight the
+  # representation. The data-consistency direction is a signed A^T(y - Ax) that
+  # pushes down on 84% of nodes because Stage 1 overshoots on 83% of
+  # measurements, so a weak counterweight on the physical output is warranted.
+  # Weight chosen so the term contributes ~0.7% of the voxel-MSE scale at the
+  # ideal-corrected negativity level; see diagnosis/lpr_negativity_audit_val300.json.
+  lambda_negativity: 1.0
+  # A sampled-L2 P1 oracle has non-zero negative side lobes (val300 mean
+  # negative-mass ratio 0.079), so zero negativity is not a faithful FEM target.
+  # Penalize only the per-case excess over the oracle floor. At epoch15 the
+  # prediction ratio was 0.316, making this a small corrective term rather than
+  # a dominant objective.
+  lambda_negative_mass_excess: 0.01
+  # Global/source MSE tolerated a low-amplitude full-domain pedestal: at the
+  # first formal dense validation, Dice improved 0.234 -> 0.368 but FEM-lifted
+  # mass ratio drifted 0.986 -> 3.564 and headline field metrics worsened. This
+  # term uses tetrahedral lumped nodal volumes and directly penalizes the squared
+  # relative integrated-mass error of the final corrected FEM state.
+  # At the observed epoch-5 pedestal, squared relative mass error was ~6.6;
+  # 1e-3 makes this contribution (~0.0066) commensurate with the explicit
+  # global+source field losses (~0.011) instead of dominating them.
+  lambda_fem_mass: 0.001
+
+validation:
+  dense_interval: 5
+  selection_metric: step3_field_ccc

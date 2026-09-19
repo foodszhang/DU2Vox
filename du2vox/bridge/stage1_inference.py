@@ -50,9 +50,7 @@ def _load_shared_assets(shared_dir: Path, device: str, use_visible_mask: bool = 
     L2 = load_lap("graph_laplacian_full.n_Lap2.npz")
     L3 = load_lap("graph_laplacian_full.n_Lap3.npz")
 
-    knn_idx = torch.tensor(
-        np.load(shared_dir / "knn_idx_full.npy"), dtype=torch.long
-    ).to(device)
+    knn_idx = torch.tensor(np.load(shared_dir / "knn_idx_full.npy"), dtype=torch.long).to(device)
 
     sens_w = torch.norm(A, dim=0)
     sens_w = sens_w / (sens_w.max() + 1e-8)
@@ -64,8 +62,13 @@ def _load_shared_assets(shared_dir: Path, device: str, use_visible_mask: bool = 
     return {
         "nodes": nodes,
         "A": A,
-        "L": L, "L0": L0, "L1": L1, "L2": L2, "L3": L3,
-        "LTL": LTL, "ATA": ATA,
+        "L": L,
+        "L0": L0,
+        "L1": L1,
+        "L2": L2,
+        "L3": L3,
+        "LTL": LTL,
+        "ATA": ATA,
         "knn_idx": knn_idx,
         "sens_w": sens_w,
         "visible_mask": visible_mask if use_visible_mask and visible_mask_exists else None,
@@ -125,13 +128,20 @@ def run_stage1_inference(
 
     # Build model
     model = GCAIN_full(
-        L=assets["L"], A=assets["A"],
-        LTL=assets["LTL"], ATA=assets["ATA"],
-        L0=assets["L0"], L1=assets["L1"], L2=assets["L2"], L3=assets["L3"],
+        L=assets["L"],
+        A=assets["A"],
+        LTL=assets["LTL"],
+        ATA=assets["ATA"],
+        L0=assets["L0"],
+        L1=assets["L1"],
+        L2=assets["L2"],
+        L3=assets["L3"],
         knn_idx=assets["knn_idx"],
         sens_w=assets["sens_w"],
         num_layer=model_cfg.get("num_layer", 6),
         feat_dim=model_cfg.get("feat_dim", 6),
+        physics_evidence=model_cfg.get("physics_evidence", "raw"),
+        profiled_evidence_rms=model_cfg.get("profiled_evidence_rms", 0.05),
     ).to(device)
 
     # Load checkpoint
@@ -147,13 +157,19 @@ def run_stage1_inference(
     model.eval()
 
     # Activation function (must match training)
-    if activation == "leaky_relu":
+    if activation in {"leaky_relu", "leaky_relu_unbounded"}:
+
         def apply_activation(x):
-            return F.leaky_relu(x, negative_slope=leaky_relu_slope).clamp(max=1.0)
+            result = F.leaky_relu(x, negative_slope=leaky_relu_slope)
+            if activation == "leaky_relu":
+                result = result.clamp(max=1.0)
+            return result
     elif activation == "sigmoid":
+
         def apply_activation(x):
             return torch.sigmoid(x)
     else:
+
         def apply_activation(x):
             return x.clamp(0.0, 1.0)
 
@@ -197,7 +213,9 @@ def run_stage1_inference(
             X0 = torch.zeros(B, n_nodes, 1, device=device)
             pred = model(X0, b_batch)
             pred = apply_activation(pred)  # [B, N, 1]
-            pred = pred.clamp(0.0, 1.0)  # ensure [0,1] range
+            # Clip only the exported physical state. Training with leaky output
+            # retains a recovery gradient if all raw values become negative.
+            pred = pred.clamp(0.0, 1.0)
             pred_np = pred.squeeze(-1).cpu().numpy()  # [B, N]
 
             for i, sid in enumerate(sample_ids[start:end]):

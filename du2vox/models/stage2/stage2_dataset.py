@@ -18,6 +18,7 @@ from torch.utils.data import Dataset
 
 from du2vox.bridge.fem_bridging import FEMBridge
 from du2vox.utils.frame import FrameManifest
+from du2vox.utils.gt_io import load_gt_volume
 
 # MCX projection angle order (from view_config.json)
 MCX_ANGLES = [-90, -60, -30, 0, 30, 60, 90]
@@ -175,9 +176,10 @@ class Stage2Dataset(Dataset):
         bridge = self._get_bridge(sid)
         prior_8d, valid = bridge.get_prior_features(queries, c["coarse_d"])
 
-        # GT: trilinear lookup from gt_voxels.npy (aligns with precompute path)
+        # GT: trilinear lookup from the GT voxel volume (aligns with precompute
+        # path); accepts both the dense .npy and lossless sparse .npz forms.
         from scipy.ndimage import map_coordinates
-        gt_voxels = np.load(self.samples_dir / sid / "gt_voxels.npy").astype(np.float32)
+        gt_voxels = load_gt_volume(self.samples_dir / sid)
         idx_float = self._frame.world_to_gt_index(queries.astype(np.float64))
         gt_values = map_coordinates(
             gt_voxels, idx_float.T, order=1, mode="constant", cval=0.0, prefilter=False,

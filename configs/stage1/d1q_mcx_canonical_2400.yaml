@@ -1,0 +1,65 @@
+# Stage1 for the user-selected MCX-canonical normalized D1-Q benchmark.
+experiment:
+  # v1 failed with hard clamp; v2 exposed the fixed-A normalization mismatch.
+  # This directory is reserved for the leakage-free profiled-evidence run.
+  name: stage1_d1q_mcx_canonical_2400_profiled_v1
+
+data:
+  shared_dir: /home/foods/pro/FMT-SimGen/output/shared_mesh_20k
+  samples_dir: /home/foods/pro/DU2Vox/data/d1q_mcx_canonical_3k_20k/samples
+  splits_dir: /home/foods/pro/DU2Vox/data/d1q_mcx_canonical_3k_20k/splits
+  manifest_path: /home/foods/pro/DU2Vox/data/d1q_mcx_canonical_3k_20k/dataset_manifest.json
+  normalize_b: true
+  normalize_gt: true
+  normalize_gt_mode: per_sample_file
+  normalize_gt_scale_filename: gt_scale.npy
+  binarize_gt: false
+  use_visible_mask: false
+
+model:
+  name: GCAIN_full
+  feat_dim: 6
+  num_layer: 6
+  k_neighbors: 32
+  # GT and measurement are independently normalized by contract. Profile the
+  # unknown positive relative scale analytically instead of using GT scale.
+  physics_evidence: profiled_normalized
+  # The legacy cold-start adjoint has median node RMS 0.063 on val300.
+  # Relative-residual modulation lets this evidence vanish near consistency.
+  profiled_evidence_rms: 0.05
+
+training:
+  seed: 20260915
+  batch_size: 8
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  max_epochs: 150
+  grad_clip_norm: 1.0
+  # Hard clamp made the first full attempt collapse to an absorbing all-zero
+  # solution. Keep a small negative-side gradient during training; bridge export
+  # applies the physical [0, 1] clip afterward.
+  activation: leaky_relu_unbounded
+  leaky_relu_slope: 0.01
+  scheduler:
+    type: CosineAnnealingWarmRestarts
+    T_0: 50
+    T_mult: 2
+    eta_min: 1.0e-6
+  early_stopping:
+    patience: 20
+
+loss:
+  type: continuous_field
+  source_threshold: 0.0
+  source_mse_weight: 1.0
+  global_mse_weight: 1.0
+  relative_l2_weight: 0.25
+
+checkpoint:
+  primary_metric: val_loss
+
+logging:
+  print_every: 1
+  detail_every: 10
+  milestone_every: 50
+  diag_epochs: 0

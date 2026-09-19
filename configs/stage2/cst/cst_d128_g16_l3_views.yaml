@@ -1,0 +1,9 @@
+base_config: configs/stage2/cst/base.yaml
+experiment: {name: cst_d128_g16_l3_views}
+model:
+  transfer_dim: 128
+  modulation_groups: 16
+  decoder_width: 139
+  decoder_depth: 3
+  innovation: delta
+  use_views: true

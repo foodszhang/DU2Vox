@@ -36,11 +36,15 @@ def build_activation(activation: str, leaky_slope: float):
     if activation == "sigmoid":
         return torch.sigmoid
     if activation == "leaky_relu":
-        return lambda x: torch.nn.functional.leaky_relu(x, negative_slope=leaky_slope).clamp(max=1.0)
+        return lambda x: torch.nn.functional.leaky_relu(x, negative_slope=leaky_slope).clamp(
+            max=1.0
+        )
     return lambda x: x.clamp(0.0, 1.0)
 
 
-def load_dataset(cfg: dict, split_file: Path, samples_dir: Path, shared_dir: Path) -> FMTSimGenDataset:
+def load_dataset(
+    cfg: dict, split_file: Path, samples_dir: Path, shared_dir: Path
+) -> FMTSimGenDataset:
     data_cfg = cfg["data"]
     return FMTSimGenDataset(
         shared_dir=shared_dir,
@@ -70,6 +74,8 @@ def build_model(cfg: dict, dataset: FMTSimGenDataset, device: torch.device) -> G
         sens_w=dataset.sens_w.to(device),
         num_layer=model_cfg.get("num_layer", 6),
         feat_dim=model_cfg.get("feat_dim", 6),
+        physics_evidence=model_cfg.get("physics_evidence", "raw"),
+        profiled_evidence_rms=model_cfg.get("profiled_evidence_rms", 0.05),
     ).to(device)
 
 
@@ -77,7 +83,9 @@ def load_checkpoint(model: torch.nn.Module, checkpoint: Path, device: torch.devi
     ckpt = torch.load(checkpoint, map_location=device)
     if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
         model.load_state_dict(ckpt["model_state_dict"])
-        print(f"[Sweep] checkpoint epoch={ckpt.get('epoch', '?')}, primary={ckpt.get('primary_metric', '?')}")
+        print(
+            f"[Sweep] checkpoint epoch={ckpt.get('epoch', '?')}, primary={ckpt.get('primary_metric', '?')}"
+        )
     else:
         model.load_state_dict(ckpt)
 
@@ -90,11 +98,15 @@ def make_bbox_grid(bbox: dict[str, list[float]], spacing: float, padding: float)
     return np.stack([m.ravel() for m in mesh], axis=1).astype(np.float32)
 
 
-def sample_gt_values(frame: FrameManifest, gt_voxels: np.ndarray, points: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def sample_gt_values(
+    frame: FrameManifest, gt_voxels: np.ndarray, points: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
     idx = frame.world_to_gt_index(points)
     shape = np.asarray(gt_voxels.shape)
     inside = ~np.any((idx < 0) | (idx > shape - 1), axis=1)
-    values = map_coordinates(gt_voxels, idx.T, order=1, mode="constant", cval=0.0, prefilter=False).astype(np.float32)
+    values = map_coordinates(
+        gt_voxels, idx.T, order=1, mode="constant", cval=0.0, prefilter=False
+    ).astype(np.float32)
     values[~inside] = 0.0
     return values, inside
 
@@ -125,7 +137,9 @@ def mesh_binary(pred: np.ndarray, gt: np.ndarray, threshold: float) -> dict[str,
     }
 
 
-def common_bbox(common_bridge_dir: Path | None, sample_id: str, fallback: dict[str, list[float]]) -> dict[str, list[float]]:
+def common_bbox(
+    common_bridge_dir: Path | None, sample_id: str, fallback: dict[str, list[float]]
+) -> dict[str, list[float]]:
     if common_bridge_dir is None:
         return fallback
     info_path = common_bridge_dir / sample_id / "roi_info.json"
@@ -163,10 +177,16 @@ def main() -> None:
         split_ids = split_ids[: args.max_samples]
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    dataset = load_dataset(cfg, Path(args.split_file), Path(args.samples_dir), Path(args.shared_dir))
+    dataset = load_dataset(
+        cfg, Path(args.split_file), Path(args.samples_dir), Path(args.shared_dir)
+    )
     id_to_idx = {sid: i for i, sid in enumerate(dataset.sample_ids)}
     indices = [id_to_idx[sid] for sid in split_ids if sid in id_to_idx]
-    loader = DataLoader(Subset(dataset, indices), batch_size=args.batch_size or cfg["training"].get("batch_size", 8), shuffle=False)
+    loader = DataLoader(
+        Subset(dataset, indices),
+        batch_size=args.batch_size or cfg["training"].get("batch_size", 8),
+        shuffle=False,
+    )
 
     nodes, elements = FrameManifest.load_mesh_nodes(args.shared_dir)
     frame = FrameManifest.load(args.shared_dir)
@@ -179,7 +199,9 @@ def main() -> None:
     )
     common_dir = Path(args.common_bridge_dir) if args.common_bridge_dir else None
     n_tets = len(elements)
-    accum: dict[tuple[float, int], list[dict[str, float]]] = {(tau, dilate): [] for tau in args.taus for dilate in args.dilate_layers}
+    accum: dict[tuple[float, int], list[dict[str, float]]] = {
+        (tau, dilate): [] for tau in args.taus for dilate in args.dilate_layers
+    }
 
     sample_offset = 0
     with torch.no_grad():
@@ -191,7 +213,9 @@ def main() -> None:
             gt_nodes = gt.squeeze(-1).cpu().numpy()
             for i in range(pred.shape[0]):
                 sample_id = dataset.sample_ids[indices[sample_offset + i]]
-                gt_voxels = np.load(Path(args.samples_dir) / sample_id / "gt_voxels.npy").astype(np.float32)
+                gt_voxels = np.load(Path(args.samples_dir) / sample_id / "gt_voxels.npy").astype(
+                    np.float32
+                )
                 gt_pos_nodes = np.where(gt_nodes[i] > 0.5)[0]
                 for tau in args.taus:
                     for dilate in args.dilate_layers:
@@ -205,7 +229,11 @@ def main() -> None:
                         )
                         roi_tets = roi["roi_tet_indices"]
                         roi_nodes = np.unique(elements[roi_tets].ravel())
-                        coverage = float(np.isin(gt_pos_nodes, roi_nodes).mean()) if len(gt_pos_nodes) else 0.0
+                        coverage = (
+                            float(np.isin(gt_pos_nodes, roi_nodes).mean())
+                            if len(gt_pos_nodes)
+                            else 0.0
+                        )
                         bbox = common_bbox(common_dir, sample_id, roi["roi_bbox_mm"])
                         points = make_bbox_grid(bbox, args.grid_spacing_mm, args.padding_mm)
                         bridge = FEMBridge(nodes, elements, roi_tets)
@@ -213,7 +241,11 @@ def main() -> None:
                         gt_values, gt_inside = sample_gt_values(frame, gt_voxels, points)
                         valid = valid & gt_inside
                         fem = (prior_8d[:, :4] * prior_8d[:, 4:8]).sum(axis=1)
-                        fem_metrics = binary_metrics(fem[valid], gt_values[valid]) if valid.any() else {"dice": 0.0, "precision": 0.0, "recall": 0.0}
+                        fem_metrics = (
+                            binary_metrics(fem[valid], gt_values[valid])
+                            if valid.any()
+                            else {"dice": 0.0, "precision": 0.0, "recall": 0.0}
+                        )
                         mesh_metrics = mesh_binary(pred[i], gt_nodes[i], tau)
                         accum[(tau, dilate)].append(
                             {
@@ -255,7 +287,9 @@ def main() -> None:
         writer.writeheader()
         writer.writerows(rows)
     print(f"[Sweep] wrote {len(rows)} rows to {out}")
-    for row in sorted(rows, key=lambda r: (r["common_domain_fem_dice"], r["gt_roi_coverage"]), reverse=True):
+    for row in sorted(
+        rows, key=lambda r: (r["common_domain_fem_dice"], r["gt_roi_coverage"]), reverse=True
+    ):
         print(
             f"tau={row['tau']:.2f} d={row['dilate_layers']} fem={row['common_domain_fem_dice']:.4f} "
             f"coverage={row['gt_roi_coverage']:.4f} roi={row['roi_tet_ratio']:.4f}"

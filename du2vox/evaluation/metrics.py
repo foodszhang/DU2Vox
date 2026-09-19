@@ -3,7 +3,12 @@ Evaluation metrics for FMT reconstruction.
 """
 
 import torch
-from du2vox.losses.tversky import binary_dice_coeff, binary_dice_with_thresholds, dice_coeff, location_error
+from du2vox.losses.tversky import (
+    binary_dice_coeff,
+    binary_dice_with_thresholds,
+    dice_coeff,
+    location_error,
+)
 
 
 def evaluate_batch(
@@ -20,6 +25,10 @@ def evaluate_batch(
     pred_thresh: threshold for binarizing predictions
     label_thresh: threshold for binarizing ground truth
     """
+    # Stage1 may retain a small signed training output to avoid an absorbing
+    # all-zero clamp. Its exported physical FEM state is clipped to [0, 1], so
+    # metrics (especially mass-weighted centroid) must use that same state.
+    pred = torch.clamp(pred, min=0.0, max=1.0)
     pred_squeeze = pred.squeeze(-1) if pred.dim() == 3 else pred
     label_squeeze = label.squeeze(-1) if label.dim() == 3 else label
 
@@ -78,7 +87,7 @@ def evaluate_batch(
     mse = torch.nn.functional.mse_loss(pred, label).item()
 
     # Pred stats
-    pred_clamped = torch.clamp(pred_squeeze, min=0.0, max=1.0)
+    pred_clamped = pred_squeeze
     pred_max = pred_clamped.max().item()
     pred_mean = pred_clamped.mean().item()
     pred_std = pred_clamped.std().item()

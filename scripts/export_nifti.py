@@ -42,6 +42,7 @@ from du2vox.models.stage1.gcain import GCAIN_full
 # Coordinate transforms
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def phys_to_voxel_3D(phys_coord, voxel_size, offset):
     """Convert physical coordinate to voxel index."""
     return (phys_coord - offset) / voxel_size
@@ -87,8 +88,8 @@ def build_atlas_to_mesh_mapping(nodes, atlas_shape, voxel_size):
 # FEM → Voxel interpolation
 # ─────────────────────────────────────────────────────────────────────────────
 
-def fem_to_voxel_volume(node_values, nodes, atlas_shape, voxel_size,
-                         atlas_to_mesh_map):
+
+def fem_to_voxel_volume(node_values, nodes, atlas_shape, voxel_size, atlas_to_mesh_map):
     """Interpolate FEM node values onto atlas voxel grid.
 
     Returns volume of shape atlas_shape with values at each voxel center.
@@ -119,6 +120,7 @@ def save_nifti(volume, voxel_size, path, atlas_affine=None):
 # Model & data loading
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def build_model(cfg, checkpoint_path, device="cuda"):
     model_cfg = cfg["model"]
     shared_dir = Path(cfg["data"]["shared_dir"])
@@ -137,17 +139,29 @@ def build_model(cfg, checkpoint_path, device="cuda"):
 
     A = dataset.A.to(device)
     L = dataset.L.to(device)
-    L0, L1, L2, L3 = dataset.L0.to(device), dataset.L1.to(device), \
-                      dataset.L2.to(device), dataset.L3.to(device)
+    L0, L1, L2, L3 = (
+        dataset.L0.to(device),
+        dataset.L1.to(device),
+        dataset.L2.to(device),
+        dataset.L3.to(device),
+    )
     knn_idx = dataset.knn_idx.to(device)
     sens_w = dataset.sens_w.to(device)
     nodes = dataset.nodes.to(device)
 
     model = GCAIN_full(
-        L=L, A=A, L0=L0, L1=L1, L2=L2, L3=L3,
-        knn_idx=knn_idx, sens_w=sens_w,
+        L=L,
+        A=A,
+        L0=L0,
+        L1=L1,
+        L2=L2,
+        L3=L3,
+        knn_idx=knn_idx,
+        sens_w=sens_w,
         num_layer=model_cfg["num_layer"],
         feat_dim=model_cfg["feat_dim"],
+        physics_evidence=model_cfg.get("physics_evidence", "raw"),
+        profiled_evidence_rms=model_cfg.get("profiled_evidence_rms", 0.05),
     ).to(device)
 
     ckpt = torch.load(checkpoint_path, map_location=device)
@@ -162,6 +176,7 @@ def build_model(cfg, checkpoint_path, device="cuda"):
 # ─────────────────────────────────────────────────────────────────────────────
 # Depth computation
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def compute_real_depth(tumor_params, nodes, surface_node_indices):
     """Compute real subcutaneous depth: min distance from tumor center to surface."""
@@ -192,12 +207,19 @@ def assign_depth_tier(depth_mm):
 # Export per sample
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def export_sample(
     sample_id,
-    nodes, surface_node_indices,
-    atlas_volume, atlas_shape, voxel_size, atlas_to_mesh_map,
-    gt_nodes_g, pred_nodes_g,
-    gt_nodes_u, pred_nodes_u,
+    nodes,
+    surface_node_indices,
+    atlas_volume,
+    atlas_shape,
+    voxel_size,
+    atlas_to_mesh_map,
+    gt_nodes_g,
+    pred_nodes_g,
+    gt_nodes_u,
+    pred_nodes_u,
     output_dir,
 ):
     """Export 7 NIfTI files for one sample.
@@ -212,34 +234,33 @@ def export_sample(
     save_nifti(atlas_volume.astype(np.float32), voxel_size, out / "anatomy.nii.gz")
 
     # 2. Gaussian GT — FEM interpolation to atlas grid
-    gt_g_vol = fem_to_voxel_volume(gt_nodes_g, nodes, atlas_shape, voxel_size,
-                                   atlas_to_mesh_map)
+    gt_g_vol = fem_to_voxel_volume(gt_nodes_g, nodes, atlas_shape, voxel_size, atlas_to_mesh_map)
     save_nifti(gt_g_vol, voxel_size, out / "gt_gaussian.nii.gz")
 
     # 3. Gaussian Pred — FEM interpolation to atlas grid
-    pred_g_vol = fem_to_voxel_volume(pred_nodes_g, nodes, atlas_shape, voxel_size,
-                                      atlas_to_mesh_map)
+    pred_g_vol = fem_to_voxel_volume(
+        pred_nodes_g, nodes, atlas_shape, voxel_size, atlas_to_mesh_map
+    )
     save_nifti(pred_g_vol, voxel_size, out / "pred_gaussian.nii.gz")
 
     # 4. Uniform GT — FEM interpolation to atlas grid
-    gt_u_vol = fem_to_voxel_volume(gt_nodes_u, nodes, atlas_shape, voxel_size,
-                                    atlas_to_mesh_map)
+    gt_u_vol = fem_to_voxel_volume(gt_nodes_u, nodes, atlas_shape, voxel_size, atlas_to_mesh_map)
     save_nifti(gt_u_vol, voxel_size, out / "gt_uniform.nii.gz")
 
     # 5. Uniform Pred — FEM interpolation to atlas grid
-    pred_u_vol = fem_to_voxel_volume(pred_nodes_u, nodes, atlas_shape, voxel_size,
-                                      atlas_to_mesh_map)
+    pred_u_vol = fem_to_voxel_volume(
+        pred_nodes_u, nodes, atlas_shape, voxel_size, atlas_to_mesh_map
+    )
     save_nifti(pred_u_vol, voxel_size, out / "pred_uniform.nii.gz")
 
     # 6. Gaussian TP/FP/FN overlay (label: 1=TP, 2=FP, 3=FN)
     gt_g_mask = (gt_g_vol > 0.05).astype(np.uint8)
     pred_g_mask = (pred_g_vol > 0.3).astype(np.uint8)
     overlay_g = np.zeros(atlas_shape, dtype=np.uint8)
-    overlay_g[(gt_g_mask == 1) & (pred_g_mask == 1)] = 1   # TP
-    overlay_g[(gt_g_mask == 0) & (pred_g_mask == 1)] = 2   # FP
-    overlay_g[(gt_g_mask == 1) & (pred_g_mask == 0)] = 3   # FN
-    save_nifti(overlay_g.astype(np.float32), voxel_size,
-               out / "overlay_gaussian.nii.gz")
+    overlay_g[(gt_g_mask == 1) & (pred_g_mask == 1)] = 1  # TP
+    overlay_g[(gt_g_mask == 0) & (pred_g_mask == 1)] = 2  # FP
+    overlay_g[(gt_g_mask == 1) & (pred_g_mask == 0)] = 3  # FN
+    save_nifti(overlay_g.astype(np.float32), voxel_size, out / "overlay_gaussian.nii.gz")
 
     # 7. Uniform TP/FP/FN overlay
     gt_u_mask = (gt_u_vol > 0.5).astype(np.uint8)
@@ -248,8 +269,7 @@ def export_sample(
     overlay_u[(gt_u_mask == 1) & (pred_u_mask == 1)] = 1
     overlay_u[(gt_u_mask == 0) & (pred_u_mask == 1)] = 2
     overlay_u[(gt_u_mask == 1) & (pred_u_mask == 0)] = 3
-    save_nifti(overlay_u.astype(np.float32), voxel_size,
-               out / "overlay_uniform.nii.gz")
+    save_nifti(overlay_u.astype(np.float32), voxel_size, out / "overlay_uniform.nii.gz")
 
     return out
 
@@ -258,6 +278,7 @@ def export_sample(
 # Tables
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def compute_dice(pred, gt, pred_th=0.3, gt_th=0.05):
     p_bin = (pred > pred_th).astype(float)
     g_bin = (gt > gt_th).astype(float)
@@ -265,8 +286,26 @@ def compute_dice(pred, gt, pred_th=0.3, gt_th=0.05):
     return 2 * tp / (p_bin.sum() + g_bin.sum() + 1e-8)
 
 
-METRIC_COLS = ["Dice@0.5", "Dice@0.3", "Dice@0.1", "Recall@0.1", "Recall@0.3", "Precision@0.3", "LocErr", "MSE"]
-METRIC_KEYS = ["dice_bin_0.5", "dice_bin_0.3", "dice_bin_0.1", "recall_0.1", "recall_0.3", "precision_0.3", "location_error", "mse"]
+METRIC_COLS = [
+    "Dice@0.5",
+    "Dice@0.3",
+    "Dice@0.1",
+    "Recall@0.1",
+    "Recall@0.3",
+    "Precision@0.3",
+    "LocErr",
+    "MSE",
+]
+METRIC_KEYS = [
+    "dice_bin_0.5",
+    "dice_bin_0.3",
+    "dice_bin_0.1",
+    "recall_0.1",
+    "recall_0.3",
+    "precision_0.3",
+    "location_error",
+    "mse",
+]
 
 
 def table_depth_corrected(df_g, df_u):
@@ -318,6 +357,7 @@ def save_csv_latex(df, base_path):
 # ─────────────────────────────────────────────────────────────────────────────
 # Main
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -371,12 +411,16 @@ def main():
     atlas_to_mesh_map = build_atlas_to_mesh_mapping(mesh_nodes, atlas_shape, voxel_size)
     if atlas_to_mesh_map is not None:
         ix, iy, iz, query_pts = atlas_to_mesh_map
-        print(f"  Overlapping voxels: {len(ix)} × {len(iy)} × {len(iz)} = {len(ix)*len(iy)*len(iz):,} voxels")
+        print(
+            f"  Overlapping voxels: {len(ix)} × {len(iy)} × {len(iz)} = {len(ix) * len(iy) * len(iz):,} voxels"
+        )
     else:
         print("  WARNING: No overlapping voxels found between mesh and atlas!")
     if atlas_to_mesh_map is not None:
         ix, iy, iz, query_pts = atlas_to_mesh_map
-        print(f"  Overlapping voxels: {len(ix)} × {len(iy)} × {len(iz)} = {len(ix)*len(iy)*len(iz):,} voxels")
+        print(
+            f"  Overlapping voxels: {len(ix)} × {len(iy)} × {len(iz)} = {len(ix) * len(iy) * len(iz):,} voxels"
+        )
     else:
         print("  WARNING: No overlapping voxels found between mesh and atlas!")
 
@@ -455,35 +499,47 @@ def main():
                 else:
                     z_tier = "deep"
 
-            rows.append({
-                "sample_id": sid,
-                "source": source_type,
-                "num_foci": num_foci,
-                "z_based_tier": z_tier,
-                "real_depth_mm": real_depth,
-                "real_depth_tier": real_tier,
-                "dice_bin_0.5": dice_05,
-                "dice_bin_0.3": dice_03,
-                "dice_bin_0.1": dice_01,
-                "recall_0.1": float(np.nan),
-                "recall_0.3": float(np.nan),
-                "precision_0.3": float(np.nan),
-                "location_error": float(np.nan),
-                "mse": float(np.nan),
-            })
+            rows.append(
+                {
+                    "sample_id": sid,
+                    "source": source_type,
+                    "num_foci": num_foci,
+                    "z_based_tier": z_tier,
+                    "real_depth_mm": real_depth,
+                    "real_depth_tier": real_tier,
+                    "dice_bin_0.5": dice_05,
+                    "dice_bin_0.3": dice_03,
+                    "dice_bin_0.1": dice_01,
+                    "recall_0.1": float(np.nan),
+                    "recall_0.3": float(np.nan),
+                    "precision_0.3": float(np.nan),
+                    "location_error": float(np.nan),
+                    "mse": float(np.nan),
+                }
+            )
         return pd.DataFrame(rows)
 
     df_g = recompute_depths(sample_ids_g, args.samples_g, gt_dict_g, pred_dict_g, "Gaussian")
     df_u = recompute_depths(sample_ids_u, args.samples_u, gt_dict_u, pred_dict_u, "Uniform")
 
-    print(f"  Gaussian depth range: {df_g['real_depth_mm'].min():.2f} - {df_g['real_depth_mm'].max():.2f} mm")
-    print(f"  Uniform depth range:  {df_u['real_depth_mm'].min():.2f} - {df_u['real_depth_mm'].max():.2f} mm")
+    print(
+        f"  Gaussian depth range: {df_g['real_depth_mm'].min():.2f} - {df_g['real_depth_mm'].max():.2f} mm"
+    )
+    print(
+        f"  Uniform depth range:  {df_u['real_depth_mm'].min():.2f} - {df_u['real_depth_mm'].max():.2f} mm"
+    )
 
     # Save corrected CSVs
-    df_g.to_csv(out_dir.parent / "metrics_per_sample_gaussian_corrected.csv",
-                index=False, float_format="%.6f")
-    df_u.to_csv(out_dir.parent / "metrics_per_sample_uniform_corrected.csv",
-                index=False, float_format="%.6f")
+    df_g.to_csv(
+        out_dir.parent / "metrics_per_sample_gaussian_corrected.csv",
+        index=False,
+        float_format="%.6f",
+    )
+    df_u.to_csv(
+        out_dir.parent / "metrics_per_sample_uniform_corrected.csv",
+        index=False,
+        float_format="%.6f",
+    )
 
     # Compute depth-corrected table
     t3_corr = table_depth_corrected(df_g, df_u)
@@ -503,9 +559,12 @@ def main():
     else:
         # Select from existing metrics with new depth tiers
         groups_g = [
-            (1, "shallow"), (1, "deep"),
-            (2, "medium"), (2, "deep"),
-            (3, "shallow"), (3, "medium"),
+            (1, "shallow"),
+            (1, "deep"),
+            (2, "medium"),
+            (2, "deep"),
+            (3, "shallow"),
+            (3, "medium"),
         ]
         repr_g = {}
         for foci, depth in groups_g:
@@ -524,9 +583,12 @@ def main():
             }
 
         groups_u = [
-            (1, "shallow"), (1, "deep"),
-            (2, "medium"), (2, "deep"),
-            (3, "shallow"), (3, "medium"),
+            (1, "shallow"),
+            (1, "deep"),
+            (2, "medium"),
+            (2, "deep"),
+            (3, "shallow"),
+            (3, "medium"),
         ]
         repr_u = {}
         for foci, depth in groups_u:
@@ -569,9 +631,16 @@ def main():
 
         export_sample(
             sid,
-            mesh_nodes, surface_node_indices,
-            atlas_data, atlas_shape, voxel_size, atlas_to_mesh_map,
-            gt_g, pred_g, gt_u, pred_u,
+            mesh_nodes,
+            surface_node_indices,
+            atlas_data,
+            atlas_shape,
+            voxel_size,
+            atlas_to_mesh_map,
+            gt_g,
+            pred_g,
+            gt_u,
+            pred_u,
             out_dir,
         )
         print(f"  Exported {sid}")
@@ -580,29 +649,46 @@ def main():
     print("\n[7/6] Generating depth analysis plot...")
 
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    plt.rcParams.update({
-        "font.family": "serif",
-        "font.size": 11,
-        "axes.linewidth": 1.0,
-        "axes.grid": True,
-        "grid.alpha": 0.3,
-        "figure.dpi": 300,
-    })
+    plt.rcParams.update(
+        {
+            "font.family": "serif",
+            "font.size": 11,
+            "axes.linewidth": 1.0,
+            "axes.grid": True,
+            "grid.alpha": 0.3,
+            "figure.dpi": 300,
+        }
+    )
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
     # (a) Dice@0.3 vs real depth
     ax = axes[0]
-    ax.scatter(df_g["real_depth_mm"], df_g["dice_bin_0.3"],
-               alpha=0.5, s=20, c="steelblue", label="Gaussian")
-    ax.scatter(df_u["real_depth_mm"], df_u["dice_bin_0.3"],
-               alpha=0.5, s=20, c="darkorange", label="Uniform")
+    ax.scatter(
+        df_g["real_depth_mm"],
+        df_g["dice_bin_0.3"],
+        alpha=0.5,
+        s=20,
+        c="steelblue",
+        label="Gaussian",
+    )
+    ax.scatter(
+        df_u["real_depth_mm"],
+        df_u["dice_bin_0.3"],
+        alpha=0.5,
+        s=20,
+        c="darkorange",
+        label="Uniform",
+    )
     # Trend lines
-    x_range = [min(df_g["real_depth_mm"].min(), df_u["real_depth_mm"].min()),
-               max(df_g["real_depth_mm"].max(), df_u["real_depth_mm"].max())]
+    x_range = [
+        min(df_g["real_depth_mm"].min(), df_u["real_depth_mm"].min()),
+        max(df_g["real_depth_mm"].max(), df_u["real_depth_mm"].max()),
+    ]
     x_line = np.linspace(x_range[0], x_range[1], 100)
     # Gaussian trend
     mask_g = ~(df_g["real_depth_mm"].isna() | df_g["dice_bin_0.3"].isna())
@@ -622,12 +708,26 @@ def main():
 
     # (b) Dice@0.5 vs real depth
     ax = axes[1]
-    ax.scatter(df_g["real_depth_mm"], df_g["dice_bin_0.5"],
-               alpha=0.5, s=20, c="steelblue", label="Gaussian")
-    ax.scatter(df_u["real_depth_mm"], df_u["dice_bin_0.5"],
-               alpha=0.5, s=20, c="darkorange", label="Uniform")
-    x_range = [min(df_g["real_depth_mm"].min(), df_u["real_depth_mm"].min()),
-               max(df_g["real_depth_mm"].max(), df_u["real_depth_mm"].max())]
+    ax.scatter(
+        df_g["real_depth_mm"],
+        df_g["dice_bin_0.5"],
+        alpha=0.5,
+        s=20,
+        c="steelblue",
+        label="Gaussian",
+    )
+    ax.scatter(
+        df_u["real_depth_mm"],
+        df_u["dice_bin_0.5"],
+        alpha=0.5,
+        s=20,
+        c="darkorange",
+        label="Uniform",
+    )
+    x_range = [
+        min(df_g["real_depth_mm"].min(), df_u["real_depth_mm"].min()),
+        max(df_g["real_depth_mm"].max(), df_u["real_depth_mm"].max()),
+    ]
     x_line = np.linspace(x_range[0], x_range[1], 100)
     mask_g = ~(df_g["real_depth_mm"].isna() | df_g["dice_bin_0.5"].isna())
     if mask_g.sum() > 2:
@@ -644,8 +744,9 @@ def main():
     ax.set_ylim([0, 1.05])
 
     plt.tight_layout()
-    fig.savefig(out_dir.parent / "fig_depth_analysis.png", dpi=300, bbox_inches="tight",
-                facecolor="white")
+    fig.savefig(
+        out_dir.parent / "fig_depth_analysis.png", dpi=300, bbox_inches="tight", facecolor="white"
+    )
     plt.close(fig)
 
     print(f"\n" + "=" * 70)

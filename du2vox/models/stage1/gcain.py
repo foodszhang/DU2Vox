@@ -7,9 +7,8 @@ Port of the reference GCAIN architecture from MS_GDUN_for_MICCAI2026/model/MSGDU
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
-from du2vox.models.stage1.blocks import GCNBlock, InputBlock, AdaptiveThreshold, UpdateBlock
+from du2vox.models.stage1.blocks import GCNBlock, InputBlock, UpdateBlock
 from du2vox.models.stage1.msgc import MultiScaleKNNGraphAttention
 
 
@@ -86,22 +85,36 @@ class BasicBlock(nn.Module):
         knn_idx: torch.Tensor,
         sens_w: torch.Tensor,
         feat_dim: int = 6,
+        physics_evidence: str = "raw",
+        profiled_evidence_rms: float = 0.05,
     ):
         super().__init__()
 
-        self.input_block = InputBlock(L, A, LTL, ATA)
+        self.input_block = InputBlock(
+            L,
+            A,
+            LTL,
+            ATA,
+            physics_evidence=physics_evidence,
+            profiled_evidence_rms=profiled_evidence_rms,
+        )
 
         # GCN sequence: 3 -> 8 -> 16 -> 8 -> feat_dim
-        self.gcn_seq = nn.ModuleList([
-            GCNBlock(L, 3, 8),
-            GCNBlock(L, 8, 16),
-            GCNBlock(L, 16, 8),
-            GCNBlock(L, 8, feat_dim),
-        ])
+        self.gcn_seq = nn.ModuleList(
+            [
+                GCNBlock(L, 3, 8),
+                GCNBlock(L, 8, 16),
+                GCNBlock(L, 16, 8),
+                GCNBlock(L, 8, feat_dim),
+            ]
+        )
 
         # Multi-scale GCN branches
         self.ms_gcn = GCNMultiScal(
-            L0=L0, L1=L1, L2=L2, L3=L3,
+            L0=L0,
+            L1=L1,
+            L2=L2,
+            L3=L3,
             in_dim=feat_dim,
             out_dim=feat_dim,
         )
@@ -168,18 +181,30 @@ class GCAIN_full(nn.Module):
         sens_w: torch.Tensor,
         num_layer: int = 6,
         feat_dim: int = 6,
+        physics_evidence: str = "raw",
+        profiled_evidence_rms: float = 0.05,
     ):
         super().__init__()
-        self.blocks = nn.ModuleList([
-            BasicBlock(
-                L=L, A=A, LTL=LTL, ATA=ATA,
-                L0=L0, L1=L1, L2=L2, L3=L3,
-                knn_idx=knn_idx,
-                sens_w=sens_w,
-                feat_dim=feat_dim,
-            )
-            for _ in range(num_layer)
-        ])
+        self.blocks = nn.ModuleList(
+            [
+                BasicBlock(
+                    L=L,
+                    A=A,
+                    LTL=LTL,
+                    ATA=ATA,
+                    L0=L0,
+                    L1=L1,
+                    L2=L2,
+                    L3=L3,
+                    knn_idx=knn_idx,
+                    sens_w=sens_w,
+                    feat_dim=feat_dim,
+                    physics_evidence=physics_evidence,
+                    profiled_evidence_rms=profiled_evidence_rms,
+                )
+                for _ in range(num_layer)
+            ]
+        )
 
     def forward(self, x: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
         """x: [B, N, 1] (initial guess, typically zeros).

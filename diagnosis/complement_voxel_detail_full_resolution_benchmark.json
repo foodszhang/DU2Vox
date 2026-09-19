@@ -1,0 +1,10 @@
+{
+  "sample_id": "sample_0001",
+  "domain": "full canonical 0.2 mm",
+  "n_voxels": 1677645,
+  "chunk_size": 65536,
+  "elapsed_seconds": 1.0707468049949966,
+  "peak_gpu_gib": 15.850340843200684,
+  "loss": 0.056659337133169174,
+  "gradient_l1": 0.13803188502788544
+}

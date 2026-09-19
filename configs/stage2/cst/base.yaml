@@ -1,0 +1,66 @@
+experiment:
+  name: cst_base
+runs_root: runs
+
+data:
+  samples_dir: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples
+  shared_dir: /home/foods/pro/FMT-SimGen/output/shared_mesh_20k
+  train_split: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/train.txt
+  val_split: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/val.txt
+  test_split: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/test.txt
+  train_initial_state_root: output/bridge_v2_3k_train_balanced_v2
+  val_initial_state_root: output/bridge_v2_3k_val_balanced_v2
+  test_initial_state_root: output/bridge_v2_3k_test_balanced_v2
+  operator_cache: experiments/cross_discretization_decomposition/artifacts/operator_cache
+  projection_targets_dir: precomputed/error_structured_projection_targets
+  v4_states_root: precomputed/complement_voxel_detail/v4_states
+  initial_hidden_root: precomputed/final_dual_space/v4_initial_hidden
+  terminal_hidden_root: precomputed/information_audit/v4_terminal_hidden
+  projection_file: proj.npz
+  projection_norm: per_view_max
+  projection_transform: none
+
+frozen_backbone:
+  config: configs/stage2/unified_dual_evidence_fem_v4_2400.yaml
+  checkpoint: runs/unified_dual_evidence_fem_v4_2400/checkpoints/best_dense_val_delta_dice.pth
+  expected_epoch: 15
+
+model:
+  coordinate_frequencies: 6
+  latent_dim: 144
+  transfer_dim: 96
+  modulation_groups: 8
+  decoder_width: 148
+  decoder_depth: 3
+  innovation: delta
+  chunk_size: 65536
+  boundary_temperature: 0.1
+  use_views: false
+  view_feat_dim: 32
+
+training:
+  seed: 20260901
+  epochs: 5
+  lr: 1.0e-4
+  weight_decay: 1.0e-5
+  grad_clip_norm: 1.0
+  amp_dtype: bf16
+
+loss:
+  smooth_l1_beta: 0.1
+  lambda_detail_l1: 1.0
+  lambda_detail_mse: 0.1
+  lambda_support: 0.1
+  support_temperature: 0.1
+  tversky_alpha: 0.5
+  tversky_beta: 0.5
+
+validation:
+  threshold: 0.5
+
+governance:
+  confirmation_data_allowed: false
+  selection_split: val
+  development_test_after_freeze_only: true
+  baseline_parameter_count: 193121
+  maximum_parameter_difference_fraction: 0.10

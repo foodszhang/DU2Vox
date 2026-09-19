@@ -1,0 +1,61 @@
+# DU2Vox Stage 1 — D1-Q (quantitative Gaussian) bridge inference config.
+#
+# The Stage 1 network stays the frozen D0-trained checkpoint; this config only
+# repoints the data paths at the D1-Q cohort. Architecture, hidden dims, the
+# sigmoid activation and the visible-mask convention are identical to D0, so
+# the D0 checkpoint applies unchanged. That is the point of Experiment A:
+# only the source field differs between D0 and D1-Q, never the coarse branch.
+#
+# Consumed by scripts/bridge_stage1_to_stage2.py to produce coarse_d for D1-Q.
+
+experiment:
+  name: "stage1_fmt_simgen_v2_quantitative_gaussian_3k_20k_bridge"
+
+data:
+  shared_dir: /home/foods/pro/FMT-SimGen/output/shared_mesh_20k
+  samples_dir: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_quantitative_gaussian_3k_20k/samples
+  splits_dir: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_quantitative_gaussian_3k_20k/splits
+  manifest_path: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_quantitative_gaussian_3k_20k/dataset_manifest.json
+  normalize_b: true
+  normalize_gt: false
+  binarize_gt: true
+  binarize_threshold: 0.05
+  use_visible_mask: false
+
+model:
+  name: GCAIN_full
+  feat_dim: 6
+  num_layer: 6
+  k_neighbors: 32
+
+training:
+  batch_size: 8
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  max_epochs: 100
+  grad_clip_norm: 1.0
+  activation: "sigmoid"
+  leaky_relu_slope: 0.01
+  scheduler:
+    type: "CosineAnnealingWarmRestarts"
+    T_0: 50
+    T_mult: 2
+    eta_min: 1.0e-6
+  early_stopping: null
+
+loss:
+  type: "support"
+  tversky_weight: 0.6
+  tversky_alpha: 0.3
+  tversky_beta: 0.7
+  mse_weight: 0.2
+  bce_weight: 0.2
+
+checkpoint:
+  primary_metric: "dice_bin_0.5"
+
+logging:
+  print_every: 1
+  detail_every: 10
+  milestone_every: 50
+  diag_epochs: 3

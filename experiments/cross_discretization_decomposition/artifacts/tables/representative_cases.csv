@@ -1,0 +1,7 @@
+category,sample_id,split
+single-small,sample_2601,train
+single-deep,sample_2423,train
+multi-close,sample_1272,train
+multi-weak,sample_0417,train
+large-source,sample_0555,train
+stage1-failure,sample_2352,train

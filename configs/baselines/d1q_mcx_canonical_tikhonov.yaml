@@ -1,0 +1,22 @@
+experiment:
+  name: d1q_mcx_canonical_tikhonov
+
+data:
+  dataset_root: /home/foods/pro/DU2Vox/data/d1q_mcx_canonical_3k_20k
+  dataset_receipt: diagnosis/d1q_mcx_canonical_dataset_freeze.json
+  shared_dir: /home/foods/pro/FMT-SimGen/output/shared_mesh_20k
+  operator_cache: experiments/cross_discretization_decomposition/artifacts/operator_cache
+  train_split: /home/foods/pro/DU2Vox/data/d1q_mcx_canonical_3k_20k/splits/train.txt
+  val_split: /home/foods/pro/DU2Vox/data/d1q_mcx_canonical_3k_20k/splits/val.txt
+  test_split: /home/foods/pro/DU2Vox/data/d1q_mcx_canonical_3k_20k/splits/test.txt
+  normalize_b: true
+  normalize_gt: per_sample_peak
+  normalization_scale_filename: gt_scale.npy
+  data_range: 1.0
+
+solver:
+  iterations: 100
+  batch_size: 20
+  validation_candidates: [0.0001, 0.001, 0.01, 0.1]
+  selection_metric: ccc
+  power_iterations: 30

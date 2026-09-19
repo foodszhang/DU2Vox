@@ -1,0 +1,84 @@
+{
+  "split": "val",
+  "n_samples": 300,
+  "alphas": [
+    0.25,
+    0.5,
+    0.75
+  ],
+  "corrected_nodes_dir": null,
+  "node_layers": {
+    "L1_x_h_reference(node)": {
+      "neg_frac": 0.4984992496248124,
+      "min": -0.05727582797408104,
+      "neg_mass_ratio": 0.10953954564783334,
+      "excursion_over_peak": 0.052731556983891106,
+      "mean_negative_square": 1.1602531855088377e-06
+    },
+    "L2_x_h0_initial(node)": {
+      "neg_frac": 0.0,
+      "min": 0.0,
+      "neg_mass_ratio": 0.0,
+      "excursion_over_peak": 0.0,
+      "mean_negative_square": 0.0
+    },
+    "L2p_x_hc_proxy(a=0.25)": {
+      "neg_frac": 0.4793396698349175,
+      "min": -0.008884451250196435,
+      "neg_mass_ratio": 0.012345629785056423,
+      "excursion_over_peak": 0.01184449470346009,
+      "mean_negative_square": 1.5991479123706116e-08
+    },
+    "L2p_x_hc_proxy(a=0.5)": {
+      "neg_frac": 0.4812906453226613,
+      "min": -0.021045324043370783,
+      "neg_mass_ratio": 0.03471979849317301,
+      "excursion_over_peak": 0.02540374161044974,
+      "mean_negative_square": 1.1590391035942217e-07
+    },
+    "L2p_x_hc_proxy(a=0.75)": {
+      "neg_frac": 0.48309154577288643,
+      "min": -0.03682471191859804,
+      "neg_mass_ratio": 0.06297418977788341,
+      "excursion_over_peak": 0.03858304760877555,
+      "mean_negative_square": 4.444359036098658e-07
+    }
+  },
+  "voxel_layers": {
+    "L3_rho_hat=P1(x_h0)": {
+      "neg_frac": 0.0,
+      "min": 0.0,
+      "neg_mass_ratio": 0.0,
+      "excursion_over_peak": 0.0,
+      "mean_negative_square": 0.0
+    },
+    "L3_rho_hat=P1(x_h*)": {
+      "neg_frac": 0.49549070274104473,
+      "min": -0.05211830926215232,
+      "neg_mass_ratio": 0.05430649659812682,
+      "excursion_over_peak": 0.04939080357791384,
+      "mean_negative_square": 5.892457107285051e-07
+    }
+  },
+  "clip_impact": {
+    "m0": {
+      "d_dice": 0.0,
+      "d_ccc": 0.0,
+      "d_relative_l2": 0.0,
+      "mean_negative_square": 0.0
+    },
+    "reference": {
+      "d_dice": 0.0,
+      "d_ccc": 0.0011541103861178459,
+      "d_relative_l2": -0.004993307387926027,
+      "mean_negative_square": 5.892457107285051e-07
+    }
+  },
+  "data_consistency_direction": {
+    "frac_direction_negative": 0.8447223611805903,
+    "frac_measurement_overshoot": 0.8290840415486307,
+    "direction_negative_mass": 0.2661567959073488,
+    "direction_positive_mass": 0.45015260630495213,
+    "pooled_negative_over_positive": 0.2938327347261544
+  }
+}

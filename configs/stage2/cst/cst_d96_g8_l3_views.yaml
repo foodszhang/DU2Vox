@@ -1,0 +1,9 @@
+base_config: configs/stage2/cst/base.yaml
+experiment: {name: cst_d96_g8_l3_views}
+model:
+  transfer_dim: 96
+  modulation_groups: 8
+  decoder_width: 146
+  decoder_depth: 3
+  innovation: delta
+  use_views: true

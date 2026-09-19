@@ -1,0 +1,36 @@
+{
+  "comparison": "frozen_vs_responsibility_separated_vs_unrestricted_joint",
+  "validation_only_selection": true,
+  "frozen": {
+    "v4_epoch": 15,
+    "coarse_val_dice": 0.7325118749474004,
+    "coarse_development_test_dice": 0.7165293910104922,
+    "validation_fem_mse": 0.006663136172856718,
+    "fem_state_changed_by_voxel_loss": false
+  },
+  "responsibility_separated": {
+    "gradient_contract": "voxel detail/final gradients detached at x_c/H_c/Delta-x/Delta-H; coarse branch receives only its established V4 losses",
+    "coarse_optimization_equivalence": "With a detached boundary, coarse-side optimization is independent of the voxel objective and follows the recorded V4 continuation trajectory.",
+    "continued_candidate_epoch": 20,
+    "continued_candidate_coarse_val_dice": 0.6492975216454653,
+    "starting_epoch15_coarse_val_dice": 0.7325118749474004,
+    "validation_selected_coarse_epoch": 15,
+    "selected_result": "identical coarse checkpoint to frozen",
+    "incremental_validation_gain_over_frozen": 0.0,
+    "decision": "No independent coarse-side continuation benefit; retain frozen V4 epoch 15. Stop-gradient remains the training contract."
+  },
+  "unrestricted_fully_joint": {
+    "source": "diagnosis/p0_joint_vs_frozen_v4_comparison.json",
+    "validation_fem_mse": 0.20955173219614173,
+    "frozen_validation_fem_mse": 0.006663136172856718,
+    "validation_measurement_residual_ratio": 3.9462245428562164,
+    "frozen_validation_measurement_residual_ratio": 0.9253382390737533,
+    "validation_relative_fem_state_change_l2": 4.8404633431292075,
+    "development_test_fem_mse": 0.21150424081107191,
+    "development_test_measurement_residual_ratio": 4.018564264376958,
+    "decision": "rejected for severe FEM-state and data-consistency drift"
+  },
+  "selected_optimization": "frozen coarse with an explicit detached responsibility boundary",
+  "claim_scope": "responsibility-preserving training contract, not an independently performance-improving co-training innovation",
+  "sealed_confirmation_accessed": false
+}

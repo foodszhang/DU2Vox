@@ -1,0 +1,3 @@
+base_config: configs/stage2/cst/base.yaml
+experiment: {name: cst_hc_only_d96_l3}
+model: {transfer_dim: 96, modulation_groups: 8, decoder_width: 156, decoder_depth: 3, innovation: none}

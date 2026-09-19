@@ -1,0 +1,83 @@
+{
+  "scale_conventions": {
+    "lpr": "raw (prediction and target share the raw amplitude; self-consistent)",
+    "d1q": "gt_scale_file (target divided by gt_scale.npy; the pairing its per-case-normalized training requires)",
+    "note": "per_sample_peak is mathematically identical to raw for every reported metric"
+  },
+  "scale_invariant_columns": [
+    "pearson",
+    "dice_50",
+    "dice_20",
+    "assd_50_mm",
+    "hd95_50_mm",
+    "cle_50_mm",
+    "peak_localization_error_mm"
+  ],
+  "scale_sensitive_columns": [
+    "ccc",
+    "relative_l2",
+    "detection_recall"
+  ],
+  "rows": {
+    "lpr Stage1 (ep147, raw)": {
+      "pearson": 0.8296166179208624,
+      "dice_50": 0.5145468813701958,
+      "dice_20": 0.5999575434660177,
+      "assd_50_mm": 0.36661204124121033,
+      "hd95_50_mm": 0.7975464825411935,
+      "cle_50_mm": 0.5200572574379533,
+      "peak_localization_error_mm": 0.7904696400621876,
+      "ccc": 0.7618714179538914,
+      "relative_l2": 0.5652736739466566,
+      "detection_recall": 0.5068027210884354
+    },
+    "d1q Stage1 (ep135, gt_scale)": {
+      "pearson": 0.6721499526686191,
+      "dice_50": 0.3319878009815475,
+      "dice_20": 0.4131050687023363,
+      "assd_50_mm": 3.8863679239452904,
+      "hd95_50_mm": 4.315465019241476,
+      "cle_50_mm": 4.068966237494922,
+      "peak_localization_error_mm": 1.1248793065267546,
+      "ccc": 0.5559584070212329,
+      "relative_l2": 0.7438769911975414,
+      "detection_recall": 0.31160572337042924
+    },
+    "d1q Stage1 (ep109, gt_scale)": {
+      "pearson": 0.6438178481757371,
+      "dice_50": 0.3043938524693889,
+      "dice_20": 0.3770479781261333,
+      "assd_50_mm": 4.398664074308082,
+      "hd95_50_mm": 4.840032117556976,
+      "cle_50_mm": 4.5687868855124085,
+      "peak_localization_error_mm": 1.174881130437397,
+      "ccc": 0.5691389243477732,
+      "relative_l2": 0.7643347187500825,
+      "detection_recall": 0.35294117647058826
+    },
+    "lpr P1 oracle (raw)": {
+      "pearson": 0.9499877050666874,
+      "dice_50": 0.7352534751531854,
+      "dice_20": 0.7864638637914734,
+      "assd_50_mm": 0.15847262936654669,
+      "hd95_50_mm": 0.3558197992186608,
+      "cle_50_mm": 0.15279757105953773,
+      "peak_localization_error_mm": 0.4674834112108843,
+      "ccc": 0.927493119769199,
+      "relative_l2": 0.32449142025014066,
+      "detection_recall": 0.8690476190476191
+    },
+    "d1q P1 oracle (peak=raw)": {
+      "pearson": 0.9255359042877561,
+      "dice_50": 0.6627334817137364,
+      "dice_20": 0.7158636945389286,
+      "assd_50_mm": 0.3649223189101391,
+      "hd95_50_mm": 0.5882869279605153,
+      "cle_50_mm": 0.3958330562057547,
+      "peak_localization_error_mm": 0.4691955604020399,
+      "ccc": 0.8983085427533598,
+      "relative_l2": 0.37965354865258,
+      "detection_recall": 0.794912559618442
+    }
+  }
+}

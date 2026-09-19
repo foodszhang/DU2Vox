@@ -275,6 +275,11 @@ class ProjectAndSample(nn.Module):
         super().__init__()
         self.feat_map_size = feat_map_size
         self.angles = ANGLES
+        self.register_buffer(
+            "angle_radians",
+            torch.deg2rad(torch.tensor(ANGLES, dtype=torch.float32)),
+            persistent=False,
+        )
 
     def forward(
         self,
@@ -301,47 +306,51 @@ class ProjectAndSample(nn.Module):
         visibility : torch.Tensor [B, N, 7]
             Bool mask: True if point is visible in that view (within FOV).
         """
-        B, N = coords_world.shape[:2]
-        n_views = len(self.angles)
-        C = feat_maps.shape[2]
+        batch, n_query = coords_world.shape[:2]
+        n_views = feat_maps.shape[1]
+        channels = feat_maps.shape[2]
+        if n_views != len(self.angles):
+            raise ValueError(f"Expected {len(self.angles)} views, got {n_views}")
 
-        use_voxel = coords_vox_norm is not None
+        if coords_vox_norm is not None:
+            hx, hy, hz = MCX_HALF_EXTENTS
+            x_centered = coords_vox_norm[..., 0] * hx
+            y_centered = coords_vox_norm[..., 1] * hy
+            z_centered = coords_vox_norm[..., 2] * hz
+        else:
+            cx, cy, cz = MCX_VOLUME_CENTER_WORLD
+            x_centered = coords_world[..., 0] - cx
+            y_centered = coords_world[..., 1] - cy
+            z_centered = coords_world[..., 2] - cz
 
-        multi_view_feat = torch.zeros(B, N, n_views, C, device=feat_maps.device, dtype=feat_maps.dtype)
-        visibility = torch.zeros(B, N, n_views, device=feat_maps.device, dtype=torch.bool)
+        angles = self.angle_radians.to(dtype=coords_world.dtype)
+        cosines = torch.cos(angles).view(1, n_views, 1)
+        sines = torch.sin(angles).view(1, n_views, 1)
+        x_rotated = (
+            x_centered.unsqueeze(1) * cosines
+            + z_centered.unsqueeze(1) * sines
+        )
+        y_rotated = y_centered.unsqueeze(1).expand(-1, n_views, -1)
+        half_fov = FOV_MM / 2.0
+        uv = torch.stack([x_rotated / half_fov, y_rotated / half_fov], dim=-1)
+        valid = (uv.abs() <= 1.0).all(dim=-1)
 
-        for view_idx, angle in enumerate(self.angles):
-            if use_voxel:
-                # Voxel-space projection: coords already centered + normalized
-                uv = project_3d_to_2d(coords_vox_norm, angle, voxel_space=True)
-            else:
-                # World-space projection
-                uv = project_3d_to_2d(coords_world, angle, voxel_space=False)
-
-            # Check visibility (within FOV, clamping for voxel-space)
-            valid = (uv.abs() <= 1.0).all(dim=-1)
-
-            # Normalize UV for grid_sample: need [B, N, 1, 2] format
-            uv_grid = uv.unsqueeze(2)
-
-            # Sample from feat_maps[:, view_idx]: [B, C, H', W']
-            view_feat = F.grid_sample(
-                feat_maps[:, view_idx],
-                uv_grid,
-                mode="bilinear",
-                padding_mode="zeros",
-                align_corners=False,
-            )  # → [B, C, N, 1]
-
-            view_feat = view_feat.squeeze(-1).transpose(1, 2)  # [B, N, C]
-
-            # Zero out features for out-of-FOV points
-            view_feat = view_feat * valid.unsqueeze(-1).float()
-
-            multi_view_feat[:, :, view_idx] = view_feat
-            visibility[:, :, view_idx] = valid
-
-        return multi_view_feat, visibility
+        sampled = F.grid_sample(
+            feat_maps.reshape(
+                batch * n_views,
+                channels,
+                feat_maps.shape[-2],
+                feat_maps.shape[-1],
+            ),
+            uv.reshape(batch * n_views, n_query, 1, 2),
+            mode="bilinear",
+            padding_mode="zeros",
+            align_corners=False,
+        )
+        sampled = sampled.squeeze(-1).transpose(1, 2)
+        sampled = sampled.reshape(batch, n_views, n_query, channels)
+        sampled = sampled * valid.unsqueeze(-1).to(sampled.dtype)
+        return sampled.permute(0, 2, 1, 3), valid.permute(0, 2, 1)
 
 
 # ─── Multi-View Fusion ────────────────────────────────────────────────────────
@@ -484,6 +493,67 @@ class ViewEncoderModule(nn.Module):
         else:
             self.fuse_proj = nn.Identity()
 
+    def encode_images(
+        self, proj_imgs: torch.Tensor
+    ) -> torch.Tensor | dict[str, torch.Tensor]:
+        """Encode images once so dense query evaluation can reuse feature maps."""
+
+        if self.projection_transform == "log1p":
+            proj_norm = torch.log1p(proj_imgs.clamp(min=0))
+        elif self.projection_transform in {"none", None}:
+            proj_norm = proj_imgs
+        else:
+            raise ValueError(
+                f"Unknown view projection_transform: {self.projection_transform}"
+            )
+        batch, n_views = proj_norm.shape[:2]
+        flat_images = proj_norm.reshape(
+            batch * n_views, *proj_norm.shape[2:]
+        )
+        encoded = self.encoder(
+            flat_images, return_multiscale=self.multiscale_enabled
+        )
+        if self.multiscale_enabled:
+            return {
+                scale: encoded[scale].reshape(
+                    batch, n_views, *encoded[scale].shape[1:]
+                )
+                for scale in self.multiscale_scales
+            }
+        return encoded.reshape(batch, n_views, *encoded.shape[1:])
+
+    def sample_encoded(
+        self,
+        encoded: torch.Tensor | dict[str, torch.Tensor],
+        coords_world: torch.Tensor,
+        coords_vox_norm: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Sample and fuse previously encoded multiview feature maps."""
+
+        if self.multiscale_enabled:
+            if not isinstance(encoded, dict):
+                raise TypeError("Multiscale view encoder expects an encoded map dict")
+            fused_scales = []
+            visibility_out = None
+            for scale in self.multiscale_scales:
+                multi_view_feat, visibility = self.project_and_sample(
+                    coords_world,
+                    encoded[scale],
+                    coords_vox_norm=coords_vox_norm,
+                )
+                fused_scales.append(self.fusion(multi_view_feat, visibility))
+                visibility_out = visibility
+            view_feat = self.fuse_proj(torch.cat(fused_scales, dim=-1))
+            return view_feat, visibility_out
+        if isinstance(encoded, dict):
+            raise TypeError("Single-scale view encoder expects a tensor")
+        multi_view_feat, visibility = self.project_and_sample(
+            coords_world,
+            encoded,
+            coords_vox_norm=coords_vox_norm,
+        )
+        return self.fuse_proj(self.fusion(multi_view_feat, visibility)), visibility
+
     def forward(
         self,
         proj_imgs: torch.Tensor,
@@ -515,53 +585,5 @@ class ViewEncoderModule(nn.Module):
             f"should be trunk-local (< 45mm)"
         )
 
-        B, n_views = proj_imgs.shape[:2]
-
-        if self.projection_transform == "log1p":
-            proj_norm = torch.log1p(proj_imgs.clamp(min=0))
-        elif self.projection_transform in {"none", None}:
-            proj_norm = proj_imgs
-        else:
-            raise ValueError(f"Unknown view projection_transform: {self.projection_transform}")
-
-        # Encode each view (shared encoder, batch over views)
-        feat_maps_list = []
-        multiscale_maps: dict[str, list[torch.Tensor]] = {scale: [] for scale in self.multiscale_scales}
-        for v in range(n_views):
-            feat = self.encoder(proj_norm[:, v], return_multiscale=self.multiscale_enabled)
-            if self.multiscale_enabled:
-                for scale in self.multiscale_scales:
-                    multiscale_maps[scale].append(feat[scale])
-            else:
-                feat_maps_list.append(feat)
-
-        if self.multiscale_enabled:
-            fused_scales = []
-            visibility_out = None
-            for scale in self.multiscale_scales:
-                feat_maps = torch.stack(multiscale_maps[scale], dim=1)
-                multi_view_feat, visibility = self.project_and_sample(
-                    coords_world,
-                    feat_maps,
-                    coords_vox_norm=coords_vox_norm,
-                )
-                fused_scales.append(self.fusion(multi_view_feat, visibility))
-                visibility_out = visibility
-            view_feat = self.fuse_proj(torch.cat(fused_scales, dim=-1))
-            return view_feat, visibility_out
-
-        # Stack: [B, 7, C, H', W']
-        feat_maps = torch.stack(feat_maps_list, dim=1)
-
-        # Project and sample (voxel-space if coords_vox_norm provided)
-        multi_view_feat, visibility = self.project_and_sample(
-            coords_world,
-            feat_maps,
-            coords_vox_norm=coords_vox_norm,
-        )
-
-        # Fuse
-        fused = self.fusion(multi_view_feat, visibility)
-        view_feat = self.fuse_proj(fused)
-
-        return view_feat, visibility
+        encoded = self.encode_images(proj_imgs)
+        return self.sample_encoded(encoded, coords_world, coords_vox_norm)

@@ -1,0 +1,342 @@
+{
+  "dataset_root": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_quantitative_gaussian_3k_20k",
+  "split_audit": {
+    "counts": {
+      "train": 2400,
+      "val": 300,
+      "test": 300
+    },
+    "unique_counts": {
+      "train": 2400,
+      "val": 300,
+      "test": 300
+    },
+    "overlap": {
+      "train_val": [],
+      "train_test": [],
+      "val_test": []
+    },
+    "sha256": {
+      "train": "870ec2c7270acdb274048e32f3d69d09e212721e2412b93a5e680248f6c3a66c",
+      "val": "7587bdbf31a68db23d6e2b739ab3a4883649c488f27f3cd06e0a8b57c253ac6a",
+      "test": "a35ad349da3bdc7e73b3ee647794ba9eeae2ee6df369284d456ef047b2abdd37"
+    }
+  },
+  "missing_assets": {},
+  "asset_counts": {
+    "measurement_b.npy": 3000,
+    "gt_nodes.npy": 3000,
+    "gt_voxels.npz": 3000,
+    "tumor_params.json": 3000,
+    "proj.npz": 3000
+  },
+  "source_distribution": {
+    "num_foci": {
+      "1": 832,
+      "2": 1072,
+      "3": 1096
+    },
+    "shapes": {
+      "ellipsoid": 2024,
+      "irregular": 2178,
+      "sphere": 2062
+    },
+    "sigma_mm": {
+      "mean": 0.5455919848901978,
+      "median": 0.5529634895534788,
+      "min": 0.2673230277113775,
+      "max": 0.7998743239755965,
+      "n": 6264
+    },
+    "amplitude": {
+      "mean": 1.203487942120513,
+      "median": 1.2104326473190468,
+      "min": 0.6000883573774404,
+      "max": 1.7997838381720968,
+      "n": 6264
+    },
+    "pair_separation_mm": {
+      "mean": 14.253282945074345,
+      "median": 13.236313341243456,
+      "min": 1.4282856857085684,
+      "max": 36.246379129507545,
+      "n": 4360
+    },
+    "orientation_field_count": 0,
+    "composition_observed_in_code": "pointwise maximum, not additive mixture"
+  },
+  "raw_gt_peak_test300": {
+    "mean": 1.3322997919718425,
+    "median": 1.3958721160888672,
+    "min": 0.5745786428451538,
+    "max": 1.7676335573196411,
+    "n": 300
+  },
+  "raw_prediction_reanalysis": {
+    "exp_a": {
+      "background_positive_mass_ratio": {
+        "mean": 4.809091822255914,
+        "median": 2.9828340409333967,
+        "min": 0.11030903328424493,
+        "max": 46.46839862547686,
+        "n": 300
+      },
+      "background_signed_mass_ratio": {
+        "mean": -79.35211841590399,
+        "median": -49.89214712436363,
+        "min": -553.5893784680787,
+        "max": -10.246963790392126,
+        "n": 300
+      },
+      "full_mass_ratio_nonnegative": {
+        "mean": 9.52492174237242,
+        "median": 7.337321999029032,
+        "min": 1.7658745273128722,
+        "max": 56.13637198910012,
+        "n": 300
+      },
+      "full_mass_ratio_signed": {
+        "mean": -74.67631556146712,
+        "median": -44.8297374362745,
+        "min": -541.3358840719036,
+        "max": -5.414758596778594,
+        "n": 300
+      },
+      "global_peak_ratio": {
+        "mean": 1.350168775394839,
+        "median": 1.2074326409541571,
+        "min": 0.7957267962498559,
+        "max": 3.015950281280894,
+        "n": 300
+      },
+      "mse_full_valid": {
+        "mean": 0.007589092847686768,
+        "median": 0.007308732786991788,
+        "min": 0.003207707081661626,
+        "max": 0.016827007596181342,
+        "n": 300
+      },
+      "negative_mass_magnitude_ratio": {
+        "mean": 84.20123730383953,
+        "median": 54.77893993475162,
+        "min": 12.936176513242325,
+        "max": 570.5796942978593,
+        "n": 300
+      },
+      "positive_background_fraction": {
+        "mean": 0.16415787787685207,
+        "median": 0.1607386504118688,
+        "min": 0.0220571135245472,
+        "max": 0.2907674241366577,
+        "n": 300
+      },
+      "relative_l2_full_valid": {
+        "mean": 5.034514584813544,
+        "median": 4.523838744020585,
+        "min": 1.7210345414615145,
+        "max": 17.7759166522356,
+        "n": 300
+      },
+      "signal_mass_ratio_signed": {
+        "mean": 4.792427685620158,
+        "median": 4.532718302915858,
+        "min": 0.9687528119150906,
+        "max": 15.447271631651336,
+        "n": 300
+      },
+      "signal_positive_mass_ratio": {
+        "mean": 4.715829920116508,
+        "median": 4.447282826916881,
+        "min": 1.1625543401462508,
+        "max": 15.052039487095854,
+        "n": 300
+      },
+      "signal_voxel_fraction": {
+        "mean": 0.005867914050151651,
+        "median": 0.005216836696678976,
+        "min": 0.0005400427384816216,
+        "max": 0.018339398382852153,
+        "n": 300
+      }
+    },
+    "exp_a_normalized": {
+      "background_positive_mass_ratio": {
+        "mean": 5.933532234761219,
+        "median": 3.559429430219082,
+        "min": 0.16629117590875256,
+        "max": 69.51501504214306,
+        "n": 300
+      },
+      "background_signed_mass_ratio": {
+        "mean": -95.56327856095379,
+        "median": -66.2500264821339,
+        "min": -575.566897948783,
+        "max": -13.839401842664484,
+        "n": 300
+      },
+      "full_mass_ratio_nonnegative": {
+        "mean": 11.794430341339684,
+        "median": 9.427384558660556,
+        "min": 2.266120249549335,
+        "max": 78.54389612855421,
+        "n": 300
+      },
+      "full_mass_ratio_signed": {
+        "mean": -89.75578877512048,
+        "median": -61.62199380635934,
+        "min": -568.6351965155109,
+        "max": -9.251409922216158,
+        "n": 300
+      },
+      "global_peak_ratio": {
+        "mean": 1.6855558955669403,
+        "median": 1.709959626197815,
+        "min": 1.3710227012634277,
+        "max": 1.7411621809005737,
+        "n": 300
+      },
+      "mse_full_valid": {
+        "mean": 0.007904025573047585,
+        "median": 0.007502460002436021,
+        "min": 0.0029036074013628174,
+        "max": 0.017484402875546406,
+        "n": 300
+      },
+      "negative_mass_magnitude_ratio": {
+        "mean": 101.55021911646017,
+        "median": 70.421417990163,
+        "min": 16.20508225986391,
+        "max": 595.9169727991539,
+        "n": 300
+      },
+      "positive_background_fraction": {
+        "mean": 0.16415787787685207,
+        "median": 0.1607386504118688,
+        "min": 0.0220571135245472,
+        "max": 0.2907674241366577,
+        "n": 300
+      },
+      "relative_l2_full_valid": {
+        "mean": 6.328830301048229,
+        "median": 5.901008611002423,
+        "min": 2.5896801739411535,
+        "max": 14.934638748558829,
+        "n": 300
+      },
+      "signal_mass_ratio_signed": {
+        "mean": 5.953615949229001,
+        "median": 5.796472213546801,
+        "min": 1.3262549700477957,
+        "max": 12.867694985077012,
+        "n": 300
+      },
+      "signal_positive_mass_ratio": {
+        "mean": 5.860898106578466,
+        "median": 5.709094017403557,
+        "min": 1.7157316267031912,
+        "max": 12.588645865124763,
+        "n": 300
+      },
+      "signal_voxel_fraction": {
+        "mean": 0.005867914050151651,
+        "median": 0.005216836696678976,
+        "min": 0.0005400427384816216,
+        "max": 0.018339398382852153,
+        "n": 300
+      }
+    },
+    "exp_b_normalized": {
+      "background_positive_mass_ratio": {
+        "mean": 9.201495810334006,
+        "median": 6.495639326713091,
+        "min": 1.2572898228469074,
+        "max": 50.34846763145079,
+        "n": 300
+      },
+      "background_signed_mass_ratio": {
+        "mean": 7.8920692872546505,
+        "median": 5.731093083701578,
+        "min": 0.7565399320636991,
+        "max": 47.62750250365583,
+        "n": 300
+      },
+      "full_mass_ratio_nonnegative": {
+        "mean": 10.715663961553826,
+        "median": 7.973852594538904,
+        "min": 2.179758709985391,
+        "max": 52.56865338475997,
+        "n": 300
+      },
+      "full_mass_ratio_signed": {
+        "mean": 9.401774308211813,
+        "median": 7.166804478717941,
+        "min": 1.768541208136854,
+        "max": 49.847688256965014,
+        "n": 300
+      },
+      "global_peak_ratio": {
+        "mean": 0.9216476251681646,
+        "median": 0.9207835793495178,
+        "min": 0.5780054330825806,
+        "max": 1.2274510860443115,
+        "n": 300
+      },
+      "mse_full_valid": {
+        "mean": 0.00024479421829253775,
+        "median": 0.00021855536611431735,
+        "min": 7.824623282669089e-05,
+        "max": 0.0006914632540413651,
+        "n": 300
+      },
+      "negative_mass_magnitude_ratio": {
+        "mean": 1.313889653342015,
+        "median": 0.822895391703448,
+        "min": 0.03978697246785273,
+        "max": 11.519230973094857,
+        "n": 300
+      },
+      "positive_background_fraction": {
+        "mean": 0.7584332779560345,
+        "median": 0.769388612559692,
+        "min": 0.49729818857658,
+        "max": 0.9696621246556204,
+        "n": 300
+      },
+      "relative_l2_full_valid": {
+        "mean": 1.1148062100716474,
+        "median": 1.017492905077563,
+        "min": 0.5056913545080296,
+        "max": 3.0736488457626367,
+        "n": 300
+      },
+      "signal_mass_ratio_signed": {
+        "mean": 1.547381407909555,
+        "median": 1.4386477945760783,
+        "min": 0.537768982662888,
+        "max": 3.3875102028086763,
+        "n": 300
+      },
+      "signal_positive_mass_ratio": {
+        "mean": 1.5141681512198202,
+        "median": 1.4079457028468343,
+        "min": 0.5309559068927382,
+        "max": 3.313521227252422,
+        "n": 300
+      },
+      "signal_voxel_fraction": {
+        "mean": 0.005867914050151651,
+        "median": 0.005216836696678976,
+        "min": 0.0005400427384816216,
+        "max": 0.018339398382852153,
+        "n": 300
+      }
+    }
+  },
+  "notes": {
+    "exp_a_scale": "raw continuous GT versus binary-trained prediction",
+    "exp_a_normalized_scale": "per-sample-peak normalized GT versus unchanged binary-trained prediction (the reported 5.95 convention)",
+    "exp_b_scale": "per-sample-peak normalized GT; physical rescaling requires unavailable GT peak",
+    "signal_definition": "GT > 1% of that case's peak",
+    "mass_denominator": "sum GT on the complete canonical valid FEM domain"
+  }
+}

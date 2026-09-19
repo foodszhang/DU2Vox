@@ -1,0 +1,17 @@
+{
+  "primary_claim_scope": "binary source-support space only",
+  "target": "gt_voxels > 0.05",
+  "domain": "0.2 mm GT voxel centers intersect complete FEM tetrahedral domain",
+  "n_samples": 3000,
+  "splits_unchanged": true,
+  "stage2_training_performed": false,
+  "experiment_f": "skipped: no verified matched coarse/default/fine meshes and reconstructions for this dataset",
+  "runtime_seconds": 4554.104652166367,
+  "numerical_gate_worst_absolute": {
+    "closure_rel": 4.9381168836198276e-17,
+    "orthogonality_cos": 1.5942815084978371e-15,
+    "pythagorean_rel": 5.4188725715579024e-15
+  },
+  "raw_intensity_is_sensitivity_only": true,
+  "legacy_cqr_is_historical_metric_restriction_only": true
+}

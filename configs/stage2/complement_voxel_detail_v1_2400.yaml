@@ -1,0 +1,56 @@
+experiment:
+  name: complement_voxel_detail_v1_2400
+
+runs_root: runs
+
+data:
+  samples_dir: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples
+  shared_dir: /home/foods/pro/FMT-SimGen/output/shared_mesh_20k
+  train_split: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/train.txt
+  val_split: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/val.txt
+  test_split: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/test.txt
+  operator_cache: experiments/cross_discretization_decomposition/artifacts/operator_cache
+  projection_targets_dir: precomputed/error_structured_projection_targets
+  v4_states_root: precomputed/complement_voxel_detail/v4_states
+  projection_file: proj.npz
+  projection_norm: per_view_max
+  projection_transform: none
+
+frozen_backbone:
+  config: configs/stage2/unified_dual_evidence_fem_v4_2400.yaml
+  checkpoint: runs/unified_dual_evidence_fem_v4_2400/checkpoints/best_dense_val_delta_dice.pth
+  expected_epoch: 15
+
+model:
+  coordinate_frequencies: 6
+  hidden_dim: 160
+  hidden_layers: 3
+  view_feat_dim: 32
+  chunk_size: 65536
+  boundary_temperature: 0.1
+
+training:
+  seed: 20260901
+  epochs: 5
+  lr: 1.0e-4
+  v4_cell_lr: 1.0e-5
+  weight_decay: 1.0e-5
+  grad_clip_norm: 1.0
+  amp_dtype: bf16
+  early_stopping_patience: 2
+
+loss:
+  smooth_l1_beta: 0.1
+  lambda_detail_l1: 1.0
+  lambda_detail_mse: 0.1
+  lambda_support: 0.1
+  # Used only by the validation-swept soft arm; hard/unconstrained ignore it.
+  lambda_coarse_soft: 0.001
+  soft_epsilon: 1.0e-12
+  support_temperature: 0.1
+  tversky_alpha: 0.5
+  tversky_beta: 0.5
+
+validation:
+  threshold: 0.5
+  dense_every: 1

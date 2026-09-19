@@ -1,0 +1,18 @@
+experiment:
+  name: lpr_continuous_tikhonov
+
+data:
+  dataset_root: /home/foods/pro/DU2Vox/data/lpr_continuous_gaussian_mixture_3k_20k
+  shared_dir: /home/foods/pro/FMT-SimGen/output/shared_mesh_20k
+  operator_cache: experiments/cross_discretization_decomposition/artifacts/operator_cache
+  train_split: /home/foods/pro/DU2Vox/data/lpr_continuous_gaussian_mixture_3k_20k/splits/train.txt
+  val_split: /home/foods/pro/DU2Vox/data/lpr_continuous_gaussian_mixture_3k_20k/splits/val.txt
+  test_split: /home/foods/pro/DU2Vox/data/lpr_continuous_gaussian_mixture_3k_20k/splits/test.txt
+
+solver:
+  iterations: 100
+  batch_size: 20
+  # alpha = alpha_relative * ||A||_2^2 / ||L||_2^2.
+  validation_candidates: [0.0001, 0.001, 0.01, 0.1]
+  selection_metric: ccc
+  power_iterations: 30

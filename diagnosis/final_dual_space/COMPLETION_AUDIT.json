@@ -1,0 +1,33 @@
+{
+  "complete": true,
+  "required_artifacts": [
+    "METHOD_SPEC.md",
+    "FINAL_CONFIG.json",
+    "VALIDATION_FREEZE.json",
+    "DEVELOPMENT_TEST_SUMMARY.json",
+    "ABLATION_SUMMARY.json",
+    "PAIRED_BOOTSTRAP.json",
+    "MODEL_PROVENANCE.json",
+    "CHECKPOINT_HASHES.json",
+    "FINAL_GO_NO_GO.md",
+    "casewise_metrics.csv",
+    "training_curves.csv",
+    "validation_model_selection.csv",
+    "ablation_figure.png",
+    "dice_paired_difference.png",
+    "detail_cosine_figure.png",
+    "coarse_preservation_figure.png"
+  ],
+  "formal_candidates": 8,
+  "train_validation_development_test": [
+    2400,
+    300,
+    300
+  ],
+  "paired_bootstrap_draws": 10000,
+  "hard_q": true,
+  "coarse_leakage": 4.501383807800251e-18,
+  "coarse_preservation_relative_l2": 8.772877938026587e-09,
+  "selected_method": "strong_sequential_concat_B4",
+  "sealed_confirmation_accessed": false
+}

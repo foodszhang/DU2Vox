@@ -1,0 +1,3 @@
+base_config: configs/stage2/information_audit/base.yaml
+experiment: {name: information_audit_a3}
+audit: {arm: A3}

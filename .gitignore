@@ -23,3 +23,9 @@ physics_cache/
 diagnosis/cqr_adjoint_evidence/
 diagnosis/cqr_gt_decomposition/
 .worktrees/
+# Generated cohorts (33 GB total: lpr 29 G, d1q 4.4 G). Regenerated from the
+# frozen generator configs; far beyond any GitHub file/repo limit, so they are
+# referenced by hash in the dataset freeze receipts instead of being committed.
+data/
+# Reasonix agent runtime state (task snapshots, event logs), not repository content.
+.reasonix/

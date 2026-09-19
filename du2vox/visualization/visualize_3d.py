@@ -53,22 +53,30 @@ def load_model_and_data(cfg):
     A = val_set.A.cuda()
     L = val_set.L.cuda()
     L0, L1, L2, L3 = (
-        val_set.L0.cuda(), val_set.L1.cuda(),
-        val_set.L2.cuda(), val_set.L3.cuda(),
+        val_set.L0.cuda(),
+        val_set.L1.cuda(),
+        val_set.L2.cuda(),
+        val_set.L3.cuda(),
     )
     knn_idx = val_set.knn_idx.cuda()
     sens_w = val_set.sens_w.cuda()
 
     model = GCAIN_full(
-        L=L, A=A, L0=L0, L1=L1, L2=L2, L3=L3,
-        knn_idx=knn_idx, sens_w=sens_w,
+        L=L,
+        A=A,
+        L0=L0,
+        L1=L1,
+        L2=L2,
+        L3=L3,
+        knn_idx=knn_idx,
+        sens_w=sens_w,
         num_layer=model_cfg["num_layer"],
         feat_dim=model_cfg["feat_dim"],
+        physics_evidence=model_cfg.get("physics_evidence", "raw"),
+        profiled_evidence_rms=model_cfg.get("profiled_evidence_rms", 0.05),
     ).cuda()
 
-    ckpt = torch.load(
-        paths_cfg.get("checkpoint", "checkpoints/best.pth"), map_location="cuda"
-    )
+    ckpt = torch.load(paths_cfg.get("checkpoint", "checkpoints/best.pth"), map_location="cuda")
     if "model_state_dict" in ckpt:
         model.load_state_dict(ckpt["model_state_dict"])
         epoch = ckpt.get("epoch", "?")
@@ -92,14 +100,14 @@ def load_model_and_data(cfg):
 def build_tet_mesh(nodes, elements, scalars=None, name="value"):
     """Build PyVista UnstructuredGrid from tet mesh."""
     n_tets = elements.shape[0]
-    cells = np.hstack([
-        np.full((n_tets, 1), 4, dtype=elements.dtype),
-        elements,
-    ]).ravel()
+    cells = np.hstack(
+        [
+            np.full((n_tets, 1), 4, dtype=elements.dtype),
+            elements,
+        ]
+    ).ravel()
     celltypes = np.full(n_tets, pv.CellType.TETRA, dtype=np.uint8)
-    grid = pv.UnstructuredGrid(
-        cells, celltypes, nodes.astype(np.float64)
-    )
+    grid = pv.UnstructuredGrid(cells, celltypes, nodes.astype(np.float64))
     if scalars is not None:
         grid.point_data[name] = scalars
     return grid
@@ -110,9 +118,7 @@ def get_body_wireframe(nodes, elements, tissue_labels):
     # 用所有非背景单元
     elem_labels = np.zeros(elements.shape[0], dtype=int)
     for i, tet in enumerate(elements):
-        vals, counts = np.unique(
-            tissue_labels[tet], return_counts=True
-        )
+        vals, counts = np.unique(tissue_labels[tet], return_counts=True)
         elem_labels[i] = vals[counts.argmax()]
 
     mask = elem_labels > 0  # 所有非背景
@@ -127,9 +133,7 @@ def get_organ_surfaces(nodes, elements, tissue_labels, organ_ids):
     """提取指定器官的外表面."""
     elem_labels = np.zeros(elements.shape[0], dtype=int)
     for i, tet in enumerate(elements):
-        vals, counts = np.unique(
-            tissue_labels[tet], return_counts=True
-        )
+        vals, counts = np.unique(tissue_labels[tet], return_counts=True)
         elem_labels[i] = vals[counts.argmax()]
 
     surfaces = {}
@@ -138,17 +142,21 @@ def get_organ_surfaces(nodes, elements, tissue_labels, organ_ids):
         if mask.sum() < 10:
             continue
         sub = build_tet_mesh(nodes, elements[mask])
-        surf = sub.extract_surface().smooth(
-            n_iter=20, relaxation_factor=0.1
-        )
+        surf = sub.extract_surface().smooth(n_iter=20, relaxation_factor=0.1)
         if surf.n_points > 0:
             surfaces[oid] = surf
     return surfaces
 
 
 def add_scene_to_subplot(
-    plotter, nodes, elements, tissue_labels,
-    values, title, body_surf, organ_surfs,
+    plotter,
+    nodes,
+    elements,
+    tissue_labels,
+    values,
+    title,
+    body_surf,
+    organ_surfs,
     clim=(0.0, 1.0),
     iso_levels=None,
 ):
@@ -166,15 +174,17 @@ def add_scene_to_subplot(
     # ── 关键器官：极淡半透明 surface ──
     ORGAN_STYLE = {
         # id: (color, opacity)
-        3: ((0.6, 0.8, 1.0), 0.08),   # lung - 淡蓝
-        4: ((0.9, 0.3, 0.3), 0.12),   # heart - 淡红
-        5: ((0.55, 0.25, 0.15), 0.10), # liver - 深棕
-        6: ((0.7, 0.4, 0.3), 0.10),   # kidney - 棕
+        3: ((0.6, 0.8, 1.0), 0.08),  # lung - 淡蓝
+        4: ((0.9, 0.3, 0.3), 0.12),  # heart - 淡红
+        5: ((0.55, 0.25, 0.15), 0.10),  # liver - 深棕
+        6: ((0.7, 0.4, 0.3), 0.10),  # kidney - 棕
     }
     for oid, surf in organ_surfs.items():
         style = ORGAN_STYLE.get(oid, ((0.5, 0.5, 0.5), 0.06))
         plotter.add_mesh(
-            surf, color=style[0], opacity=style[1],
+            surf,
+            color=style[0],
+            opacity=style[1],
             smooth_shading=True,
         )
 
@@ -243,7 +253,7 @@ def add_scene_to_subplot(
     # ── Tecplot 风格深色背景 ──
     plotter.set_background(
         color=(0.12, 0.12, 0.18),  # 深蓝灰
-        top=(0.22, 0.22, 0.30),    # 顶部稍亮 → 渐变
+        top=(0.22, 0.22, 0.30),  # 顶部稍亮 → 渐变
     )
 
 
@@ -263,19 +273,25 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="configs/stage1/gcain_full.yaml")
     parser.add_argument(
-        "--n_samples", type=int, default=4,
+        "--n_samples",
+        type=int,
+        default=4,
         help="Number of val samples to visualize",
     )
     parser.add_argument(
-        "--interactive", action="store_true",
+        "--interactive",
+        action="store_true",
         help="Open interactive window (needs display)",
     )
     parser.add_argument(
-        "--foci_balance", action="store_true",
+        "--foci_balance",
+        action="store_true",
         help="Select balanced samples from each foci type (1/2/3-foci)",
     )
     parser.add_argument(
-        "--checkpoint", type=str, default="checkpoints/best.pth",
+        "--checkpoint",
+        type=str,
+        default="checkpoints/best.pth",
     )
     args = parser.parse_args()
 
@@ -292,9 +308,7 @@ def main():
     nodes_np = val_set.nodes.numpy()
     n_nodes = nodes_np.shape[0]
 
-    mesh_data = np.load(
-        Path(cfg["paths"]["shared_dir"]) / "mesh.npz"
-    )
+    mesh_data = np.load(Path(cfg["paths"]["shared_dir"]) / "mesh.npz")
     elements = mesh_data["elements"]
     tissue_labels = mesh_data["tissue_labels"]
 
@@ -308,16 +322,18 @@ def main():
     print("Extracting body wireframe and organ surfaces...")
     body_surf = get_body_wireframe(nodes_np, elements, tissue_labels)
     organ_surfs = get_organ_surfaces(
-        nodes_np, elements, tissue_labels,
+        nodes_np,
+        elements,
+        tissue_labels,
         organ_ids=[3, 4, 5, 6],  # lung, heart, liver, kidney
     )
 
     # 相机预设（名称, camera_position）
     camera_angles = [
-        ("side",  "xz"),
+        ("side", "xz"),
         ("front", "yz"),
-        ("top",   "xy"),
-        ("iso",   [(80, 120, 60), (19, 50, 10), (0, 0, 1)]),
+        ("top", "xy"),
+        ("iso", [(80, 120, 60), (19, 50, 10), (0, 0, 1)]),
     ]
 
     # Build index mapping for balanced foci selection
@@ -333,7 +349,7 @@ def main():
         balanced_indices = []
         for n in [1, 2, 3]:
             balanced_indices.extend(foci_indices[n][:per_foci])
-        balanced_indices = sorted(balanced_indices)[:args.n_samples]
+        balanced_indices = sorted(balanced_indices)[: args.n_samples]
         print(f"\nBalanced foci selection: {per_foci} samples each from 1/2/3-foci types")
     else:
         balanced_indices = list(range(min(args.n_samples, len(val_names))))
@@ -379,7 +395,7 @@ def main():
             f"{sample_name}{foci_label}: "
             f"Dice={dice:.3f} Recall={recall:.3f} "
             f"Prec={prec:.3f} "
-            f"GT>0.1={( gt_np > 0.1).sum()} "
+            f"GT>0.1={(gt_np > 0.1).sum()} "
             f"Pred>0.3={(pred_np > 0.3).sum()} "
             f"pred_max={pred_np.max():.3f}"
         )
@@ -400,7 +416,10 @@ def main():
             # ── Left: Ground Truth ──
             pl.subplot(0, 0)
             add_scene_to_subplot(
-                pl, nodes_np, elements, tissue_labels,
+                pl,
+                nodes_np,
+                elements,
+                tissue_labels,
                 gt_np,
                 title=f"{sample_name}{foci_label} | GT",
                 body_surf=body_surf,
@@ -411,7 +430,10 @@ def main():
             # ── Right: Prediction ──
             pl.subplot(0, 1)
             add_scene_to_subplot(
-                pl, nodes_np, elements, tissue_labels,
+                pl,
+                nodes_np,
+                elements,
+                tissue_labels,
                 pred_np,
                 title=f"{sample_name}{foci_label} | Pred | Dice={dice:.3f}",
                 body_surf=body_surf,
@@ -430,11 +452,10 @@ def main():
                 pl.show()
                 break
             else:
-                foci_suffix = f"_{n_foci}f" if manifest and sample_name in manifest["samples"] else ""
-                out_path = (
-                    out_dir
-                    / f"{sample_name}{foci_suffix}_{angle_name}.png"
+                foci_suffix = (
+                    f"_{n_foci}f" if manifest and sample_name in manifest["samples"] else ""
                 )
+                out_path = out_dir / f"{sample_name}{foci_suffix}_{angle_name}.png"
                 pl.screenshot(
                     str(out_path),
                     transparent_background=False,
@@ -442,14 +463,14 @@ def main():
                 pl.close()
 
     # ── 打印汇总 ──
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"完成！输出目录: {out_dir}/")
     print(f"每个样本 × 4 角度 = {args.n_samples * 4} 张对比图")
     print(f"文件格式: <sample>_<side|front|top|iso>.png")
     print(f"  左半 = Ground Truth (GT)")
     print(f"  右半 = Prediction (Pred)")
     print(f"  colormap = jet [0, 1]")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,46 @@
+{
+  "status": "passed",
+  "formula": {
+    "pi_h": "(P^T W P)^-1 P^T W",
+    "i_h": "P",
+    "p_h": "I_h Pi_h",
+    "q": "I - P_h",
+    "w": "0.0080000000000000019 I",
+    "production_equivalence": "W=wI, so scalar w cancels and Pi_h=(P^T P)^-1 P^T"
+  },
+  "scope": "fixed uniform 0.2-mm GT-center samples inside the certified FEM domain",
+  "domain": {
+    "definition": "0.2 mm GT voxel centers intersect complete FEM tetrahedral domain",
+    "grid_shape": [
+      190,
+      200,
+      104
+    ],
+    "spacing_mm": 0.2,
+    "valid_voxels": 1677645,
+    "fem_nodes": 19990,
+    "quadrature_weight_mm3": 0.008000000000000002
+  },
+  "operator_cache_sha256": {
+    "P_full_fem_gt_centers.npz": "e70c135c7e67a58427a4c956e35cd5e115884f7eecc64bb58081f20ffcfbc742",
+    "domain_arrays.npz": "1fc5bed7ca1708f42e9c4786b94583232d1c0305f4fc11715dd68f8bc584494b",
+    "operator_metadata.json": "9258b9dcec6ba2f65dd72a4679378a0b2d49b858ff3a2c6a895551d5cb9a4899"
+  },
+  "errors": {
+    "pi_h_i_h_relative_l2": 1.5243097392954918e-15,
+    "p_h_idempotence_relative_l2": 1.332608285420191e-15,
+    "q_idempotence_relative_l2": 1.5837161454170764e-16,
+    "p_h_weighted_self_adjoint_relative": 8.372793289837539e-15,
+    "p_h_q_relative_l2": 1.543138596494196e-16,
+    "pi_h_q_relative_l2": 3.2238479761816297e-17,
+    "weighted_pythagorean_relative": 1.3562921101035213e-16,
+    "final_coarse_preservation_relative_l2": 1.5443393461013807e-15
+  },
+  "tolerance": 1e-12,
+  "limitations": [
+    "Certified only for this fixed uniformly weighted sampled domain.",
+    "This is not a continuous-domain orthogonality claim.",
+    "A nonuniform grid requires retaining W explicitly in production."
+  ],
+  "confirmation_data_used": false
+}

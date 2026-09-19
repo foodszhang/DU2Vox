@@ -1,0 +1,100 @@
+# V4 FEM corrector for the user-selected MCX-canonical normalized D1-Q benchmark.
+experiment:
+  name: d1q_mcx_canonical_v4_2400
+
+runs_root: runs
+
+data:
+  dataset_root: /home/foods/pro/DU2Vox/data/d1q_mcx_canonical_3k_20k
+  dataset_receipt: diagnosis/d1q_mcx_canonical_dataset_freeze.json
+  samples_dir: /home/foods/pro/DU2Vox/data/d1q_mcx_canonical_3k_20k/samples
+  shared_dir: /home/foods/pro/FMT-SimGen/output/shared_mesh_20k
+  # Re-certified 2026-09-16 (Gate 0.5); see the LPR V4 config for the audit
+  # summary. The pin is enforced, not bypassed.
+  allow_stale_frame_manifest: false
+  frame_manifest_sha256: a89d36a52cc0d33e4764f6a65056a2dfa7fbe9fa55ed3458c0beb84d5ba31ee3
+  train_split: /home/foods/pro/DU2Vox/data/d1q_mcx_canonical_3k_20k/splits/train.txt
+  val_split: /home/foods/pro/DU2Vox/data/d1q_mcx_canonical_3k_20k/splits/val.txt
+  test_split: /home/foods/pro/DU2Vox/data/d1q_mcx_canonical_3k_20k/splits/test.txt
+  train_bridge_dir: output/bridge_d1q_mcx_canonical_train
+  val_bridge_dir: output/bridge_d1q_mcx_canonical_val
+  test_bridge_dir: output/bridge_d1q_mcx_canonical_test
+  operator_cache: experiments/cross_discretization_decomposition/artifacts/operator_cache
+  # Intentionally absent until code-only pause ends. The older directory without
+  # _v2 used a valid-domain peak and is rejected by the metadata contract.
+  projection_targets_dir: precomputed/d1q_mcx_canonical_projection_targets_v2
+  normalize_b: true
+  measurement_operator_scaling: matched_gt_measurement
+  use_visible_mask: false
+  projection_file: proj.npz
+  projection_norm: per_view_max
+  projection_transform: none
+  gt_mode: continuous
+  normalize_gt: per_sample_peak
+  normalization_scale_filename: gt_scale.npy
+  binary_threshold: 0.05
+  signal_query_fraction: 0.5
+  data_range: 1.0
+
+model:
+  variant: unified_dual_evidence_v4
+  iterations: 3
+  hidden_dim: 144
+  context_blocks: 2
+  max_neural_update: 0.25
+  max_dc_update: 0.1
+  view_encoder: true
+  view_feat_dim: 32
+  fusion_method: attn
+  encoder_base_channels: 32
+  encoder_out_channels: 32
+  view_projection_transform: none
+  view_multiscale:
+    enabled: true
+    scales: [s1, s2, s3]
+    hidden_dim: 64
+
+training:
+  seed: 20260915
+  n_query_points: 8192
+  batch_size: 4
+  num_workers: 4
+  amp: true
+  amp_dtype: bf16
+  lr: 1.0e-4
+  weight_decay: 1.0e-5
+  grad_clip_norm: 1.0
+  epochs: 50
+  early_stopping_patience: 4
+  initialization_checkpoint: runs/scale_calibrated_proximal_fem_v3_2400/checkpoints/best_dense_val_delta_dice.pth
+
+loss:
+  step_weights: [0.25, 0.5, 1.0]
+  lambda_final_state: 1.0
+  lambda_deep_supervision: 0.5
+  lambda_projected: 0.0
+  lambda_cosine: 0.0
+  lambda_support: 0.0
+  # Peak-relative support (see the LPR V4 config). Under this cohort's
+  # per_sample_peak target the peak is 1, so this coincides with the old absolute
+  # 0.5 -- declaring it keeps one explicit contract across both cohorts.
+  support_fraction: 0.5
+  support_temperature: 0.1
+  tversky_alpha: 0.5
+  tversky_beta: 0.5
+  lambda_data_consistency: 0.05
+  residual_target_ratio: 1.1
+  lambda_voxel_mse: 0.0
+  lambda_voxel_relative_l2: 0.0
+  lambda_field_cosine: 0.0
+  lambda_peak: 0.0
+  lambda_voxel_global_mse: 1.0
+  lambda_voxel_source_mse: 1.0
+  # Non-negativity prior on the final voxel field only; same contract as the LPR
+  # V4 config. This cohort's nodal reference state is also ~50% negative, so the
+  # same physical-admissibility prior applies.
+  lambda_negativity: 1.0
+
+validation:
+  dense_interval: 5
+  selection_metric: step3_field_ccc

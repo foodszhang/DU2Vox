@@ -1,0 +1,70 @@
+# Direct retrained-Stage1 -> canonical P1 -> exact hard-Q voxel detail.
+# It depends only on the frozen Stage1 bridge and canonical cross-discretization.
+experiment:
+  name: stage1_hard_q_seed20260901
+
+runs_root: runs
+
+data:
+  samples_dir: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples
+  shared_dir: /home/foods/pro/FMT-SimGen/output/shared_mesh_20k
+  allow_stale_frame_manifest: true
+  frame_manifest_sha256: 25b77f5d11430ebf4d9735f19534782afb56f7fe5cab525a569028b0f3c02e2b
+  train_split: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/train.txt
+  val_split: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/val.txt
+  test_split: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/test.txt
+  operator_cache: experiments/cross_discretization_decomposition/artifacts/operator_cache
+  projection_targets_dir: precomputed/error_structured_projection_targets
+  projection_file: proj.npz
+  projection_norm: per_view_max
+  projection_transform: none
+
+coarse_source:
+  type: stage1_bridge
+  train_bridge_dir: output/bridge_stage1_retrain_2400_train
+  val_bridge_dir: output/bridge_stage1_retrain_2400_val
+  test_bridge_dir: output/bridge_stage1_retrain_2400_test
+  checkpoint: runs/stage1_fmt_simgen_v2_3k_20k_retrain_2400_seed20260901/checkpoints/best_dice05.pth
+  checkpoint_sha256: 148ea58a2147d4889646069d1ef65e291ec5affea191cfaf280f71f7376932ec
+  expected_epoch: 122
+  expected_dtype: float32
+
+model:
+  coordinate_frequencies: 6
+  hidden_dim: 160
+  hidden_layers: 3
+  view_encoder: true
+  use_views: false
+  train_view_encoder: true
+  view_feat_dim: 32
+  fusion_method: attn
+  encoder_base_channels: 32
+  encoder_out_channels: 32
+  view_projection_transform: none
+  view_multiscale:
+    enabled: false
+  chunk_size: 65536
+  boundary_temperature: 0.1
+
+training:
+  seed: 20260901
+  epochs: 5
+  lr: 1.0e-4
+  weight_decay: 1.0e-5
+  grad_clip_norm: 1.0
+  amp_dtype: bf16
+  early_stopping_patience: 5
+  max_peak_gpu_gib: 16
+
+loss:
+  smooth_l1_beta: 0.1
+  lambda_detail_l1: 1.0
+  lambda_detail_mse: 0.1
+  lambda_support: 0.1
+  support_temperature: 0.1
+  tversky_alpha: 0.5
+  tversky_beta: 0.5
+
+validation:
+  threshold: 0.5
+  dense_every: 1

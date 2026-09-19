@@ -1,0 +1,26 @@
+{
+  "git_head": "46f650d41d4938aa700c7e637a14e074072fce8d",
+  "git_branch": "exp/p0-weighted-soft-joint",
+  "working_tree_dirty": true,
+  "selected_config": "/home/foods/pro/DU2Vox/configs/stage2/information_audit/a2.yaml",
+  "selected_config_sha256": "1340523d7f80dd4c9d6cf2823871e8dc7dfe70b55b6fe3e2239992378f26f4d5",
+  "selected_checkpoint": "/home/foods/pro/DU2Vox/runs/information_audit_a2/checkpoints/best_dense_val_dice.pth",
+  "selected_method": "strong_sequential_concat_B4",
+  "evaluated_cst_checkpoint": "/home/foods/pro/DU2Vox/runs/cst_d128_g16_l3_one_ring_formal/checkpoints/best_dense_val_dice.pth",
+  "checkpoint_hashes": {
+    "stage1": "f3c8fb07007b822312ada67a8f3325ff49a4f2344fa8ebf110e954ba9a6e73d3",
+    "v4": "bceef34e8cf49ffcf777dadaa59514681abddf46836c2a2d7a4b2120f95d2b02",
+    "b4": "b5412a446cda0a0ccfd4db4a3b332fcd7e33072a3f974854c8ca7a2d3a137699",
+    "selected_final": "b5412a446cda0a0ccfd4db4a3b332fcd7e33072a3f974854c8ca7a2d3a137699",
+    "evaluated_cst": "005183d331c4e0bf2ed9163e7933e2f4765aac7ce5799a8ac9cd55b8ec9c80e1"
+  },
+  "operator": "certified analytic P1 / sampled-L2 Pi_h / exact FP64 hard-Q",
+  "split_counts": {
+    "train": 2400,
+    "validation": 300,
+    "development_test": 300
+  },
+  "seed": 20260901,
+  "threshold": 0.5,
+  "confirmation_data_used": false
+}

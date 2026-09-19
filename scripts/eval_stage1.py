@@ -21,7 +21,9 @@ from du2vox.models.stage1.gcain import GCAIN_full
 from du2vox.data.dataset import FMTSimGenDataset
 from du2vox.evaluation.metrics import evaluate_batch, summarize_metrics
 from du2vox.evaluation.per_foci import (
-    load_manifest, get_sample_names, grouped_evaluation,
+    load_manifest,
+    get_sample_names,
+    grouped_evaluation,
 )
 
 
@@ -67,13 +69,20 @@ def evaluate(
     ATA = torch.matmul(A.t(), A).cuda()
 
     model = GCAIN_full(
-        L=L, A=A,
-        LTL=LTL, ATA=ATA,
-        L0=L0, L1=L1, L2=L2, L3=L3,
+        L=L,
+        A=A,
+        LTL=LTL,
+        ATA=ATA,
+        L0=L0,
+        L1=L1,
+        L2=L2,
+        L3=L3,
         knn_idx=knn_idx,
         sens_w=sens_w,
         num_layer=model_cfg["num_layer"],
         feat_dim=model_cfg["feat_dim"],
+        physics_evidence=model_cfg.get("physics_evidence", "raw"),
+        profiled_evidence_rms=model_cfg.get("profiled_evidence_rms", 0.05),
     ).cuda()
 
     checkpoint = torch.load(checkpoint_path, map_location="cuda")

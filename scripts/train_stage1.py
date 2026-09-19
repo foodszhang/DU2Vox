@@ -10,15 +10,21 @@ Usage:
 
 import argparse
 import os
+import random
 import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
 
 import yaml
+import numpy as np
 import torch
 from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import CosineAnnealingLR, CosineAnnealingWarmRestarts, ReduceLROnPlateau
+from torch.optim.lr_scheduler import (
+    CosineAnnealingLR,
+    CosineAnnealingWarmRestarts,
+    ReduceLROnPlateau,
+)
 
 from du2vox.models.stage1.gcain import GCAIN_full
 from du2vox.data.dataset import FMTSimGenDataset
@@ -29,9 +35,26 @@ from du2vox.evaluation.metrics import evaluate_batch, summarize_metrics
 def compute_loss(pred, gt, nodes, loss_cfg):
     """Select loss function based on loss.type config."""
     loss_type = loss_cfg.get("type", "uniform")
+    if loss_type == "continuous_field":
+        squared = (pred - gt).square()
+        source = gt > float(loss_cfg.get("source_threshold", 0.0))
+        reduce_dims = tuple(range(1, squared.ndim))
+        source_count = source.sum(dim=reduce_dims).clamp_min(1)
+        source_mse = (squared * source).sum(dim=reduce_dims) / source_count
+        global_mse = squared.mean(dim=reduce_dims)
+        relative_l2 = torch.linalg.vector_norm(
+            (pred - gt).flatten(1), dim=1
+        ) / torch.linalg.vector_norm(gt.flatten(1), dim=1).clamp_min(1e-8)
+        return (
+            float(loss_cfg.get("source_mse_weight", 1.0)) * source_mse.mean()
+            + float(loss_cfg.get("global_mse_weight", 1.0)) * global_mse.mean()
+            + float(loss_cfg.get("relative_l2_weight", 0.0)) * relative_l2.mean()
+        )
     if loss_type == "gaussian":
         return criterion_gaussian(
-            pred, gt, nodes,
+            pred,
+            gt,
+            nodes,
             weight_tversky=loss_cfg.get("tversky_weight", 0.5),
             weight_mse=loss_cfg.get("mse_weight", 0.2),
             weight_core=loss_cfg.get("core_weight", 0.3),
@@ -41,7 +64,9 @@ def compute_loss(pred, gt, nodes, loss_cfg):
         )
     if loss_type == "support":
         return criterion_support(
-            pred, gt, nodes,
+            pred,
+            gt,
+            nodes,
             weight_tversky=loss_cfg.get("tversky_weight", 0.5),
             weight_bce=loss_cfg.get("bce_weight", 0.3),
             weight_mse=loss_cfg.get("mse_weight", 0.2),
@@ -49,7 +74,9 @@ def compute_loss(pred, gt, nodes, loss_cfg):
             tversky_beta=loss_cfg.get("tversky_beta", 0.7),
         )
     return criterion(
-        pred, gt, nodes,
+        pred,
+        gt,
+        nodes,
         weight_tversky=loss_cfg.get("tversky_weight", 0.7),
         weight_mse=loss_cfg.get("mse_weight", 0.3),
         tversky_alpha=loss_cfg.get("tversky_alpha", 0.1),
@@ -80,16 +107,42 @@ def load_config(path: str | Path) -> dict:
         return yaml.safe_load(f)
 
 
+def seed_all(seed: int) -> None:
+    """Seed Stage-1 training and its shuffled data order."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+
 def build_activation_fn(activation: str, leaky_slope: float):
     """Return a callable that applies the configured output activation."""
     if activation == "sigmoid":
         return lambda x: torch.sigmoid(x)
+    elif activation == "softplus":
+        return lambda x: torch.nn.functional.softplus(x, beta=5.0)
+    elif activation == "leaky_relu_unbounded":
+        return lambda x: torch.nn.functional.leaky_relu(x, negative_slope=leaky_slope)
     elif activation == "leaky_relu":
+
         def fn(x):
             return torch.nn.functional.leaky_relu(x, negative_slope=leaky_slope).clamp(max=1.0)
+
         return fn
     else:
         return lambda x: x.clamp(min=0.0, max=1.0)
+
+
+def validate_training_contract(cfg: dict) -> None:
+    """Reject a dead-gradient output for sparse continuous targets."""
+    loss_type = cfg.get("loss", {}).get("type", "uniform")
+    activation = cfg.get("training", {}).get("activation", "clamp")
+    if loss_type == "continuous_field" and activation in {"clamp", "relu"}:
+        raise ValueError(
+            "continuous_field training cannot use hard clamp/ReLU: an "
+            "all-negative raw output becomes an absorbing all-zero solution. "
+            "Use leaky_relu_unbounded or softplus."
+        )
 
 
 def build_scheduler(sched_cfg: dict, optimizer):
@@ -124,7 +177,9 @@ def metric_improved(metric: str, current: float, best: float) -> bool:
     return current > best
 
 
-def save_checkpoint(path: Path, epoch: int, model, optimizer, scheduler, best_metrics: dict, primary_metric: str) -> None:
+def save_checkpoint(
+    path: Path, epoch: int, model, optimizer, scheduler, best_metrics: dict, primary_metric: str
+) -> None:
     torch.save(
         {
             "epoch": epoch,
@@ -143,19 +198,28 @@ def save_checkpoint(path: Path, epoch: int, model, optimizer, scheduler, best_me
 def train():
     parser = argparse.ArgumentParser(description="MS-GDUN training for FMT-SimGen")
     parser.add_argument(
-        "--config", type=str, required=True,
+        "--config",
+        type=str,
+        required=True,
     )
     parser.add_argument(
-        "--resume", type=str, default=None,
+        "--resume",
+        type=str,
+        default=None,
     )
+    parser.add_argument("--max_epochs", type=int)
+    parser.add_argument("--max_samples", type=int)
+    parser.add_argument("--experiment_name")
     parser.add_argument(
-        "--resume_weights_only", action="store_true",
+        "--resume_weights_only",
+        action="store_true",
         help="Load only model weights from --resume and reset optimizer/scheduler/best metrics.",
     )
     args = parser.parse_args()
 
     # ── Load config ──
     cfg = load_config(args.config)
+    validate_training_contract(cfg)
 
     exp_cfg = cfg["experiment"]
     data_cfg = cfg["data"]
@@ -163,9 +227,12 @@ def train():
     train_cfg = cfg["training"]
     loss_cfg = cfg["loss"]
     log_cfg = cfg.get("logging", {})
+    seed = int(train_cfg.get("seed", 20260901))
+    seed_all(seed)
 
     # ── Experiment output directory ──
-    run_dir = Path("runs") / exp_cfg["name"]
+    experiment_name = args.experiment_name or exp_cfg["name"]
+    run_dir = Path("runs") / experiment_name
     checkpoint_dir = run_dir / "checkpoints"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
@@ -180,7 +247,7 @@ def train():
     print(f"[LOG] Logging to {log_path}")
     print(f"[LOG] Started at {datetime.now().isoformat()}")
     print(f"[LOG] Config: {args.config}")
-    print(f"[LOG] Experiment: {exp_cfg['name']}")
+    print(f"[LOG] Experiment: {experiment_name}")
     print(f"[LOG] Output dir: {run_dir}")
 
     # ── Data paths ──
@@ -196,9 +263,11 @@ def train():
         normalize_b=data_cfg.get("normalize_b", True),
         normalize_gt=data_cfg.get("normalize_gt", True),
         normalize_gt_mode=data_cfg.get("normalize_gt_mode", "per_sample"),
+        normalize_gt_scale_filename=data_cfg.get("normalize_gt_scale_filename", "gt_scale.npy"),
         binarize_gt=data_cfg.get("binarize_gt", False),
         binarize_threshold=data_cfg.get("binarize_threshold", 0.05),
         use_visible_mask=data_cfg.get("use_visible_mask", False),
+        max_samples=args.max_samples,
     )
     val_set = FMTSimGenDataset(
         shared_dir=None,
@@ -207,8 +276,10 @@ def train():
         normalize_b=data_cfg.get("normalize_b", True),
         normalize_gt=data_cfg.get("normalize_gt", True),
         normalize_gt_mode=data_cfg.get("normalize_gt_mode", "per_sample"),
+        normalize_gt_scale_filename=data_cfg.get("normalize_gt_scale_filename", "gt_scale.npy"),
         binarize_gt=data_cfg.get("binarize_gt", False),
         binarize_threshold=data_cfg.get("binarize_threshold", 0.05),
+        max_samples=args.max_samples,
         shared=train_set,
     )
 
@@ -216,6 +287,7 @@ def train():
         train_set,
         batch_size=train_cfg.get("batch_size", 2),
         shuffle=True,
+        generator=torch.Generator().manual_seed(seed),
     )
     val_loader = DataLoader(
         val_set,
@@ -229,6 +301,7 @@ def train():
     print(f"Shared assets: {n_nodes} nodes, {n_surface} surface nodes")
     print(f"A shape: {tuple(train_set.A.shape)}, first b shape: {tuple(train_set.b_list[0].shape)}")
     print(f"visible_mask applied: {train_set.visible_mask is not None}")
+    print(f"Training seed: {seed}")
     assert train_set.b_list[0].shape[0] == train_set.A.shape[0]
 
     # ── Move shared assets to GPU ──
@@ -247,12 +320,20 @@ def train():
 
     # ── Model ──
     model = GCAIN_full(
-        L=L, A=A, LTL=None, ATA=None,
-        L0=L0, L1=L1, L2=L2, L3=L3,
+        L=L,
+        A=A,
+        LTL=None,
+        ATA=None,
+        L0=L0,
+        L1=L1,
+        L2=L2,
+        L3=L3,
         knn_idx=knn_idx,
         sens_w=sens_w,
         num_layer=model_cfg["num_layer"],
         feat_dim=model_cfg["feat_dim"],
+        physics_evidence=model_cfg.get("physics_evidence", "raw"),
+        profiled_evidence_rms=model_cfg.get("profiled_evidence_rms", 0.05),
     ).cuda()
 
     n_params = sum(p.numel() for p in model.parameters())
@@ -299,8 +380,12 @@ def train():
             if not args.resume_weights_only:
                 start_epoch = ckpt.get("epoch", 0) + 1
                 best_metrics.update(ckpt.get("best_metrics", {}))
-                best_metrics["val_loss"] = min(best_metrics["val_loss"], ckpt.get("best_val_loss", float("inf")))
-                best_metrics["dice_bin_0.3"] = max(best_metrics["dice_bin_0.3"], ckpt.get("best_dice", 0.0))
+                best_metrics["val_loss"] = min(
+                    best_metrics["val_loss"], ckpt.get("best_val_loss", float("inf"))
+                )
+                best_metrics["dice_bin_0.3"] = max(
+                    best_metrics["dice_bin_0.3"], ckpt.get("best_dice", 0.0)
+                )
         else:
             model.load_state_dict(ckpt)
             start_epoch = 1
@@ -311,10 +396,19 @@ def train():
 
     # ── Training loop config ──
     max_epochs = train_cfg["max_epochs"]
+    if args.max_epochs is not None:
+        max_epochs = min(max_epochs, args.max_epochs)
     grad_clip_norm = train_cfg.get("grad_clip_norm", 1.0)
     diag_epochs = log_cfg.get("diag_epochs", 3)
     detail_every = log_cfg.get("detail_every", 10)
     milestone_every = log_cfg.get("milestone_every", 50)
+    early_cfg = train_cfg.get("early_stopping")
+    early_patience = (
+        int(early_cfg["patience"])
+        if isinstance(early_cfg, dict) and "patience" in early_cfg
+        else None
+    )
+    primary_stale_epochs = 0
 
     # CSV header
     print(
@@ -347,9 +441,11 @@ def train():
                         if p.grad is not None
                     ]
                     total_grad = sum(g for _, g in grad_norms)
-                    print(f"  [DIAG] total_grad_norm={total_grad:.6f}, "
-                          f"pred: min={pred.min():.4f} max={pred.max():.4f} "
-                          f"mean={pred.mean():.4f} std={pred.std():.4f}")
+                    print(
+                        f"  [DIAG] total_grad_norm={total_grad:.6f}, "
+                        f"pred: min={pred.min():.4f} max={pred.max():.4f} "
+                        f"mean={pred.mean():.4f} std={pred.std():.4f}"
+                    )
                     if total_grad == 0:
                         print("  [FATAL] gradient all-zero!")
                         break
@@ -428,7 +524,9 @@ def train():
 
             # ── Save latest ──
             latest_path = checkpoint_dir / "latest.pth"
-            save_checkpoint(latest_path, epoch, model, optimizer, scheduler, best_metrics, primary_metric)
+            save_checkpoint(
+                latest_path, epoch, model, optimizer, scheduler, best_metrics, primary_metric
+            )
 
             # ── Save metric-specific best checkpoints ──
             metric_values = {
@@ -443,6 +541,7 @@ def train():
                 "dice": "best_softdice.pth",
                 "val_loss": "best_val_loss.pth",
             }
+            primary_improved = False
             for metric, value in metric_values.items():
                 if metric_improved(metric, value, best_metrics[metric]):
                     best_metrics[metric] = value
@@ -457,6 +556,7 @@ def train():
                     )
                     print(f"  -> Best {metric}: {value:.4f} @ Epoch {epoch}")
                     if metric == primary_metric:
+                        primary_improved = True
                         save_checkpoint(
                             checkpoint_dir / "best.pth",
                             epoch,
@@ -470,16 +570,19 @@ def train():
             # ── Milestone checkpoint ──
             if epoch % milestone_every == 0:
                 milestone_path = checkpoint_dir / f"epoch_{epoch:03d}.pth"
-                torch.save({
-                    "epoch": epoch,
-                    "model_state_dict": model.state_dict(),
-                    "optimizer_state_dict": optimizer.state_dict(),
-                    "scheduler_state_dict": scheduler.state_dict(),
-                    "best_metrics": best_metrics,
-                    "best_val_loss": best_metrics["val_loss"],
-                    "best_dice": best_metrics["dice_bin_0.5"],
-                    "primary_metric": primary_metric,
-                }, milestone_path)
+                torch.save(
+                    {
+                        "epoch": epoch,
+                        "model_state_dict": model.state_dict(),
+                        "optimizer_state_dict": optimizer.state_dict(),
+                        "scheduler_state_dict": scheduler.state_dict(),
+                        "best_metrics": best_metrics,
+                        "best_val_loss": best_metrics["val_loss"],
+                        "best_dice": best_metrics["dice_bin_0.5"],
+                        "primary_metric": primary_metric,
+                    },
+                    milestone_path,
+                )
                 print(f"  -> Milestone checkpoint saved to {milestone_path}")
 
             # ── CSV summary ──
@@ -497,6 +600,15 @@ def train():
                 f"{val_summary.get('pred_std', 0):.6f},"
                 f"{lr_current:.8f}"
             )
+
+            if early_patience is not None:
+                primary_stale_epochs = 0 if primary_improved else primary_stale_epochs + 1
+                if primary_stale_epochs >= early_patience:
+                    print(
+                        f"[early-stop] {primary_metric} did not improve for "
+                        f"{primary_stale_epochs} epochs"
+                    )
+                    break
 
     except KeyboardInterrupt:
         print(f"\n[LOG] Training interrupted at epoch {epoch}")

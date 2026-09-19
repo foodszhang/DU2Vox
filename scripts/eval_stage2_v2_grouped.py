@@ -88,9 +88,7 @@ def main() -> None:
     if cfg.get("data", {}).get("allow_stale_frame_manifest", False):
         os.environ["DU2VOX_ALLOW_STALE_FRAME_MANIFEST"] = "1"
     if cfg.get("data", {}).get("frame_manifest_sha256"):
-        os.environ["DU2VOX_FRAME_MANIFEST_SHA256"] = str(
-            cfg["data"]["frame_manifest_sha256"]
-        )
+        os.environ["DU2VOX_FRAME_MANIFEST_SHA256"] = str(cfg["data"]["frame_manifest_sha256"])
 
     split_file = cfg["data"][f"{args.split}_split"]
     sample_ids = load_split(split_file)
@@ -144,6 +142,9 @@ def main() -> None:
                 residual,
                 valid,
                 diagnostics,
+                tumor_params=read_json(samples_dir / sample_id / "tumor_params.json")
+                if samples_dir is not None
+                else None,
             )
             row.update(sample_groups(samples_dir, sample_id))
             rows.append(row)

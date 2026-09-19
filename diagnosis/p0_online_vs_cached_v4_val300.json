@@ -1,0 +1,1209 @@
+{
+  "n_samples": 300,
+  "maximum_relative_l2": 0.0,
+  "tolerance": 1e-06,
+  "status": "passed",
+  "per_sample": [
+    {
+      "sample_id": "sample_0001",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0008",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0013",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0014",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0026",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0029",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0039",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0047",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0060",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0086",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0101",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0102",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0131",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0147",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0156",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0162",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0171",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0177",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0181",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0205",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0208",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0221",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0229",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0232",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0237",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0239",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0241",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0249",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0262",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0271",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0278",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0281",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0283",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0284",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0286",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0292",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0298",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0317",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0326",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0356",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0372",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0379",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0383",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0403",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0413",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0419",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0421",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0424",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0435",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0442",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0444",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0491",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0495",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0497",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0510",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0515",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0522",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0542",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0546",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0550",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0571",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0574",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0604",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0606",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0634",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0636",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0644",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0651",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0653",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0655",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0665",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0669",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0695",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0700",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0720",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0725",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0731",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0734",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0779",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0784",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0785",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0787",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0814",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0815",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0833",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0836",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0862",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0864",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0873",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0877",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0891",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0896",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0898",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0899",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0902",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0933",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0937",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0938",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0952",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0962",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0963",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0968",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0969",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0980",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0986",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0995",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_0999",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1008",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1010",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1012",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1016",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1020",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1022",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1023",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1029",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1043",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1061",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1076",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1083",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1084",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1087",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1105",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1115",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1124",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1138",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1140",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1141",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1143",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1154",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1162",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1168",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1170",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1200",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1202",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1222",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1226",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1228",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1232",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1239",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1250",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1271",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1284",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1295",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1299",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1309",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1336",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1344",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1352",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1353",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1356",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1360",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1375",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1393",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1408",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1415",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1448",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1451",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1465",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1481",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1491",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1493",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1494",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1512",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1531",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1550",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1552",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1554",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1556",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1563",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1576",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1577",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1621",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1632",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1636",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1637",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1648",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1649",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1653",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1663",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1664",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1667",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1672",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1722",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1728",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1732",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1733",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1747",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1751",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1754",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1766",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1779",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1780",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1786",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1794",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1801",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1849",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1857",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1872",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1877",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1879",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1902",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1903",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1912",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1917",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1936",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1937",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1938",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1946",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1952",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1971",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1984",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1988",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_1990",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2001",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2050",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2080",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2093",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2094",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2105",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2135",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2141",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2161",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2181",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2187",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2205",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2212",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2214",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2220",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2232",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2233",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2244",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2251",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2254",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2261",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2268",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2276",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2283",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2289",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2297",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2298",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2315",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2331",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2333",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2338",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2360",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2364",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2371",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2390",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2392",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2394",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2410",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2437",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2443",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2465",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2484",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2495",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2542",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2544",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2561",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2568",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2570",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2574",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2575",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2597",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2617",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2619",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2621",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2625",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2633",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2646",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2654",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2661",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2671",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2678",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2699",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2701",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2705",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2708",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2727",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2740",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2779",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2786",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2787",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2791",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2792",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2814",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2816",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2818",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2822",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2832",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2859",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2863",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2885",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2890",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2916",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2962",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2963",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2971",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2975",
+      "relative_l2": 0.0
+    },
+    {
+      "sample_id": "sample_2998",
+      "relative_l2": 0.0
+    }
+  ],
+  "confirmation_data_used": false
+}

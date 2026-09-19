@@ -1,0 +1,59 @@
+{
+  "gate": "0.5",
+  "name": "operator_frame_recertification",
+  "date": "2026-09-16",
+  "status": "certified",
+  "authorised_by": "user decision dec-90857c24085565bb (write the live hash into metadata)",
+  "trigger": "operator_metadata.json pinned frame_manifest_sha256=25b77f5d (written 2026-08-12) while the live frame_manifest.json hashed to a89d36a5 (regenerated 2026-09-15 when the LPR cohort was built), so every V4 path depended on allow_stale_frame_manifest: true.",
+  "why_not_a_content_error": {
+    "finding": "The live and the certified manifests are content-identical; only JSON field order differs.",
+    "live_key_count": 34,
+    "certified_key_count": 34,
+    "keys_only_in_live": [],
+    "keys_only_in_certified": [],
+    "differing_values_on_shared_keys": [],
+    "only_difference": "voxel_grid_gt is serialized before version/frame_contract/fem_mesh in the live file and after them in the certified file",
+    "consequence": "No geometric, semantic or ordering change; the hash drift is serialization-only."
+  },
+  "independent_consistency_audit": {
+    "command": "python /tmp/certify_operator_frame.py",
+    "checks_passed": 21,
+    "checks_total": 21,
+    "highlights": {
+      "mesh_discretization_pin": "mesh.npz sha256 equals the certified mesh_sha256 (always enforced)",
+      "geometry_round_trip": "manifest grid/spacing/offset -> flat index -> world coords reproduces the cached coords_world with max deviation 1.526e-06 mm",
+      "projection_operator": "P shape (1677645, 19990), nnz 6710580, exactly 4 P1 entries per row, row sums = 1.0, all entries non-negative",
+      "dimensional_agreement": "mesh nodes 19990 = A columns; A rows 7413 = surface nodes = measurement length",
+      "forward_ordering_pin": "d1q frozen contract measurement_b == max(A @ gt_nodes, 0) reproduces with worst relative L2 1.709e-07 over 4 cases, pinning the A column order to the mesh node order and the row order to the measurement order",
+      "view_indexing": "7 angles [-90,-60,-30,0,30,60,90]; volume centre equals half the extent"
+    }
+  },
+  "hashes": {
+    "mesh_sha256_before": "718cb70f0b12c3c8f5e7f10d9e216295efc79ff3221602b934ba04c137f34c64",
+    "mesh_sha256_after": "718cb70f0b12c3c8f5e7f10d9e216295efc79ff3221602b934ba04c137f34c64",
+    "frame_manifest_sha256_before": "25b77f5d11430ebf4d9735f19534782afb56f7fe5cab525a569028b0f3c02e2b",
+    "frame_manifest_sha256_after": "a89d36a52cc0d33e4764f6a65056a2dfa7fbe9fa55ed3458c0beb84d5ba31ee3"
+  },
+  "changes": [
+    "operator_cache/operator_metadata.json: frame_manifest_sha256 updated to a89d36a5",
+    "configs/stage2/lpr_continuous_v4_2400.yaml: allow_stale_frame_manifest false + frame_manifest_sha256 pinned",
+    "configs/stage2/d1q_mcx_canonical_v4_2400.yaml: allow_stale_frame_manifest false + frame_manifest_sha256 pinned",
+    "scripts/audit_lpr_negativity_layers.py: dropped allow_stale_frame_manifest=True",
+    "scripts/eval_lpr_continuous_morphology.py: dropped allow_stale_frame_manifest=True"
+  ],
+  "verification": {
+    "enforcement_proof": "CanonicalCrossDiscretization now loads with both pins ENFORCED (no allow_stale): PASS",
+    "negative_control": "a deliberately wrong frame_manifest pin is rejected with a RuntimeError, confirming the check is not silently skipped",
+    "smoke_run": "scripts/audit_lpr_negativity_layers.py --max-samples 4 runs end to end with enforcement active",
+    "note": "mesh_sha256 was already correct and is unchanged; it remains the primary discretization anchor."
+  },
+  "known_leftovers": [
+    "12 further configs under configs/stage2/ still pin the old hash 25b77f5d (unified_dual_evidence_fem_v4_2400.yaml, scale_calibrated_proximal_fem_v3_2400.yaml, iterative_residual_aware_fem_2400.yaml, error_structured_cross_discretization_2400.yaml, residual_consistent_iterative_fem_v2_2400.yaml, cqr_v2_3k_*.yaml, stage1_hard_q*.yaml, falsification/*.yaml). They are not on the current LPR path and were already inconsistent; they were deliberately left untouched.",
+    "scripts/recover_certified_frame_manifest.py can still reconstruct the 25b77f5d serialization byte-exactly from mesh.npz. It is retained as a recovery tool; running it with --restore would revert this certification.",
+    "Historical artefacts under results/ and runs/ embed the old hash in their own config snapshots. They are immutable run records and must not be rewritten."
+  ],
+  "not_authorised": [
+    "Any regeneration of MCX data, GT, splits, or the operator cache.",
+    "Development-test or sealed-confirmation access."
+  ]
+}

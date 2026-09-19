@@ -1,0 +1,16 @@
+{
+  "status": "matched_decoder_pair_materialized",
+  "training_or_evaluation_run": false,
+  "name_prefix": "lpr_continuous_decoder_neg1000",
+  "allowed_differences": [
+    "experiment.name",
+    "model.mode"
+  ],
+  "hard_config": "/home/foods/pro/DU2Vox/configs/stage2/lpr_continuous_decoder/lpr_continuous_decoder_neg1000_hard_q.yaml",
+  "hard_canonical_sha256": "21c10ad17e52bef64338c6c883db5f82bd489886c750535aef5444b91e8b2d1b",
+  "unconstrained_config": "/home/foods/pro/DU2Vox/configs/stage2/lpr_continuous_decoder/lpr_continuous_decoder_neg1000_unconstrained.yaml",
+  "unconstrained_canonical_sha256": "a44b0c0be7c4cf2063a99ef53c923b462f91a5fea28df35abfb4ab510d62bd9f",
+  "v4_config_sha256": "9e26f7949490698d60a541965eff3e8646eba63b91c571f4fc53611e7cbb3d44",
+  "v4_checkpoint_sha256": "0817568b4d548f0a795e824f9fff7a0f1c43bb5e6a74c5f2b39d2d2ded9eb367",
+  "v4_epoch": 20
+}

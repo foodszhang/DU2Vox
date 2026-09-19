@@ -45,17 +45,17 @@ from du2vox.models.stage1.gcain import GCAIN_full
 # ─────────────────────────────────────────────────────────────────────────────
 ORGAN_STYLE = {
     # label: (name, (R, G, B), opacity)
-    1:  ("Skin",      (0.95, 0.85, 0.75), 0.06),
-    2:  ("Skeleton",  (0.95, 0.95, 0.90), 0.18),
-    3:  ("Brain",     (1.00, 0.85, 0.85), 0.10),
-    4:  ("Heart",     (0.80, 0.15, 0.15), 0.22),
-    5:  ("Lung",      (0.70, 0.85, 0.95), 0.18),
-    6:  ("Liver",     (0.55, 0.15, 0.15), 0.22),
-    7:  ("Kidney",    (0.65, 0.30, 0.20), 0.22),
-    8:  ("Spleen",    (0.60, 0.20, 0.30), 0.15),
-    9:  ("Stomach",   (0.90, 0.75, 0.50), 0.15),
-    10: ("Pancreas",  (0.85, 0.70, 0.50), 0.12),
-    11: ("Muscle",    (0.85, 0.70, 0.70), 0.05),
+    1: ("Skin", (0.95, 0.85, 0.75), 0.06),
+    2: ("Skeleton", (0.95, 0.95, 0.90), 0.18),
+    3: ("Brain", (1.00, 0.85, 0.85), 0.10),
+    4: ("Heart", (0.80, 0.15, 0.15), 0.22),
+    5: ("Lung", (0.70, 0.85, 0.95), 0.18),
+    6: ("Liver", (0.55, 0.15, 0.15), 0.22),
+    7: ("Kidney", (0.65, 0.30, 0.20), 0.22),
+    8: ("Spleen", (0.60, 0.20, 0.30), 0.15),
+    9: ("Stomach", (0.90, 0.75, 0.50), 0.15),
+    10: ("Pancreas", (0.85, 0.70, 0.50), 0.12),
+    11: ("Muscle", (0.85, 0.70, 0.70), 0.05),
 }
 
 
@@ -63,13 +63,13 @@ ORGAN_STYLE = {
 # Mesh builders
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def build_tet_mesh(nodes, elements):
     """Build PyVista UnstructuredGrid from tetrahedral elements."""
     n_cells = len(elements)
-    cells = np.column_stack([
-        np.full(n_cells, 4, dtype=np.int64),
-        elements.astype(np.int64)
-    ]).ravel()
+    cells = np.column_stack(
+        [np.full(n_cells, 4, dtype=np.int64), elements.astype(np.int64)]
+    ).ravel()
     cell_types = np.full(n_cells, pv.CellType.TETRA, dtype=np.uint8)
     grid = pv.UnstructuredGrid(cells, cell_types, nodes.astype(np.float64))
     return grid
@@ -77,10 +77,9 @@ def build_tet_mesh(nodes, elements):
 
 def build_surface_mesh(nodes, surface_faces):
     """Build PyVista PolyData from triangular surface faces."""
-    faces_pv = np.column_stack([
-        np.full(len(surface_faces), 3, dtype=np.int64),
-        surface_faces.astype(np.int64)
-    ]).ravel()
+    faces_pv = np.column_stack(
+        [np.full(len(surface_faces), 3, dtype=np.int64), surface_faces.astype(np.int64)]
+    ).ravel()
     return pv.PolyData(nodes.astype(np.float64), faces_pv)
 
 
@@ -105,9 +104,14 @@ def elem_mean_values(values_per_node, elements):
 # Rendering
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def render_single_sample(
-    nodes, elements, surface_faces, tissue_labels,
-    gt_nodes, pred_nodes,
+    nodes,
+    elements,
+    surface_faces,
+    tissue_labels,
+    gt_nodes,
+    pred_nodes,
     tumor_params,
     title,
     save_path,
@@ -264,12 +268,8 @@ def render_single_sample(
         pred_bin = pred_nodes > pred_thresh
 
         # Node → element (majority vote)
-        elem_gt = elem_majority_vote(
-            gt_bin.astype(np.int32), elements
-        ).astype(bool)
-        elem_pred = elem_majority_vote(
-            pred_bin.astype(np.int32), elements
-        ).astype(bool)
+        elem_gt = elem_majority_vote(gt_bin.astype(np.int32), elements).astype(bool)
+        elem_pred = elem_majority_vote(pred_bin.astype(np.int32), elements).astype(bool)
 
         tp_mask = elem_gt & elem_pred
         fp_mask = (~elem_gt) & elem_pred
@@ -278,25 +278,35 @@ def render_single_sample(
         if tp_mask.any():
             tp_tet = tet_grid.extract_cells(np.where(tp_mask)[0])
             plotter.add_mesh(
-                tp_tet, color=(0.15, 0.80, 0.20), opacity=0.88,
-                show_edges=False, smooth_shading=True, label="TP",
+                tp_tet,
+                color=(0.15, 0.80, 0.20),
+                opacity=0.88,
+                show_edges=False,
+                smooth_shading=True,
+                label="TP",
             )
         if fp_mask.any():
             fp_tet = tet_grid.extract_cells(np.where(fp_mask)[0])
             plotter.add_mesh(
-                fp_tet, color=(0.25, 0.45, 0.90), opacity=0.60,
-                show_edges=False, smooth_shading=True, label="FP",
+                fp_tet,
+                color=(0.25, 0.45, 0.90),
+                opacity=0.60,
+                show_edges=False,
+                smooth_shading=True,
+                label="FP",
             )
         if fn_mask.any():
             fn_tet = tet_grid.extract_cells(np.where(fn_mask)[0])
             plotter.add_mesh(
-                fn_tet, color=(0.90, 0.15, 0.10), opacity=0.88,
-                show_edges=False, smooth_shading=True, label="FN",
+                fn_tet,
+                color=(0.90, 0.15, 0.10),
+                opacity=0.88,
+                show_edges=False,
+                smooth_shading=True,
+                label="FN",
             )
 
-        plotter.add_legend(
-            bcolor="white", face="circle", size=(0.13, 0.09)
-        )
+        plotter.add_legend(bcolor="white", face="circle", size=(0.13, 0.09))
 
     # ── Layer 4: Tumor center annotations ─────────────────────────────
     for i, focus in enumerate(tumor_params.get("foci", [])):
@@ -305,7 +315,7 @@ def render_single_sample(
         plotter.add_mesh(sphere, color="yellow", opacity=0.95)
         plotter.add_point_labels(
             [center],
-            [f"F{i+1}"],
+            [f"F{i + 1}"],
             font_size=11,
             text_color="black",
             shape_opacity=0.8,
@@ -333,16 +343,12 @@ def render_single_sample(
         plotter.camera.up = (0, 0, 1)
         plotter.camera.zoom(1.4)
     elif camera_position == "dorsal":
-        plotter.camera.position = (
-            mesh_center[0], mesh_center[1], mesh_center[2] + 50
-        )
+        plotter.camera.position = (mesh_center[0], mesh_center[1], mesh_center[2] + 50)
         plotter.camera.focal_point = mesh_center
         plotter.camera.up = (0, -1, 0)
         plotter.camera.zoom(1.5)
     elif camera_position == "lateral":
-        plotter.camera.position = (
-            mesh_center[0] + 50, mesh_center[1], mesh_center[2]
-        )
+        plotter.camera.position = (mesh_center[0] + 50, mesh_center[1], mesh_center[2])
         plotter.camera.focal_point = mesh_center
         plotter.camera.up = (0, 0, 1)
         plotter.camera.zoom(1.5)
@@ -368,6 +374,7 @@ def stitch_images(image_paths, grid_shape, output_path, cell_size=(1200, 900)):
 # ─────────────────────────────────────────────────────────────────────────────
 # Model & data loading
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def build_model(cfg, checkpoint_path, device="cuda"):
     """Build model and load checkpoint."""
@@ -397,11 +404,18 @@ def build_model(cfg, checkpoint_path, device="cuda"):
     nodes = dataset.nodes.to(device)
 
     model = GCAIN_full(
-        L=L, A=A,
-        L0=L0, L1=L1, L2=L2, L3=L3,
-        knn_idx=knn_idx, sens_w=sens_w,
+        L=L,
+        A=A,
+        L0=L0,
+        L1=L1,
+        L2=L2,
+        L3=L3,
+        knn_idx=knn_idx,
+        sens_w=sens_w,
         num_layer=model_cfg["num_layer"],
         feat_dim=model_cfg["feat_dim"],
+        physics_evidence=model_cfg.get("physics_evidence", "raw"),
+        profiled_evidence_rms=model_cfg.get("profiled_evidence_rms", 0.05),
     ).to(device)
 
     ckpt = torch.load(checkpoint_path, map_location=device)
@@ -444,9 +458,7 @@ def select_representative_samples(metrics_df, n=6):
     ]
     selected = {}
     for foci, depth in groups:
-        sub = metrics_df[
-            (metrics_df["num_foci"] == foci) & (metrics_df["depth_tier"] == depth)
-        ]
+        sub = metrics_df[(metrics_df["num_foci"] == foci) & (metrics_df["depth_tier"] == depth)]
         if len(sub) == 0:
             sub = metrics_df[metrics_df["num_foci"] == foci]
         if len(sub) == 0:
@@ -465,6 +477,7 @@ def select_representative_samples(metrics_df, n=6):
 # ─────────────────────────────────────────────────────────────────────────────
 # Main
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def main():
     parser = argparse.ArgumentParser(description="Stage 1 tetrahedral mesh visualization")
@@ -665,8 +678,11 @@ def main():
     # Stitch fig A
     fig_a_out = out_dir / "fig_gaussian_intensity.png"
     stitch_images(
-        [str(tmpdir / f"figA_{r}_{c}.png")
-         for r in range(len(fig_a_keys)) for c in ["gt", "pred", "error"]],
+        [
+            str(tmpdir / f"figA_{r}_{c}.png")
+            for r in range(len(fig_a_keys))
+            for c in ["gt", "pred", "error"]
+        ],
         grid_shape=(len(fig_a_keys), 3),
         output_path=str(fig_a_out),
         cell_size=(1200, 900),
@@ -686,12 +702,19 @@ def main():
         title1 = f"GT | {key} | Dice={info['dice_03']:.3f}"
         out1 = tmpdir / f"figB_{row_idx}_gt.png"
         render_single_sample(
-            nodes=mesh_nodes, elements=elements,
-            surface_faces=surface_faces, tissue_labels=tissue_labels,
-            gt_nodes=gt_vals, pred_nodes=np.zeros_like(pred_vals),
-            tumor_params=params, title=title1, save_path=str(out1),
-            mode="intensity", source_type="gaussian",
-            gt_threshold=0.05, pred_threshold=0.3,
+            nodes=mesh_nodes,
+            elements=elements,
+            surface_faces=surface_faces,
+            tissue_labels=tissue_labels,
+            gt_nodes=gt_vals,
+            pred_nodes=np.zeros_like(pred_vals),
+            tumor_params=params,
+            title=title1,
+            save_path=str(out1),
+            mode="intensity",
+            source_type="gaussian",
+            gt_threshold=0.05,
+            pred_threshold=0.3,
             camera_position="oblique",
         )
 
@@ -699,19 +722,25 @@ def main():
         title2 = f"TP/FP/FN | {key}"
         out2 = tmpdir / f"figB_{row_idx}_seg.png"
         render_single_sample(
-            nodes=mesh_nodes, elements=elements,
-            surface_faces=surface_faces, tissue_labels=tissue_labels,
-            gt_nodes=gt_vals, pred_nodes=pred_vals,
-            tumor_params=params, title=title2, save_path=str(out2),
-            mode="segmentation", source_type="gaussian",
-            gt_threshold=0.05, pred_threshold=0.3,
+            nodes=mesh_nodes,
+            elements=elements,
+            surface_faces=surface_faces,
+            tissue_labels=tissue_labels,
+            gt_nodes=gt_vals,
+            pred_nodes=pred_vals,
+            tumor_params=params,
+            title=title2,
+            save_path=str(out2),
+            mode="segmentation",
+            source_type="gaussian",
+            gt_threshold=0.05,
+            pred_threshold=0.3,
             camera_position="oblique",
         )
 
     fig_b_out = out_dir / "fig_gaussian_seg.png"
     stitch_images(
-        [str(tmpdir / f"figB_{r}_{c}.png")
-         for r in range(len(fig_a_keys)) for c in ["gt", "seg"]],
+        [str(tmpdir / f"figB_{r}_{c}.png") for r in range(len(fig_a_keys)) for c in ["gt", "seg"]],
         grid_shape=(len(fig_a_keys), 2),
         output_path=str(fig_b_out),
         cell_size=(1200, 900),
@@ -733,12 +762,19 @@ def main():
         title1 = f"GT (U) | {key} | Dice={dice_05:.3f}"
         out1 = tmpdir / f"figC_{row_idx}_gt.png"
         render_single_sample(
-            nodes=mesh_nodes, elements=elements,
-            surface_faces=surface_faces, tissue_labels=tissue_labels,
-            gt_nodes=gt_vals, pred_nodes=np.zeros_like(pred_vals),
-            tumor_params=params, title=title1, save_path=str(out1),
-            mode="intensity", source_type="uniform",
-            gt_threshold=0.5, pred_threshold=0.5,
+            nodes=mesh_nodes,
+            elements=elements,
+            surface_faces=surface_faces,
+            tissue_labels=tissue_labels,
+            gt_nodes=gt_vals,
+            pred_nodes=np.zeros_like(pred_vals),
+            tumor_params=params,
+            title=title1,
+            save_path=str(out1),
+            mode="intensity",
+            source_type="uniform",
+            gt_threshold=0.5,
+            pred_threshold=0.5,
             camera_position="oblique",
         )
 
@@ -746,19 +782,25 @@ def main():
         title2 = f"TP/FP/FN (U) | {key}"
         out2 = tmpdir / f"figC_{row_idx}_seg.png"
         render_single_sample(
-            nodes=mesh_nodes, elements=elements,
-            surface_faces=surface_faces, tissue_labels=tissue_labels,
-            gt_nodes=gt_vals, pred_nodes=pred_vals,
-            tumor_params=params, title=title2, save_path=str(out2),
-            mode="segmentation", source_type="uniform",
-            gt_threshold=0.5, pred_threshold=0.5,
+            nodes=mesh_nodes,
+            elements=elements,
+            surface_faces=surface_faces,
+            tissue_labels=tissue_labels,
+            gt_nodes=gt_vals,
+            pred_nodes=pred_vals,
+            tumor_params=params,
+            title=title2,
+            save_path=str(out2),
+            mode="segmentation",
+            source_type="uniform",
+            gt_threshold=0.5,
+            pred_threshold=0.5,
             camera_position="oblique",
         )
 
     fig_c_out = out_dir / "fig_uniform_seg.png"
     stitch_images(
-        [str(tmpdir / f"figC_{r}_{c}.png")
-         for r in range(len(fig_c_keys)) for c in ["gt", "seg"]],
+        [str(tmpdir / f"figC_{r}_{c}.png") for r in range(len(fig_c_keys)) for c in ["gt", "seg"]],
         grid_shape=(len(fig_c_keys), 2),
         output_path=str(fig_c_out),
         cell_size=(1200, 900),
@@ -788,63 +830,86 @@ def main():
         # Col 0: GT Gaussian (intensity)
         out0 = tmpdir / f"figD_{row_idx}_gtG.png"
         render_single_sample(
-            nodes=mesh_nodes, elements=elements,
-            surface_faces=surface_faces, tissue_labels=tissue_labels,
-            gt_nodes=gt_g, pred_nodes=np.zeros_like(pred_g),
+            nodes=mesh_nodes,
+            elements=elements,
+            surface_faces=surface_faces,
+            tissue_labels=tissue_labels,
+            gt_nodes=gt_g,
+            pred_nodes=np.zeros_like(pred_g),
             tumor_params=params_g,
             title=f"GT-G | {key} | Dice={dice_g:.3f}",
             save_path=str(out0),
-            mode="intensity", source_type="gaussian",
-            gt_threshold=0.05, pred_threshold=0.3,
+            mode="intensity",
+            source_type="gaussian",
+            gt_threshold=0.05,
+            pred_threshold=0.3,
             camera_position="oblique",
         )
 
         # Col 1: Pred Gaussian (intensity)
         out1 = tmpdir / f"figD_{row_idx}_predG.png"
         render_single_sample(
-            nodes=mesh_nodes, elements=elements,
-            surface_faces=surface_faces, tissue_labels=tissue_labels,
-            gt_nodes=np.zeros_like(gt_g), pred_nodes=pred_g,
+            nodes=mesh_nodes,
+            elements=elements,
+            surface_faces=surface_faces,
+            tissue_labels=tissue_labels,
+            gt_nodes=np.zeros_like(gt_g),
+            pred_nodes=pred_g,
             tumor_params=params_g,
             title=f"Pred-G | {key}",
             save_path=str(out1),
-            mode="intensity", source_type="gaussian",
-            gt_threshold=0.05, pred_threshold=0.3,
+            mode="intensity",
+            source_type="gaussian",
+            gt_threshold=0.05,
+            pred_threshold=0.3,
             camera_position="oblique",
         )
 
         # Col 2: GT Uniform (binary red)
         out2 = tmpdir / f"figD_{row_idx}_gtU.png"
         render_single_sample(
-            nodes=mesh_nodes, elements=elements,
-            surface_faces=surface_faces, tissue_labels=tissue_labels,
-            gt_nodes=gt_u, pred_nodes=np.zeros_like(pred_u),
+            nodes=mesh_nodes,
+            elements=elements,
+            surface_faces=surface_faces,
+            tissue_labels=tissue_labels,
+            gt_nodes=gt_u,
+            pred_nodes=np.zeros_like(pred_u),
             tumor_params=params_u,
             title=f"GT-U | {key} | Dice={dice_u:.3f}",
             save_path=str(out2),
-            mode="intensity", source_type="uniform",
-            gt_threshold=0.5, pred_threshold=0.5,
+            mode="intensity",
+            source_type="uniform",
+            gt_threshold=0.5,
+            pred_threshold=0.5,
             camera_position="oblique",
         )
 
         # Col 3: Pred Uniform (TP/FP/FN)
         out3 = tmpdir / f"figD_{row_idx}_segU.png"
         render_single_sample(
-            nodes=mesh_nodes, elements=elements,
-            surface_faces=surface_faces, tissue_labels=tissue_labels,
-            gt_nodes=gt_u, pred_nodes=pred_u,
+            nodes=mesh_nodes,
+            elements=elements,
+            surface_faces=surface_faces,
+            tissue_labels=tissue_labels,
+            gt_nodes=gt_u,
+            pred_nodes=pred_u,
             tumor_params=params_u,
             title=f"TP/FP/FN-U | {key}",
             save_path=str(out3),
-            mode="segmentation", source_type="uniform",
-            gt_threshold=0.5, pred_threshold=0.5,
+            mode="segmentation",
+            source_type="uniform",
+            gt_threshold=0.5,
+            pred_threshold=0.5,
             camera_position="oblique",
         )
 
     fig_d_out = out_dir / "fig_source_comparison.png"
     stitch_images(
-        [str(tmpdir / f"figD_{r}_{c}.png")
-         for r in range(len(comparison_keys)) for c in ["gtG", "predG", "gtU", "segU"]],
+        [
+            str(tmpdir / f"figD_{r}_{c}.png")
+            for r in range(len(comparison_keys))
+            for c in ["gtG", "predG", "gtU", "segU"]
+        ],
         grid_shape=(len(comparison_keys), 4),
         output_path=str(fig_d_out),
         cell_size=(1200, 900),

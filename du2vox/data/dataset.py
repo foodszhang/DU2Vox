@@ -44,9 +44,11 @@ class FMTSimGenDataset(Dataset):
         normalize_b: bool = True,
         normalize_gt: bool = True,
         normalize_gt_mode: str = "per_sample",
+        normalize_gt_scale_filename: str = "gt_scale.npy",
         binarize_gt: bool = False,
         binarize_threshold: float = 0.05,
         use_visible_mask: bool = False,
+        max_samples: int | None = None,
         shared: "FMTSimGenDataset | None" = None,
     ):
         samples_dir = Path(samples_dir)
@@ -73,12 +75,15 @@ class FMTSimGenDataset(Dataset):
         self.normalize_b = normalize_b
         self.normalize_gt = normalize_gt
         self.normalize_gt_mode = normalize_gt_mode
+        self.normalize_gt_scale_filename = normalize_gt_scale_filename
         self.binarize_gt = binarize_gt
         self.binarize_threshold = binarize_threshold
 
         # Sample list
         with open(split_file) as f:
             self.sample_ids = [line.strip() for line in f if line.strip()]
+        if max_samples is not None:
+            self.sample_ids = self.sample_ids[: int(max_samples)]
 
         # Preload all samples
         self.b_list: list[torch.Tensor] = []
@@ -100,6 +105,16 @@ class FMTSimGenDataset(Dataset):
                 gt = (gt > self.binarize_threshold).astype(np.float32)
             elif self.normalize_gt:
                 gt = torch.tensor(gt, dtype=torch.float32).unsqueeze(-1)
+                if self.normalize_gt_mode == "per_sample_file":
+                    scale_path = samples_dir / sid / self.normalize_gt_scale_filename
+                    if not scale_path.exists():
+                        raise FileNotFoundError(
+                            f"Missing shared per-case GT scale for {sid}: {scale_path}"
+                        )
+                    scale = float(np.asarray(np.load(scale_path)).reshape(()))
+                    if not np.isfinite(scale) or scale <= 1e-8:
+                        raise ValueError(f"Invalid shared GT scale for {sid}: {scale}")
+                    gt = torch.clamp(gt / scale, min=0.0, max=1.0)
                 self.gt_list.append(gt)
                 self.b_list.append(b)
                 continue
@@ -119,7 +134,7 @@ class FMTSimGenDataset(Dataset):
                     gt = gt / self.global_gt_max
                 gt = torch.clamp(gt, min=0.0, max=1.0)
                 self.gt_list[i] = gt
-        elif self.normalize_gt:
+        elif self.normalize_gt and self.normalize_gt_mode != "per_sample_file":
             for i in range(len(self.gt_list)):
                 gt = self.gt_list[i]
                 gt_max = gt.max()

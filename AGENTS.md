@@ -4,6 +4,20 @@ This file gives coding agents the project-specific context needed to work safely
 DU2Vox. It is derived from `CLAUDE.md`, the current code, and the coordinate-system
 documentation.
 
+## Scientific Canon
+
+Before changing or describing the current reconstruction method, read these files in
+order:
+
+1. `diagnosis/FINAL_METHOD_CANON.md`
+2. `diagnosis/FINAL_RESULT_LEDGER.md`
+3. `diagnosis/REJECTED_METHOD_HYPOTHESES.md`
+
+`FINAL_METHOD_CANON.md` is the highest-priority scientific definition. Historical
+branches, reports, and the older architecture notes below must not override it. The
+current method is a development freeze candidate; the existing 300-sample test is a
+development-test, and sealed confirmation remains unopened.
+
 ## Project Snapshot
 
 DU2Vox is a two-stage Fluorescence Molecular Tomography (FMT) reconstruction
@@ -60,6 +74,18 @@ uv run python scripts/train_stage2.py \
   --config configs/stage2/uniform_1000_v2.yaml \
   --experiment_name baseline_de_only
 ```
+
+Innovation falsification (fixed 100/25/25 pilot, three seeds):
+
+```bash
+uv run python scripts/run_innovation_falsification.py
+uv run python scripts/run_innovation_falsification.py --physics_weight 0.1
+uv run python scripts/summarize_innovation_falsification.py
+```
+
+The A/B/C configs under `configs/stage2/falsification/` intentionally use the
+same CQR, multiview inputs, optimizer, training budget, and reconstruction loss.
+Do not enable branch-target supervision for the main comparison.
 
 For quick validation, use small limits when supported:
 
@@ -222,6 +248,14 @@ metrics include:
 
 ## Verification
 
+Direct retrained-Stage1 hard-`Q` experiments use
+`configs/stage2/stage1_hard_q_seed20260901.yaml` and
+`configs/stage2/stage1_hard_q_views_seed20260901.yaml`. They read bridge
+`coarse_d.npy` files directly and must not reference V4 artifacts. Follow
+`diagnosis/stage1_hard_q_experiment_protocol.md`: finish both val300 baselines and
+the two bounded tuning runs, create the validation freeze receipt, and only then
+evaluate development-test. This workflow does not authorize sealed confirmation.
+
 Choose verification proportional to the change:
 
 - Formatting/lint-only changes: `uv run ruff check .`
@@ -234,6 +268,38 @@ Choose verification proportional to the change:
 - Stage 2 training changes: run a short smoke training with `--max_epochs` and
   `--max_samples`.
 - Projection/multiview changes: run or update `scripts/diagnose_projection_alignment.py`.
+
+## Final SCIA/V4 workflow
+
+The unified V4 FEM corrector is configured by
+`configs/stage2/unified_dual_evidence_fem_v4_2400.yaml`. It combines the V1 raw
+residual and V3 amplitude-profiled residual inside one shared three-iteration FEM
+corrector. It must finish with canonical analytic P1 and must not add a voxel head.
+
+Train and evaluate development data with:
+
+```bash
+uv run python scripts/train_iterative_fem_corrector.py \
+  --config configs/stage2/unified_dual_evidence_fem_v4_2400.yaml
+uv run python scripts/eval_iterative_fem_corrector.py \
+  --config configs/stage2/unified_dual_evidence_fem_v4_2400.yaml \
+  --checkpoint runs/unified_dual_evidence_fem_v4_2400/checkpoints/best_dense_val_delta_dice.pth \
+  --split test --output diagnosis/unified_dual_evidence_fem_v4_development_test.json
+```
+
+Any dataset whose sealed manifest identifies it as confirmation data is blocked by
+default. Never use `--allow-confirmation-eval` before
+`diagnosis/v4_frozen_protocol.md` exists. The final comparison must be launched once
+through `scripts/run_sealed_confirmation_suite.py`; its receipt prevents a rerun.
+
+## A0-A3 information-source audit
+
+The matched information audit is defined in
+`diagnosis/information_audit_A0_A3_protocol.md`. It uses eight hard-`Q` arms with a
+fixed 231-dimensional zero-filled input layout. Run all validation arms and create
+the validation freeze receipt before any development-test evaluation. The audit does
+not authorize V4 retraining, D1-D3 generation, V1-V5 development, or sealed
+confirmation access.
 
 If a command depends on external FMT-SimGen data that is missing locally, report that
 clearly instead of fabricating results.

@@ -1,0 +1,20 @@
+{
+  "definition": "0.2 mm GT voxel centers intersect complete FEM tetrahedral domain",
+  "gt_centers": true,
+  "n_full_voxels": 3952000,
+  "n_valid_voxels": 1677645,
+  "n_fem_nodes": 19990,
+  "n_active_columns": 19990,
+  "p_nnz": 6710580,
+  "voxel_weight_mm3": 0.008000000000000002,
+  "mesh_sha256": "718cb70f0b12c3c8f5e7f10d9e216295efc79ff3221602b934ba04c137f34c64",
+  "frame_manifest_sha256": "a89d36a52cc0d33e4764f6a65056a2dfa7fbe9fa55ed3458c0beb84d5ba31ee3",
+  "gram_shape": [
+    19990,
+    19990
+  ],
+  "gram_nnz": 273136,
+  "gram_diag_min": 0.2667187504980108,
+  "gram_diag_max": 134.19581168564244,
+  "ridge_regularization": 0.0
+}

@@ -19,6 +19,7 @@ Usage:
     python scripts/eval_du2vox.py stage2 --config configs/stage2/full_multiview_20k.yaml \\
         --checkpoint checkpoints/stage2/mv_fixed_ext/best.pth --multiview
 """
+
 import argparse
 import json
 import sys
@@ -34,7 +35,11 @@ from du2vox.models.stage1.gcain import GCAIN_full
 from du2vox.data.dataset import FMTSimGenDataset
 from du2vox.bridge.fem_bridging import FEMBridge
 from du2vox.utils.frame import FrameManifest
-from du2vox.evaluation.per_foci import group_metrics_by_foci, group_metrics_by_depth, group_metrics_by_cross
+from du2vox.evaluation.per_foci import (
+    group_metrics_by_foci,
+    group_metrics_by_depth,
+    group_metrics_by_cross,
+)
 from du2vox.evaluation.metrics import evaluate_batch
 
 
@@ -79,6 +84,7 @@ def get_device():
 
 # ─── Stage 1 ──────────────────────────────────────────────────────────────────
 
+
 def eval_stage1(cfg, checkpoint_path, split="val", voxel_mode=False, output=None):
     data_cfg = cfg["data"]
     model_cfg = cfg["model"]
@@ -92,9 +98,13 @@ def eval_stage1(cfg, checkpoint_path, split="val", voxel_mode=False, output=None
 
     manifest_path = splits_dir.parent / "dataset_manifest.json"
     manifest_data = json.load(open(manifest_path)) if manifest_path.exists() else None
-    manifest = {"samples": {s["id"]: s for s in manifest_data["samples"]}} if manifest_data else None
+    manifest = (
+        {"samples": {s["id"]: s for s in manifest_data["samples"]}} if manifest_data else None
+    )
 
-    print(f"[Stage 1] Config: {cfg['experiment']['name']}, Split: {split}, n_samples={len(sample_ids)}")
+    print(
+        f"[Stage 1] Config: {cfg['experiment']['name']}, Split: {split}, n_samples={len(sample_ids)}"
+    )
 
     # Load Stage 1 model
     dataset = FMTSimGenDataset(
@@ -109,16 +119,30 @@ def eval_stage1(cfg, checkpoint_path, split="val", voxel_mode=False, output=None
     )
     nodes = dataset.nodes.to(device)
     A, L = dataset.A.to(device), dataset.L.to(device)
-    L0, L1, L2, L3 = dataset.L0.to(device), dataset.L1.to(device), dataset.L2.to(device), dataset.L3.to(device)
+    L0, L1, L2, L3 = (
+        dataset.L0.to(device),
+        dataset.L1.to(device),
+        dataset.L2.to(device),
+        dataset.L3.to(device),
+    )
     knn_idx, sens_w = dataset.knn_idx.to(device), dataset.sens_w.to(device)
     LTL, ATA = torch.matmul(L.t(), L).to(device), torch.matmul(A.t(), A).to(device)
 
     model = GCAIN_full(
-        L=L, A=A, LTL=LTL, ATA=ATA,
-        L0=L0, L1=L1, L2=L2, L3=L3,
-        knn_idx=knn_idx, sens_w=sens_w,
+        L=L,
+        A=A,
+        LTL=LTL,
+        ATA=ATA,
+        L0=L0,
+        L1=L1,
+        L2=L2,
+        L3=L3,
+        knn_idx=knn_idx,
+        sens_w=sens_w,
         num_layer=model_cfg["num_layer"],
         feat_dim=model_cfg["feat_dim"],
+        physics_evidence=model_cfg.get("physics_evidence", "raw"),
+        profiled_evidence_rms=model_cfg.get("profiled_evidence_rms", 0.05),
     ).to(device)
 
     ckpt = torch.load(checkpoint_path, map_location=device)
@@ -182,40 +206,52 @@ def eval_stage1(cfg, checkpoint_path, split="val", voxel_mode=False, output=None
         coarse_scalar = fem_interp_from_prior(coarse_prior)
         voxel_dice = compute_dice(coarse_scalar, gt_values[v_mask], 0.5)
 
-        per_sample_voxel.append({
-            "sample_id": sid,
-            "voxel_dice": float(voxel_dice),
-            "dice": float(voxel_dice),
-        })
+        per_sample_voxel.append(
+            {
+                "sample_id": sid,
+                "voxel_dice": float(voxel_dice),
+                "dice": float(voxel_dice),
+            }
+        )
 
     # ── Summary ──────────────────────────────────────────────────────────
     mesh_dices = [m["mesh_dice"] for m in per_sample_mesh]
     mesh_overall = float(np.mean(mesh_dices))
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Stage 1 Mesh Dice (FEM nodes, threshold=0.5)")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"  Overall: {mesh_overall:.4f} ({len(mesh_dices)} samples)")
 
     if manifest and per_sample_voxel:
-        by_foci = group_metrics_by_foci(per_sample_voxel, [m["sample_id"] for m in per_sample_voxel], manifest)
-        by_depth = group_metrics_by_depth(per_sample_voxel, [m["sample_id"] for m in per_sample_voxel], manifest)
-        by_cross = group_metrics_by_cross(per_sample_voxel, [m["sample_id"] for m in per_sample_voxel], manifest)
+        by_foci = group_metrics_by_foci(
+            per_sample_voxel, [m["sample_id"] for m in per_sample_voxel], manifest
+        )
+        by_depth = group_metrics_by_depth(
+            per_sample_voxel, [m["sample_id"] for m in per_sample_voxel], manifest
+        )
+        by_cross = group_metrics_by_cross(
+            per_sample_voxel, [m["sample_id"] for m in per_sample_voxel], manifest
+        )
 
         voxel_samples = per_sample_voxel
         v_overall = float(np.mean([m["voxel_dice"] for m in voxel_samples]))
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Stage 1 Voxel Dice (interpolated to voxel grid)")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"  Overall: {v_overall:.4f} ({len(voxel_samples)} samples)")
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("PER-FOCI — Stage 1")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"{'Metric':<20} {'Overall':>10} {'1-Foci':>10} {'2-Foci':>10} {'3-Foci':>10}")
         print("-" * 62)
-        for k, disp in [("voxel_dice","Voxel Dice"), ("mesh_dice","Mesh Dice")]:
-            vals = [m[k] for m in voxel_samples if m.get(k) is not None] if k == "voxel_dice" else [m[k] for m in per_sample_mesh if m.get(k) is not None]
+        for k, disp in [("voxel_dice", "Voxel Dice"), ("mesh_dice", "Mesh Dice")]:
+            vals = (
+                [m[k] for m in voxel_samples if m.get(k) is not None]
+                if k == "voxel_dice"
+                else [m[k] for m in per_sample_mesh if m.get(k) is not None]
+            )
             ov = float(np.mean(vals)) if vals else 0.0
             row = f"{disp:<20} {ov:>10.4f}"
             for n in [1, 2, 3]:
@@ -223,14 +259,22 @@ def eval_stage1(cfg, checkpoint_path, split="val", voxel_mode=False, output=None
                 if k == "voxel_dice":
                     v = np.mean([g[k] for g in grp]) if grp else 0
                 else:
-                    mesh_grp = [m for m in per_sample_mesh if m["sample_id"] in [g["sample_id"] for g in grp]] if grp else []
+                    mesh_grp = (
+                        [
+                            m
+                            for m in per_sample_mesh
+                            if m["sample_id"] in [g["sample_id"] for g in grp]
+                        ]
+                        if grp
+                        else []
+                    )
                     v = np.mean([m[k] for m in mesh_grp]) if mesh_grp else 0
                 row += f" {v:>10.4f}"
             print(row)
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("PER-DEPTH — Stage 1 Voxel Dice")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"{'Metric':<20} {'Overall':>10} {'Shallow':>10} {'Medium':>10} {'Deep':>10}")
         print("-" * 62)
         vals = [m["voxel_dice"] for m in voxel_samples]
@@ -242,9 +286,9 @@ def eval_stage1(cfg, checkpoint_path, split="val", voxel_mode=False, output=None
             row += f" {v:>10.4f}"
         print(row)
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("FOCI × DEPTH — Stage 1 Voxel Dice")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"{'Foci \\ Depth':<15} {'Shallow':>12} {'Medium':>12} {'Deep':>12}")
         print("-" * 55)
         for n in [1, 2, 3]:
@@ -257,7 +301,9 @@ def eval_stage1(cfg, checkpoint_path, split="val", voxel_mode=False, output=None
 
     result = {
         "stage1_mesh_dice": mesh_overall,
-        "stage1_voxel_dice": float(np.mean([m["voxel_dice"] for m in per_sample_voxel])) if per_sample_voxel else None,
+        "stage1_voxel_dice": float(np.mean([m["voxel_dice"] for m in per_sample_voxel]))
+        if per_sample_voxel
+        else None,
         "per_sample_mesh": {m["sample_id"]: m for m in per_sample_mesh},
         "per_sample_voxel": {m["sample_id"]: m for m in per_sample_voxel},
     }
@@ -269,6 +315,7 @@ def eval_stage1(cfg, checkpoint_path, split="val", voxel_mode=False, output=None
 
 
 # ─── Stage 2 ──────────────────────────────────────────────────────────────────
+
 
 def eval_stage2(cfg, checkpoint_path, split="val", multiview=False, output=None, batch_points=8192):
     data_cfg = cfg["data"]
@@ -284,13 +331,18 @@ def eval_stage2(cfg, checkpoint_path, split="val", multiview=False, output=None,
 
     manifest_path = train_split.parent.parent / "dataset_manifest.json"
     manifest_data = json.load(open(manifest_path)) if manifest_path.exists() else None
-    manifest = {"samples": {s["id"]: s for s in manifest_data["samples"]}} if manifest_data else None
+    manifest = (
+        {"samples": {s["id"]: s for s in manifest_data["samples"]}} if manifest_data else None
+    )
 
-    print(f"[Stage 2] Config: {cfg['experiment']['name']}, Split: {split}, n_samples={len(sample_ids)}, multiview={multiview}")
+    print(
+        f"[Stage 2] Config: {cfg['experiment']['name']}, Split: {split}, n_samples={len(sample_ids)}, multiview={multiview}"
+    )
 
     # Build INR model
     view_feat_dim = model_cfg.get("view_feat_dim", 0) if multiview else 0
     from du2vox.models.stage2.residual_inr import ResidualINR
+
     inr = ResidualINR(
         n_freqs=model_cfg["n_freqs"],
         hidden_dim=model_cfg["hidden_dim"],
@@ -310,6 +362,7 @@ def eval_stage2(cfg, checkpoint_path, split="val", multiview=False, output=None,
 
     if multiview:
         from du2vox.models.stage2.view_encoder import ViewEncoderModule
+
         view_encoder = ViewEncoderModule(
             view_feat_dim=view_feat_dim,
             fusion_method=model_cfg.get("fusion_method", "attn"),
@@ -329,6 +382,7 @@ def eval_stage2(cfg, checkpoint_path, split="val", multiview=False, output=None,
     precomputed_dir = resolve_precomputed_dir(data_cfg, split)
     if multiview:
         from du2vox.models.stage2.stage2_dataset import Stage2DatasetPrecomputedMultiview
+
         s2_dataset = Stage2DatasetPrecomputedMultiview(
             precomputed_dir=precomputed_dir,
             samples_dir=samples_dir,
@@ -339,6 +393,7 @@ def eval_stage2(cfg, checkpoint_path, split="val", multiview=False, output=None,
         )
     else:
         from du2vox.models.stage2.stage2_dataset import Stage2DatasetPrecomputed
+
         s2_dataset = Stage2DatasetPrecomputed(
             precomputed_dir=precomputed_dir,
             sample_ids=sample_ids,
@@ -390,7 +445,8 @@ def eval_stage2(cfg, checkpoint_path, split="val", multiview=False, output=None,
             if proj_path.exists():
                 proj_data = np.load(proj_path)
                 proj_imgs = np.stack(
-                    [proj_data[str(angle)].astype(np.float32) for angle in MCX_ANGLES], axis=0,
+                    [proj_data[str(angle)].astype(np.float32) for angle in MCX_ANGLES],
+                    axis=0,
                 )
             else:
                 proj_imgs = np.zeros((7, 256, 256), dtype=np.float32)
@@ -401,9 +457,12 @@ def eval_stage2(cfg, checkpoint_path, split="val", multiview=False, output=None,
                 frame = FrameManifest.load(shared_dir)
                 lo, hi = frame.mcx_bbox_min, frame.mcx_bbox_max
                 mcx_valid_all = (
-                    (coords_world[:, 0] >= lo[0]) & (coords_world[:, 0] <= hi[0]) &
-                    (coords_world[:, 1] >= lo[1]) & (coords_world[:, 1] <= hi[1]) &
-                    (coords_world[:, 2] >= lo[2]) & (coords_world[:, 2] <= hi[2])
+                    (coords_world[:, 0] >= lo[0])
+                    & (coords_world[:, 0] <= hi[0])
+                    & (coords_world[:, 1] >= lo[1])
+                    & (coords_world[:, 1] <= hi[1])
+                    & (coords_world[:, 2] >= lo[2])
+                    & (coords_world[:, 2] <= hi[2])
                 )
         else:
             proj_t = None
@@ -412,21 +471,19 @@ def eval_stage2(cfg, checkpoint_path, split="val", multiview=False, output=None,
         with torch.no_grad():
             for start in range(0, len(coords_norm), batch_points):
                 end = min(start + batch_points, len(coords_norm))
-                coords_chunk = torch.from_numpy(
-                    coords_norm[start:end]
-                ).float().unsqueeze(0).to(device)
-                prior_chunk = torch.from_numpy(
-                    prior_8d[start:end]
-                ).float().unsqueeze(0).to(device)
+                coords_chunk = (
+                    torch.from_numpy(coords_norm[start:end]).float().unsqueeze(0).to(device)
+                )
+                prior_chunk = torch.from_numpy(prior_8d[start:end]).float().unsqueeze(0).to(device)
 
                 if multiview:
-                    coords_world_chunk = torch.from_numpy(
-                        coords_world[start:end]
-                    ).float().unsqueeze(0).to(device)
+                    coords_world_chunk = (
+                        torch.from_numpy(coords_world[start:end]).float().unsqueeze(0).to(device)
+                    )
                     view_feat, _ = view_encoder(proj_t, coords_world_chunk, None)
-                    mcx_valid_chunk = torch.from_numpy(
-                        mcx_valid_all[start:end]
-                    ).to(device).view(1, -1, 1).float()
+                    mcx_valid_chunk = (
+                        torch.from_numpy(mcx_valid_all[start:end]).to(device).view(1, -1, 1).float()
+                    )
                     view_feat = view_feat * mcx_valid_chunk
                     pred_chunk, _, _ = inr(coords_chunk, prior_chunk, view_feat)
                 else:
@@ -437,37 +494,47 @@ def eval_stage2(cfg, checkpoint_path, split="val", multiview=False, output=None,
         d_hat = np.concatenate(preds, axis=0)
         s2_dice = compute_dice(d_hat, gt_values, 0.5)
 
-        per_sample.append({
-            "sample_id": sid,
-            "stage2_dice": float(s2_dice),
-            "fem_dice": float(fem_dice),
-            "delta_dice": float(s2_dice - fem_dice),
-            "dice": float(s2_dice),
-        })
+        per_sample.append(
+            {
+                "sample_id": sid,
+                "stage2_dice": float(s2_dice),
+                "fem_dice": float(fem_dice),
+                "delta_dice": float(s2_dice - fem_dice),
+                "dice": float(s2_dice),
+            }
+        )
 
     # ── Summary ──────────────────────────────────────────────────────────
     s2_dices = [m["stage2_dice"] for m in per_sample]
     fem_dices = [m["fem_dice"] for m in per_sample]
     delta_dices = [m["delta_dice"] for m in per_sample]
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Stage 2 {'Multiview' if multiview else 'DE-only'} Evaluation")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"  Stage2 Dice: {np.mean(s2_dices):.4f}")
     print(f"  FEM Dice:    {np.mean(fem_dices):.4f}")
     print(f"  Delta Dice:  {np.mean(delta_dices):.4f}")
 
     if manifest:
         by_foci = group_metrics_by_foci(per_sample, [m["sample_id"] for m in per_sample], manifest)
-        by_depth = group_metrics_by_depth(per_sample, [m["sample_id"] for m in per_sample], manifest)
-        by_cross = group_metrics_by_cross(per_sample, [m["sample_id"] for m in per_sample], manifest)
+        by_depth = group_metrics_by_depth(
+            per_sample, [m["sample_id"] for m in per_sample], manifest
+        )
+        by_cross = group_metrics_by_cross(
+            per_sample, [m["sample_id"] for m in per_sample], manifest
+        )
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("PER-FOCI")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"{'Metric':<20} {'Overall':>10} {'1-Foci':>10} {'2-Foci':>10} {'3-Foci':>10}")
         print("-" * 62)
-        for k, disp in [("stage2_dice","S2 Dice"), ("fem_dice","FEM Dice"), ("delta_dice","Δ Dice")]:
+        for k, disp in [
+            ("stage2_dice", "S2 Dice"),
+            ("fem_dice", "FEM Dice"),
+            ("delta_dice", "Δ Dice"),
+        ]:
             vals = [m[k] for m in per_sample]
             ov = float(np.mean(vals))
             row = f"{disp:<20} {ov:>10.4f}"
@@ -477,12 +544,16 @@ def eval_stage2(cfg, checkpoint_path, split="val", multiview=False, output=None,
                 row += f" {v:>10.4f}"
             print(row)
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("PER-DEPTH")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"{'Metric':<20} {'Overall':>10} {'Shallow':>10} {'Medium':>10} {'Deep':>10}")
         print("-" * 62)
-        for k, disp in [("stage2_dice","S2 Dice"), ("fem_dice","FEM Dice"), ("delta_dice","Δ Dice")]:
+        for k, disp in [
+            ("stage2_dice", "S2 Dice"),
+            ("fem_dice", "FEM Dice"),
+            ("delta_dice", "Δ Dice"),
+        ]:
             vals = [m[k] for m in per_sample]
             ov = float(np.mean(vals))
             row = f"{disp:<20} {ov:>10.4f}"
@@ -492,9 +563,9 @@ def eval_stage2(cfg, checkpoint_path, split="val", multiview=False, output=None,
                 row += f" {v:>10.4f}"
             print(row)
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("FOCI × DEPTH — S2 Dice")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"{'Foci \\ Depth':<15} {'Shallow':>12} {'Medium':>12} {'Deep':>12}")
         print("-" * 55)
         for n in [1, 2, 3]:
@@ -519,6 +590,7 @@ def eval_stage2(cfg, checkpoint_path, split="val", multiview=False, output=None,
 
 
 # ─── CLI ───────────────────────────────────────────────────────────────────────
+
 
 def main():
     parser = argparse.ArgumentParser()

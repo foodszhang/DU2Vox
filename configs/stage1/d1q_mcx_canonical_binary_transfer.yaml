@@ -1,0 +1,30 @@
+# Frozen binary-D0 Stage1 diagnostic on the MCX-canonical continuous cohort.
+# This is not the formal continuous Stage1 candidate.
+experiment:
+  name: stage1_d1q_mcx_canonical_binary_transfer
+
+data:
+  shared_dir: /home/foods/pro/FMT-SimGen/output/shared_mesh_20k
+  samples_dir: /home/foods/pro/DU2Vox/data/d1q_mcx_canonical_3k_20k/samples
+  splits_dir: /home/foods/pro/DU2Vox/data/d1q_mcx_canonical_3k_20k/splits
+  manifest_path: /home/foods/pro/DU2Vox/data/d1q_mcx_canonical_3k_20k/dataset_manifest.json
+  normalize_b: true
+  normalize_gt: false
+  binarize_gt: true
+  binarize_threshold: 0.05
+  use_visible_mask: false
+
+model:
+  name: GCAIN_full
+  feat_dim: 6
+  num_layer: 6
+  k_neighbors: 32
+
+training:
+  batch_size: 8
+  activation: sigmoid
+  leaky_relu_slope: 0.01
+
+checkpoint:
+  path: runs/stage1_fmt_simgen_v2_3k_20k_balanced_v2_eval/checkpoints/best.pth
+  sha256: f3c8fb07007b822312ada67a8f3325ff49a4f2344fa8ebf110e954ba9a6e73d3

@@ -1,0 +1,66 @@
+experiment:
+  name: error_structured_cross_discretization_2400
+
+runs_root: runs
+
+data:
+  dataset_root: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k
+  samples_dir: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/samples
+  shared_dir: /home/foods/pro/FMT-SimGen/output/shared_mesh_20k
+  allow_stale_frame_manifest: true
+  frame_manifest_sha256: 25b77f5d11430ebf4d9735f19534782afb56f7fe5cab525a569028b0f3c02e2b
+  train_split: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/train.txt
+  val_split: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/val.txt
+  test_split: /home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/test.txt
+  train_bridge_dir: output/bridge_v2_3k_train_balanced_v2
+  val_bridge_dir: output/bridge_v2_3k_val_balanced_v2
+  test_bridge_dir: output/bridge_v2_3k_test_balanced_v2
+  operator_cache: experiments/cross_discretization_decomposition/artifacts/operator_cache
+  projection_targets_dir: precomputed/error_structured_projection_targets
+  projection_file: proj.npz
+  projection_norm: per_view_max
+  projection_transform: none
+
+model:
+  view_encoder: true
+  view_feat_dim: 32
+  fusion_method: attn
+  encoder_base_channels: 32
+  encoder_out_channels: 32
+  view_projection_transform: none
+  view_multiscale:
+    enabled: true
+    scales: [s1, s2, s3]
+    hidden_dim: 64
+  inverse_hidden_dim: 144
+  inverse_hidden_layers: 3
+  representation_hidden_dim: 256
+  representation_hidden_layers: 4
+  n_freqs: 10
+
+training:
+  seed: 20260831
+  n_query_points: 8192
+  batch_size: 4
+  num_workers: 4
+  amp: true
+  amp_dtype: bf16
+  lr: 2.0e-4
+  weight_decay: 1.0e-5
+  grad_clip_norm: 1.0
+  phase_a_epochs: 10
+  phase_b_epochs: 10
+  phase_c_epochs: 15
+  baseline_epochs: 25
+  early_stopping_patience: 3
+
+loss:
+  lambda_inv: 1.0
+  lambda_repr: 1.0
+  lambda_final: 1.0
+  lambda_plain_target: 1.0
+  cosine_weight: 0.0
+
+validation:
+  dense_interval: 5
+  batch_points: 32768

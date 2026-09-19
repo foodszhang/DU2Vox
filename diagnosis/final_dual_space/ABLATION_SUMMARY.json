@@ -1,0 +1,494 @@
+{
+  "responsibility_table": [
+    {
+      "method": "Initial FEM (matched V4 chain)",
+      "dice": 0.617379
+    },
+    {
+      "method": "Retrained Initial FEM (separate Q-only protocol)",
+      "dice": 0.6311697754989116
+    },
+    {
+      "method": "Initial FEM + no-view Q-only (separate protocol)",
+      "dice": 0.6345278503018613,
+      "initial_dice": 0.6311697754989116
+    },
+    {
+      "method": "Initial FEM + views Q-only (separate protocol)",
+      "dice": 0.6458200975184597,
+      "initial_dice": 0.6311697754989116
+    },
+    {
+      "method": "V4 coarse-only",
+      "dice": 0.7165293910104922
+    },
+    {
+      "method": "Sequential concat B4",
+      "dice": 0.730484607671867
+    },
+    {
+      "method": "Proposed CST",
+      "dice": 0.7314722127602005
+    }
+  ],
+  "validation_candidates": [
+    {
+      "name": "cst_d128_g16_l3_one_ring",
+      "role": "one_ring",
+      "innovation": "delta",
+      "config": "/home/foods/pro/DU2Vox/configs/stage2/cst/cst_d128_g16_l3_one_ring.yaml",
+      "checkpoint": "/home/foods/pro/DU2Vox/runs/cst_d128_g16_l3_one_ring_formal/checkpoints/best_dense_val_dice.pth",
+      "checkpoint_epoch": 5,
+      "val_final_dice": 0.7477080374447118,
+      "val_detail_cosine": 0.17717315516502294,
+      "parameter_count": 193159,
+      "config_sha256": "a40b30cb0b7bf573492aad8d6a0edff6c43cb21dd17ae688ddd9c34d6a677204",
+      "checkpoint_sha256": "005183d331c4e0bf2ed9163e7933e2f4765aac7ce5799a8ac9cd55b8ec9c80e1",
+      "eligible": true
+    },
+    {
+      "name": "cst_d128_g16_l3_views",
+      "role": "direct_views",
+      "innovation": "delta",
+      "config": "/home/foods/pro/DU2Vox/configs/stage2/cst/cst_d128_g16_l3_views.yaml",
+      "checkpoint": "/home/foods/pro/DU2Vox/runs/cst_d128_g16_l3_views_formal/checkpoints/best_dense_val_dice.pth",
+      "checkpoint_epoch": 5,
+      "val_final_dice": 0.7465980862853931,
+      "val_detail_cosine": 0.1708262343405765,
+      "parameter_count": 192857,
+      "config_sha256": "412844d0d8e1f0cc268c94cd028100179c33df15bc03b1bde9383b35d17a6e14",
+      "checkpoint_sha256": "c9c09abbeae1997a1dbeb8f40ff7b63329b1e07f217ac5de20173932ed66672e",
+      "eligible": false
+    },
+    {
+      "name": "cst_d128_g16_l3",
+      "role": "plain_delta",
+      "innovation": "delta",
+      "config": "/home/foods/pro/DU2Vox/configs/stage2/cst/cst_d128_g16_l3.yaml",
+      "checkpoint": "/home/foods/pro/DU2Vox/runs/cst_d128_g16_l3_formal/checkpoints/best_dense_val_dice.pth",
+      "checkpoint_epoch": 5,
+      "val_final_dice": 0.7463300942131518,
+      "val_detail_cosine": 0.1690224482452624,
+      "parameter_count": 190294,
+      "config_sha256": "7dbf45d90202fb6dbd84760b6489c9448dffa3087e4acbf52342a6c752533df5",
+      "checkpoint_sha256": "ea5d3508861ad3d81de1bf016c5fc1b5d572b72aa7d0fad3517cab7a3ec54b53",
+      "eligible": true
+    },
+    {
+      "name": "cst_hc_delta_d128_g16_l3",
+      "role": "hc_delta",
+      "innovation": "hc_delta",
+      "config": "/home/foods/pro/DU2Vox/configs/stage2/cst/cst_hc_delta_d128_g16_l3.yaml",
+      "checkpoint": "/home/foods/pro/DU2Vox/runs/cst_hc_delta_d128_g16_l3_formal/checkpoints/best_dense_val_dice.pth",
+      "checkpoint_epoch": 5,
+      "val_final_dice": 0.746135653573171,
+      "val_detail_cosine": 0.16939521528632742,
+      "parameter_count": 193982,
+      "config_sha256": "f4566ee85b6dcd7ddabbb60ff5210c3fdf3347030ae2a413f719772ccb4c628e",
+      "checkpoint_sha256": "dcc66e23d74d1320ce234f78d4b1a03501c1299f15b2fad6f52903b23a080b82",
+      "eligible": true
+    },
+    {
+      "name": "cst_d96_g8_l3",
+      "role": "plain_delta",
+      "innovation": "delta",
+      "config": "/home/foods/pro/DU2Vox/configs/stage2/cst/cst_d96_g8_l3.yaml",
+      "checkpoint": "/home/foods/pro/DU2Vox/runs/cst_d96_g8_l3_formal/checkpoints/best_dense_val_dice.pth",
+      "checkpoint_epoch": 2,
+      "val_final_dice": 0.7458263996383075,
+      "val_detail_cosine": 0.17771004885140188,
+      "parameter_count": 189510,
+      "config_sha256": "7d1c8db5f4489cad7137b16f3b551753f8f93b6fdd4d114c2d415be5954b994a",
+      "checkpoint_sha256": "f05869fdb74669f420a2dca39432d2286e0a8944e8bb430b9183d91d1af56b74",
+      "eligible": true
+    },
+    {
+      "name": "cst_d64_g8_l3",
+      "role": "plain_delta",
+      "innovation": "delta",
+      "config": "/home/foods/pro/DU2Vox/configs/stage2/cst/cst_d64_g8_l3.yaml",
+      "checkpoint": "/home/foods/pro/DU2Vox/runs/cst_d64_g8_l3_formal/checkpoints/best_dense_val_dice.pth",
+      "checkpoint_epoch": 2,
+      "val_final_dice": 0.745819192156506,
+      "val_detail_cosine": 0.17547373173228048,
+      "parameter_count": 190014,
+      "config_sha256": "a7381ac0c57138f25679c2e819d183ec69791cfe23c8cb4e8c030f3d3915b0e0",
+      "checkpoint_sha256": "64543b12f34a76c8b2ac1ad896d9c42854453422bac84115a1b6e114f3c9046d",
+      "eligible": true
+    },
+    {
+      "name": "cst_hc_only_d128_g16_l3",
+      "role": "none",
+      "innovation": "none",
+      "config": "/home/foods/pro/DU2Vox/configs/stage2/cst/cst_hc_only_d128_g16_l3.yaml",
+      "checkpoint": "/home/foods/pro/DU2Vox/runs/cst_hc_only_d128_g16_l3_formal/checkpoints/best_dense_val_dice.pth",
+      "checkpoint_epoch": 5,
+      "val_final_dice": 0.7457490510881793,
+      "val_detail_cosine": 0.16786912410619464,
+      "parameter_count": 193261,
+      "config_sha256": "b104257ab5c709cd6344f73905e2a4410d1f77d8f807eb9ae905658f7b9ee78d",
+      "checkpoint_sha256": "db64750e6479f1f5f2d0b89ab66f5c77ec651b61b32a761011013bc0ff7568e0",
+      "eligible": true
+    },
+    {
+      "name": "cst_d96_g16_l4",
+      "role": "plain_delta",
+      "innovation": "delta",
+      "config": "/home/foods/pro/DU2Vox/configs/stage2/cst/cst_d96_g16_l4.yaml",
+      "checkpoint": "/home/foods/pro/DU2Vox/runs/cst_d96_g16_l4_formal/checkpoints/best_dense_val_dice.pth",
+      "checkpoint_epoch": 5,
+      "val_final_dice": 0.7455499887981051,
+      "val_detail_cosine": 0.16624657593423403,
+      "parameter_count": 186866,
+      "config_sha256": "e7197ef9059bd94937f21a37115ce05ee7b9d7b790e6eae99256e636ccf3649b",
+      "checkpoint_sha256": "1eac5634552eb4c3498531e379ce609915ab8cd785fada13937b169f43b1cc9a",
+      "eligible": true
+    }
+  ],
+  "optional_module_gates": {
+    "cst_d128_g16_l3_one_ring": {
+      "rule": "ci_positive",
+      "retained": true,
+      "mean_difference": 0.0013779432315599942,
+      "paired_bootstrap_95_ci": [
+        0.0007334780934069098,
+        0.002023227760195393
+      ],
+      "two_sided_sign_flip_p_value": 9.999000099990002e-05,
+      "effect_consistency_fraction_positive": 0.6166666666666667,
+      "draws": 10000,
+      "seed": 20260901
+    },
+    "cst_d128_g16_l3_views": {
+      "rule": "gain_0.002_and_ci_positive",
+      "retained": false,
+      "mean_difference": 0.0002679920722413161,
+      "paired_bootstrap_95_ci": [
+        -0.00016623915775577979,
+        0.0007178845848359995
+      ],
+      "two_sided_sign_flip_p_value": 0.22707729227077292,
+      "effect_consistency_fraction_positive": 0.5,
+      "draws": 10000,
+      "seed": 20260901
+    }
+  },
+  "latent_transition_ablation": {
+    "reference_name": "cst_d128_g16_l3",
+    "hc_only_name": "cst_hc_only_d128_g16_l3",
+    "hc_delta_name": "cst_hc_delta_d128_g16_l3",
+    "hc_plus_delta_h_vs_hc_only": {
+      "mean_difference": 0.0005810431249724665,
+      "paired_bootstrap_95_ci": [
+        -2.428069579085402e-05,
+        0.0011739561766482502
+      ],
+      "two_sided_sign_flip_p_value": 0.0585941405859414,
+      "effect_consistency_fraction_positive": 0.5333333333333333,
+      "draws": 10000,
+      "seed": 20260901
+    },
+    "hc_delta_adapter_vs_delta_h": {
+      "mean_difference": -0.0001944406399807506,
+      "paired_bootstrap_95_ci": [
+        -0.0005884118796875655,
+        0.00018854193213159744
+      ],
+      "two_sided_sign_flip_p_value": 0.3096690330966903,
+      "effect_consistency_fraction_positive": 0.47333333333333333,
+      "draws": 10000,
+      "seed": 20260901
+    }
+  },
+  "final_model_selected_on_validation": {
+    "method": "strong_sequential_concat_B4",
+    "config": null,
+    "checkpoint": "/home/foods/pro/DU2Vox/runs/information_audit_a2/checkpoints/best_dense_val_dice.pth",
+    "checkpoint_sha256": "b5412a446cda0a0ccfd4db4a3b332fcd7e33072a3f974854c8ca7a2d3a137699",
+    "validation_dice": 0.7473177147844859,
+    "selection_reason": "CST did not significantly exceed the strong concat baseline on validation"
+  },
+  "optimization_responsibility": {
+    "n_validation": 300,
+    "validation": {
+      "fem_dice": {
+        "mean_delta": 0.011831771784541414,
+        "paired_bootstrap_95_ci": [
+          0.0066439037403841885,
+          0.017001174679247343
+        ]
+      },
+      "fem_hd95": {
+        "mean_delta": -0.14190492188139858,
+        "paired_bootstrap_95_ci": [
+          -0.2604469643084273,
+          -0.05304797355137504
+        ]
+      },
+      "fem_localization_error": {
+        "mean_delta": -0.043150868082665,
+        "paired_bootstrap_95_ci": [
+          -0.13736751554711107,
+          0.04318663770821185
+        ]
+      },
+      "fem_mse": {
+        "mean_delta": 0.202888596023285,
+        "paired_bootstrap_95_ci": [
+          0.201843282100428,
+          0.20393293450112804
+        ]
+      },
+      "final_dice": {
+        "mean_delta": 0.003911543518188122,
+        "paired_bootstrap_95_ci": [
+          -6.8203945176592e-05,
+          0.00795607556467133
+        ]
+      }
+    },
+    "frozen_validation_summary": {
+      "delta_final_vs_fem_dice": 0.009816022381491436,
+      "detail_coarse_leakage": 4.4680711293427e-18,
+      "detail_cosine": 0.15821207120273206,
+      "detail_norm": 24.50710278849912,
+      "fem_assd": 0.4516779859063349,
+      "fem_component_recall": 0.8894444444444444,
+      "fem_dice": 0.7325118749474004,
+      "fem_fp_components": 0.013333333333333334,
+      "fem_hd95": 1.8443239753137395,
+      "fem_iou": 0.5894641369884833,
+      "fem_localization_error": 1.207367030402457,
+      "fem_mae": 0.050207443984329636,
+      "fem_mass_error": -7.914594610743329,
+      "fem_mse": 0.006663136172856718,
+      "fem_peak_error": 0.6465650761127472,
+      "fem_precision": 0.7298119722166237,
+      "fem_recall": 0.7960223865457573,
+      "fem_separation_success": 0.7233333333333334,
+      "fem_state_delta_relative_l1": 0.0,
+      "fem_state_delta_relative_l2": 0.0,
+      "fem_volume_error": 0.22531810083030063,
+      "fem_weak_recall": 0.7444033266899265,
+      "final_assd": 0.42868804227260493,
+      "final_coarse_preservation_relative_l2": 8.490161843076624e-09,
+      "final_component_recall": 0.885,
+      "final_dice": 0.7423278973288919,
+      "final_fp_components": 0.06,
+      "final_hd95": 1.7364887170804797,
+      "final_iou": 0.6017201514956357,
+      "final_localization_error": 1.179332038996165,
+      "final_mae": 0.04960036683969367,
+      "final_mass_error": -7.914594610759485,
+      "final_mse": 0.006834477796456616,
+      "final_peak_error": 0.6562519653638204,
+      "final_precision": 0.742314553046856,
+      "final_recall": 0.8022668626998805,
+      "final_separation_success": 0.7233333333333334,
+      "final_volume_error": 0.21312641222854214,
+      "final_weak_recall": 0.7491941072905726,
+      "measurement_residual_ratio": 0.9253382390737533
+    },
+    "joint_validation_summary": {
+      "delta_final_vs_fem_dice": 0.0018957941151381422,
+      "detail_coarse_leakage": 4.472310374433985e-18,
+      "detail_cosine": 0.16186737374766413,
+      "detail_norm": 26.800458766896153,
+      "fem_assd": 0.4236672649398112,
+      "fem_component_recall": 0.8827777777777779,
+      "fem_dice": 0.7443436467319419,
+      "fem_fp_components": 0.03,
+      "fem_hd95": 1.7024190534323411,
+      "fem_iou": 0.6033456864154283,
+      "fem_localization_error": 1.1642161623197922,
+      "fem_mae": 0.45420577455725286,
+      "fem_mass_error": -91.32206404330731,
+      "fem_mse": 0.20955173219614173,
+      "fem_peak_error": 0.6456171325842539,
+      "fem_precision": 0.7563112138964626,
+      "fem_recall": 0.7873399039914655,
+      "fem_separation_success": 0.7233333333333334,
+      "fem_state_delta_relative_l1": 10.587263990209621,
+      "fem_state_delta_relative_l2": 4.8404633431292075,
+      "fem_volume_error": 0.15333916110603377,
+      "fem_weak_recall": 0.7276526760840839,
+      "final_assd": 0.4194618573149683,
+      "final_coarse_preservation_relative_l2": 1.099822994459392e-08,
+      "final_component_recall": 0.8816666666666667,
+      "final_dice": 0.74623944084708,
+      "final_fp_components": 0.04,
+      "final_hd95": 1.6725958624106847,
+      "final_iou": 0.6062142922866194,
+      "final_localization_error": 1.1636854738057063,
+      "final_mae": 0.453625301593097,
+      "final_mass_error": -91.32206404331792,
+      "final_mse": 0.20977761384160784,
+      "final_peak_error": 0.6935499811172485,
+      "final_precision": 0.7459215333207904,
+      "final_recall": 0.8034487558860118,
+      "final_separation_success": 0.72,
+      "final_volume_error": 0.20250938660908385,
+      "final_weak_recall": 0.7418896781162823,
+      "measurement_residual_ratio": 3.9462245428562164
+    },
+    "strong_evidence_rules": {
+      "fem_dice_minimum_delta": 0.002,
+      "fem_dice_ci_lower_gt_zero": true,
+      "hd95_not_worse": true,
+      "localization_not_worse": true,
+      "development_test_same_direction": true
+    },
+    "confirmation_data_used": false,
+    "n_development_test": 300,
+    "development_test": {
+      "fem_dice": {
+        "mean_delta": 0.011658046036197203
+      },
+      "fem_hd95": {
+        "mean_delta": -0.22482010989279488
+      },
+      "fem_localization_error": {
+        "mean_delta": -0.08883772740405566
+      },
+      "fem_mse": {
+        "mean_delta": 0.20486635489970517
+      },
+      "final_dice": {
+        "mean_delta": 0.0020503249416017155
+      }
+    },
+    "frozen_development_test_summary": {
+      "delta_final_vs_fem_dice": 0.01038311745487794,
+      "detail_coarse_leakage": 4.59597486740966e-18,
+      "detail_cosine": 0.16866538831264719,
+      "detail_norm": 23.7150000178315,
+      "fem_assd": 0.5180014368751885,
+      "fem_component_recall": 0.8738888888888887,
+      "fem_dice": 0.7165293910104922,
+      "fem_fp_components": 0.023333333333333334,
+      "fem_hd95": 2.173528404771822,
+      "fem_iou": 0.5715008892359528,
+      "fem_localization_error": 1.3521322505693307,
+      "fem_mae": 0.05126989016952835,
+      "fem_mass_error": -8.981165682848268,
+      "fem_mse": 0.006637885911366717,
+      "fem_peak_error": 0.6514339117209117,
+      "fem_precision": 0.7062798885115155,
+      "fem_recall": 0.7907951092725631,
+      "fem_separation_success": 0.6933333333333334,
+      "fem_state_delta_relative_l1": 0.0,
+      "fem_state_delta_relative_l2": 0.0,
+      "fem_volume_error": 0.25844217290696325,
+      "fem_weak_recall": 0.7457908051843576,
+      "final_assd": 0.4827584760199028,
+      "final_coarse_preservation_relative_l2": 8.71436537516886e-09,
+      "final_component_recall": 0.875,
+      "final_dice": 0.7269125084653703,
+      "final_fp_components": 0.05,
+      "final_hd95": 1.9829991512337615,
+      "final_iou": 0.5846691023631465,
+      "final_localization_error": 1.256186790107683,
+      "final_mae": 0.05070567462171347,
+      "final_mass_error": -8.981165682864612,
+      "final_mse": 0.006784938162436313,
+      "final_peak_error": 0.6548332929611206,
+      "final_precision": 0.7212834189079301,
+      "final_recall": 0.7966052754659216,
+      "final_separation_success": 0.6933333333333334,
+      "final_volume_error": 0.2439778090413901,
+      "final_weak_recall": 0.7509847703938267,
+      "measurement_residual_ratio": 0.9190838604172071
+    },
+    "joint_development_test_summary": {
+      "delta_final_vs_fem_dice": 0.0007753963602824498,
+      "detail_coarse_leakage": 4.609463071775531e-18,
+      "detail_cosine": 0.17200886128641643,
+      "detail_norm": 26.232014023825172,
+      "fem_assd": 0.47331824025254,
+      "fem_component_recall": 0.875,
+      "fem_dice": 0.7281874370466894,
+      "fem_fp_components": 0.023333333333333334,
+      "fem_hd95": 1.948708294879027,
+      "fem_iou": 0.585923864515348,
+      "fem_localization_error": 1.2632945231652752,
+      "fem_mae": 0.45653963972564743,
+      "fem_mass_error": -100.61126250562579,
+      "fem_mse": 0.21150424081107191,
+      "fem_peak_error": 0.6485820376873016,
+      "fem_precision": 0.7223044031358781,
+      "fem_recall": 0.7955938442738136,
+      "fem_separation_success": 0.6866666666666666,
+      "fem_state_delta_relative_l1": 10.400456260148951,
+      "fem_state_delta_relative_l2": 4.903622596442197,
+      "fem_volume_error": 0.23319435391202772,
+      "fem_weak_recall": 0.7468464701785809,
+      "final_assd": 0.45850987928540426,
+      "final_coarse_preservation_relative_l2": 1.0979183367899234e-08,
+      "final_component_recall": 0.8755555555555554,
+      "final_dice": 0.7289628334069719,
+      "final_fp_components": 0.06,
+      "final_hd95": 1.8173173525908146,
+      "final_iou": 0.5875044706798157,
+      "final_localization_error": 1.225599549907769,
+      "final_mae": 0.45599451895719656,
+      "final_mass_error": -100.61126250560534,
+      "final_mse": 0.2117080792410842,
+      "final_peak_error": 0.6894988703727722,
+      "final_precision": 0.7148045034682207,
+      "final_recall": 0.8078392852693231,
+      "final_separation_success": 0.69,
+      "final_volume_error": 0.27776507329989497,
+      "final_weak_recall": 0.7573838984917899,
+      "measurement_residual_ratio": 4.018564264376958
+    },
+    "strong_evidence_supported": true
+  },
+  "responsibility_training_audit": {
+    "comparison": "frozen_vs_responsibility_separated_vs_unrestricted_joint",
+    "validation_only_selection": true,
+    "frozen": {
+      "v4_epoch": 15,
+      "coarse_val_dice": 0.7325118749474004,
+      "coarse_development_test_dice": 0.7165293910104922,
+      "validation_fem_mse": 0.006663136172856718,
+      "fem_state_changed_by_voxel_loss": false
+    },
+    "responsibility_separated": {
+      "gradient_contract": "voxel detail/final gradients detached at x_c/H_c/Delta-x/Delta-H; coarse branch receives only its established V4 losses",
+      "coarse_optimization_equivalence": "With a detached boundary, coarse-side optimization is independent of the voxel objective and follows the recorded V4 continuation trajectory.",
+      "continued_candidate_epoch": 20,
+      "continued_candidate_coarse_val_dice": 0.6492975216454653,
+      "starting_epoch15_coarse_val_dice": 0.7325118749474004,
+      "validation_selected_coarse_epoch": 15,
+      "selected_result": "identical coarse checkpoint to frozen",
+      "incremental_validation_gain_over_frozen": 0.0,
+      "decision": "No independent coarse-side continuation benefit; retain frozen V4 epoch 15. Stop-gradient remains the training contract."
+    },
+    "unrestricted_fully_joint": {
+      "source": "diagnosis/p0_joint_vs_frozen_v4_comparison.json",
+      "validation_fem_mse": 0.20955173219614173,
+      "frozen_validation_fem_mse": 0.006663136172856718,
+      "validation_measurement_residual_ratio": 3.9462245428562164,
+      "frozen_validation_measurement_residual_ratio": 0.9253382390737533,
+      "validation_relative_fem_state_change_l2": 4.8404633431292075,
+      "development_test_fem_mse": 0.21150424081107191,
+      "development_test_measurement_residual_ratio": 4.018564264376958,
+      "decision": "rejected for severe FEM-state and data-consistency drift"
+    },
+    "selected_optimization": "frozen coarse with an explicit detached responsibility boundary",
+    "claim_scope": "responsibility-preserving training contract, not an independently performance-improving co-training innovation",
+    "sealed_confirmation_accessed": false
+  },
+  "coarse_inverse_quality": {
+    "mean_fem_state_l2_norm": 12.490652234415492,
+    "mean_fem_state_rms": 0.0883443378098844,
+    "mean_fem_state_max_abs": 1.6691736261049905,
+    "mean_v4_correction_relative_l2_vs_initial_stage1": 1.0192556806152409,
+    "voxel_loss_induced_relative_state_drift": 0.0,
+    "coarse_dice": 0.7165293910104922,
+    "fem_mse": 0.006637885911366717,
+    "measurement_residual_ratio": 0.9190838604172071,
+    "source": "same frozen V4 epoch-15 state used by B4 and every CST candidate"
+  },
+  "protocol_separation_note": "The retrained-Stage1 Q-only arm is not pooled with the matched V4 chain."
+}

@@ -1,0 +1,36 @@
+{
+  "selection_split": "validation",
+  "rule": "maximum Dice; if difference <1e-4, lower coarse leakage",
+  "candidates": [
+    {
+      "lambda_coarse_soft": 0.001,
+      "checkpoint": "/home/foods/pro/DU2Vox/runs/p0_soft_lambda_1e3/checkpoints/best_dense_val_dice.pth",
+      "epoch": 3,
+      "val_dice": 0.7437662247816722,
+      "val_coarse_leakage": 0.35226567380441226
+    },
+    {
+      "lambda_coarse_soft": 0.01,
+      "checkpoint": "/home/foods/pro/DU2Vox/runs/p0_soft_lambda_1e2/checkpoints/best_dense_val_dice.pth",
+      "epoch": 5,
+      "val_dice": 0.7373989849289259,
+      "val_coarse_leakage": 0.06928388555097442
+    },
+    {
+      "lambda_coarse_soft": 0.1,
+      "checkpoint": "/home/foods/pro/DU2Vox/runs/p0_soft_lambda_1e1/checkpoints/best_dense_val_dice.pth",
+      "epoch": 3,
+      "val_dice": 0.7325054261088372,
+      "val_coarse_leakage": 0.0020442989387378483
+    }
+  ],
+  "selected": {
+    "lambda_coarse_soft": 0.001,
+    "checkpoint": "/home/foods/pro/DU2Vox/runs/p0_soft_lambda_1e3/checkpoints/best_dense_val_dice.pth",
+    "epoch": 3,
+    "val_dice": 0.7437662247816722,
+    "val_coarse_leakage": 0.35226567380441226
+  },
+  "development_test_used": false,
+  "confirmation_data_used": false
+}

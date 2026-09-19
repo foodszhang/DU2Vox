@@ -7,6 +7,22 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+def sparse_left_mm_batched(matrix: torch.Tensor, values: torch.Tensor) -> torch.Tensor:
+    """Apply one sparse ``[N, N]`` matrix to a ``[B, N, C]`` tensor.
+
+    Folding the batch and channel axes into the dense right-hand side avoids one
+    sparse kernel launch per sample while preserving the per-sample operation.
+    """
+    if values.ndim != 3:
+        raise ValueError("values must have shape [B, N, C]")
+    batch, n_nodes, channels = values.shape
+    if matrix.shape != (n_nodes, n_nodes):
+        raise ValueError("matrix and values node dimensions differ")
+    rhs = values.permute(1, 0, 2).reshape(n_nodes, batch * channels)
+    result = torch.sparse.mm(matrix, rhs)
+    return result.reshape(n_nodes, batch, channels).permute(1, 0, 2)
+
+
 class GCNBlock(nn.Module):
     """Standard spectral GCN: out = LeakyReLU(L @ X @ W + b)."""
 
@@ -24,22 +40,11 @@ class GCNBlock(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x: [B, N, in_dim]
-        B = x.shape[0]
         x_w = torch.matmul(x, self.weight)  # [B, N, out_dim]
         if self.L.is_sparse:
-            # Sparse mm doesn't support batch - process per sample
-            out_list = []
-            for i in range(B):
-                xi_w = x_w[i]  # [N, out_dim]
-                outi = torch.sparse.mm(self.L, xi_w)  # [N, out_dim]
-                out_list.append(outi)
-            out = torch.stack(out_list, dim=0)  # [B, N, out_dim]
+            out = sparse_left_mm_batched(self.L, x_w)
         else:
-            # L is dense [N, N]: out[i] = L @ x_w[i] for each sample
-            out_list = []
-            for i in range(B):
-                out_list.append(torch.matmul(self.L, x_w[i]))  # [N, out_dim]
-            out = torch.stack(out_list, dim=0)  # [B, N, out_dim]
+            out = torch.matmul(self.L, x_w)
         out = out + self.bias
         return self.act(out)
 
@@ -56,35 +61,67 @@ class InputBlock(nn.Module):
     Uses L.T @ (L @ x) and A.T @ (A @ x) to avoid dense intermediate storage.
     """
 
-    def __init__(self, L: torch.Tensor, A: torch.Tensor, LTL=None, ATA=None):
+    def __init__(
+        self,
+        L: torch.Tensor,
+        A: torch.Tensor,
+        LTL=None,
+        ATA=None,
+        physics_evidence: str = "raw",
+        evidence_eps: float = 1e-8,
+        profiled_evidence_rms: float = 0.05,
+    ):
         super().__init__()
+        if physics_evidence not in {"raw", "profiled_normalized"}:
+            raise ValueError("physics_evidence must be raw or profiled_normalized")
         self.L = L
         self.A = A
+        self.physics_evidence = physics_evidence
+        self.evidence_eps = float(evidence_eps)
+        self.profiled_evidence_rms = float(profiled_evidence_rms)
+        if self.profiled_evidence_rms <= 0:
+            raise ValueError("profiled_evidence_rms must be positive")
 
     def forward(self, x: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
         # x: [B, N, 1], b: [B, S, 1]
-        B, N, C = x.shape
-
-        # L.t() @ (L @ x) - L is sparse, process per sample
-        LTLx_list = []
-        for i in range(B):
-            xi = x[i].squeeze(-1)  # [N]
-            Lxi = torch.sparse.mm(self.L, xi.unsqueeze(-1)).squeeze(-1)  # [N]
-            LTLxi = torch.sparse.mm(self.L.t(), Lxi.unsqueeze(-1)).squeeze(-1)  # [N]
-            LTLx_list.append(LTLxi)
-        LTLx = torch.stack(LTLx_list, dim=0).unsqueeze(-1)  # [B, N, 1]
+        # L.t() @ (L @ x), with batch samples folded into one sparse RHS.
+        Lx = sparse_left_mm_batched(self.L, x)
+        LTLx = sparse_left_mm_batched(self.L.t(), Lx)
 
         # A.t() @ (A @ x) - A is dense
         # x: [B, N] -> A @ x: [B, S]
         x_b = x.squeeze(-1)  # [B, N]
         Ax = torch.mm(x_b, self.A.t())  # [B, S]
-        ATAx = torch.mm(Ax, self.A.t().transpose(0, 1)).unsqueeze(-1)  # [B, N, 1]
-
-        # ATb: A.t() @ b: [N, S] @ [B, S] = [N, B] -> [B, N]
         b_b = b.squeeze(-1)  # [B, S]
-        ATb = torch.mm(b_b, self.A.t().transpose(0, 1)).unsqueeze(-1)  # [B, N, 1]
+        if self.physics_evidence == "raw":
+            gradient = torch.mm(Ax - b_b, self.A).unsqueeze(-1)
+        else:
+            # Profile out the unknown positive measurement/state amplitude. At
+            # the exact cold start Ax=0 the profiled gradient is zero, so use
+            # the raw adjoint until a nonzero response exists. Per-case RMS
+            # normalization removes the arbitrary evidence magnitude.
+            denominator = Ax.square().sum(dim=1, keepdim=True)
+            numerator = (Ax * b_b).sum(dim=1, keepdim=True).clamp_min(0.0)
+            alpha = numerator / (denominator + self.evidence_eps)
+            profiled_residual = alpha * Ax - b_b
+            profiled = alpha * torch.mm(profiled_residual, self.A)
+            raw_residual = Ax - b_b
+            raw = torch.mm(raw_residual, self.A)
+            usable = (denominator > self.evidence_eps) & (numerator > self.evidence_eps)
+            gradient = torch.where(usable, profiled, raw)
+            residual = torch.where(usable, profiled_residual, raw_residual)
+            relative_residual = torch.linalg.vector_norm(
+                residual, dim=1, keepdim=True
+            ) / torch.linalg.vector_norm(b_b, dim=1, keepdim=True).clamp_min(self.evidence_eps)
+            rms = gradient.square().mean(dim=1, keepdim=True).sqrt()
+            gradient = (
+                gradient
+                / (rms + self.evidence_eps)
+                * self.profiled_evidence_rms
+                * relative_residual
+            ).unsqueeze(-1)
 
-        return torch.cat([x, LTLx, ATAx - ATb], dim=-1)
+        return torch.cat([x, LTLx, gradient], dim=-1)
 
 
 class AdaptiveThreshold(nn.Module):

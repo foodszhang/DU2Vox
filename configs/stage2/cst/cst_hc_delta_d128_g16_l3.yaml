@@ -1,0 +1,3 @@
+base_config: configs/stage2/cst/base.yaml
+experiment: {name: cst_hc_delta_d128_g16_l3}
+model: {transfer_dim: 128, modulation_groups: 16, decoder_width: 132, decoder_depth: 3, innovation: hc_delta}

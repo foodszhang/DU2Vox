@@ -1,0 +1,64 @@
+{
+  "status": "passed",
+  "dataset_root": "/home/foods/pro/DU2Vox/data/d1q_mcx_canonical_3k_20k",
+  "source_root": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_quantitative_gaussian_3k_20k",
+  "n_samples": 3000,
+  "split_counts": {
+    "train": 2400,
+    "val": 300,
+    "test": 300
+  },
+  "max_abs_voxel_error": 0.0,
+  "max_abs_node_error": 0.0,
+  "max_abs_measurement_error": 0.0,
+  "max_abs_scale_error": 0.0,
+  "negative_node_fraction": {
+    "min": 0.0,
+    "median": 0.0,
+    "mean": 0.0,
+    "max": 0.0
+  },
+  "negative_measurement_fraction": {
+    "min": 0.0,
+    "median": 0.0,
+    "mean": 0.0,
+    "max": 0.0
+  },
+  "measurement_max": {
+    "min": 0.0004558515502139926,
+    "median": 0.4322621524333954,
+    "mean": 0.5974358351754393,
+    "max": 3.9623677730560303
+  },
+  "node_to_voxel_peak_ratio": {
+    "min": 0.1708832096049991,
+    "median": 0.7721480683531352,
+    "mean": 0.7506430796316418,
+    "max": 1.0
+  },
+  "outside_valid_mass_fraction": {
+    "min": 0.0,
+    "median": 8.216829835108524e-05,
+    "mean": 0.01516094297768863,
+    "max": 0.29197979819319564
+  },
+  "outside_valid_mass_counts": {
+    "greater_than_0.001": 1311,
+    "greater_than_0.01": 860,
+    "greater_than_0.05": 321,
+    "greater_than_0.1": 104,
+    "greater_than_0.2": 6
+  },
+  "hardlink_failures": [],
+  "checks": {
+    "voxel_exact": true,
+    "nodes_exact": true,
+    "measurements_exact": true,
+    "scale_exact": true,
+    "nodes_nonnegative": true,
+    "measurements_nonnegative": true,
+    "every_case_has_nonzero_measurement": true,
+    "outside_domain_source_mass_characterized": true,
+    "reused_assets_are_hardlinks": true
+  }
+}

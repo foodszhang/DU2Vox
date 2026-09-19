@@ -12,10 +12,12 @@ from typing import Any
 import numpy as np
 import torch
 import yaml
+from scipy.spatial import cKDTree
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from du2vox.models.stage2.cqr_residual_inr import CQRResidualINR
+from du2vox.models.stage2.plain_cqr_residual_control import PlainCQRResidualControl
 from du2vox.models.stage2.residual_inr import ResidualINR
 from du2vox.models.stage2.transport_observability_cqr_inr import (
     TransportObservabilityCQRINR,
@@ -37,6 +39,16 @@ METRIC_KEYS = [
     "fem_precision_05",
     "s2_recall_05",
     "fem_recall_05",
+    "s2_specificity_05",
+    "fem_specificity_05",
+    "hd95_05",
+    "component_recall_05",
+    "fp_component_count_05",
+    "source_localization_error_mm",
+    "source_separation_success",
+    "weak_source_recall_05",
+    "measurement_error",
+    "correction_forward_error",
     "mse_s2",
     "mse_fem",
     "residual_norm",
@@ -105,6 +117,7 @@ def binary_metrics(pred: np.ndarray, gt: np.ndarray, thr: float = 0.5) -> dict[s
     tp = float((pred_bin & gt_bin).sum())
     fp = float((pred_bin & ~gt_bin).sum())
     fn = float((~pred_bin & gt_bin).sum())
+    tn = float((~pred_bin & ~gt_bin).sum())
     pred_sum = float(pred_bin.sum())
     gt_sum = float(gt_bin.sum())
     union = float((pred_bin | gt_bin).sum())
@@ -113,8 +126,146 @@ def binary_metrics(pred: np.ndarray, gt: np.ndarray, thr: float = 0.5) -> dict[s
         "iou": tp / (union + eps),
         "precision": tp / (tp + fp + eps),
         "recall": tp / (tp + fn + eps),
+        "specificity": tn / (tn + fp + eps),
         "pred_pos_ratio": float(pred_bin.mean()) if len(pred_bin) else 0.0,
         "gt_pos_ratio": float(gt_bin.mean()) if len(gt_bin) else 0.0,
+    }
+
+
+def _component_centers(points: np.ndarray) -> np.ndarray:
+    """Return centers of nontrivial proximity components on a CQR point cloud."""
+
+    if len(points) == 0:
+        return np.empty((0, 3), dtype=np.float32)
+    if len(points) == 1:
+        return points.astype(np.float32, copy=False)
+    tree = cKDTree(points)
+    nearest = tree.query(points, k=2)[0][:, 1]
+    positive = nearest[np.isfinite(nearest) & (nearest > 0)]
+    radius = 0.5 if len(positive) == 0 else max(0.3, 1.75 * float(np.median(positive)))
+    parent = np.arange(len(points), dtype=np.int64)
+
+    def find(index: int) -> int:
+        while parent[index] != index:
+            parent[index] = parent[parent[index]]
+            index = int(parent[index])
+        return index
+
+    for left, right in tree.query_pairs(radius):
+        root_left, root_right = find(left), find(right)
+        if root_left != root_right:
+            parent[root_right] = root_left
+    groups: dict[int, list[int]] = {}
+    for index in range(len(points)):
+        groups.setdefault(find(index), []).append(index)
+    kept = [indices for indices in groups.values() if len(indices) >= 3]
+    if not kept:
+        kept = [max(groups.values(), key=len)]
+    return np.stack([points[indices].mean(axis=0) for indices in kept]).astype(np.float32)
+
+
+def source_metrics(
+    pred: np.ndarray,
+    gt: np.ndarray,
+    coords: np.ndarray,
+    tumor_params: dict[str, Any] | None,
+    threshold: float = 0.5,
+) -> dict[str, float]:
+    """Component, localization, separation, weak-source, and HD95 metrics."""
+
+    pred_points = coords[pred >= threshold]
+    gt_points = coords[gt >= threshold]
+    if len(pred_points) and len(gt_points):
+        pred_to_gt = cKDTree(gt_points).query(pred_points, k=1)[0]
+        gt_to_pred = cKDTree(pred_points).query(gt_points, k=1)[0]
+        hd95 = float(max(np.percentile(pred_to_gt, 95), np.percentile(gt_to_pred, 95)))
+    else:
+        hd95 = float(np.linalg.norm(np.ptp(coords, axis=0))) if len(coords) else 0.0
+
+    pred_centers = _component_centers(pred_points)
+    foci = (tumor_params or {}).get("foci", [])
+    if not foci:
+        true_centers = _component_centers(gt_points)
+        radii = np.full(len(true_centers), 1.0, dtype=np.float32)
+        intensities = np.ones(len(true_centers), dtype=np.float32)
+    else:
+        true_centers = np.asarray([focus["center"] for focus in foci], dtype=np.float32)
+
+        def focus_extent(focus: dict[str, Any], axis: str) -> float:
+            params = focus.get("params", {}) or {}
+            for value in (
+                focus.get(axis),
+                params.get(axis),
+                focus.get("radius"),
+                params.get("radius"),
+                1.0,
+            ):
+                if value is not None:
+                    return float(value)
+            return 1.0
+
+        radii = np.asarray(
+            [
+                max(
+                    focus_extent(focus, "rx"),
+                    focus_extent(focus, "ry"),
+                    focus_extent(focus, "rz"),
+                )
+                for focus in foci
+            ],
+            dtype=np.float32,
+        )
+        intensities = np.asarray(
+            [float((focus.get("params", {}) or {}).get("intensity") or 1.0) for focus in foci],
+            dtype=np.float32,
+        )
+
+    if len(true_centers) == 0:
+        return {
+            "hd95_05": hd95,
+            "component_recall_05": 1.0,
+            "fp_component_count_05": float(len(pred_centers)),
+            "source_localization_error_mm": 0.0,
+            "source_separation_success": 1.0,
+            "weak_source_recall_05": 1.0,
+        }
+    if len(pred_centers) == 0:
+        diag = float(np.linalg.norm(np.ptp(coords, axis=0))) if len(coords) else 0.0
+        return {
+            "hd95_05": hd95,
+            "component_recall_05": 0.0,
+            "fp_component_count_05": 0.0,
+            "source_localization_error_mm": diag,
+            "source_separation_success": 0.0,
+            "weak_source_recall_05": 0.0,
+        }
+
+    distances = np.linalg.norm(true_centers[:, None, :] - pred_centers[None, :, :], axis=-1)
+    nearest_pred = distances.argmin(axis=1)
+    nearest_distance = distances[np.arange(len(true_centers)), nearest_pred]
+    matched = nearest_distance <= 1.5 * radii
+    fp = sum(
+        np.all(np.linalg.norm(true_centers - center[None, :], axis=1) > 1.5 * radii)
+        for center in pred_centers
+    )
+    weak_index = int(np.argmin(intensities))
+    weak_center = true_centers[weak_index]
+    weak_radius = max(float(radii[weak_index]), 1e-6)
+    weak_mask = np.linalg.norm(coords - weak_center, axis=1) <= weak_radius
+    weak_gt = weak_mask & (gt >= threshold)
+    weak_recall = (
+        float(((pred >= threshold) & weak_gt).sum() / weak_gt.sum())
+        if weak_gt.any()
+        else float(matched[weak_index])
+    )
+    separation = float(matched.all() and len(set(nearest_pred.tolist())) == len(true_centers))
+    return {
+        "hd95_05": hd95,
+        "component_recall_05": float(matched.mean()),
+        "fp_component_count_05": float(fp),
+        "source_localization_error_mm": float(nearest_distance.mean()),
+        "source_separation_success": separation,
+        "weak_source_recall_05": weak_recall,
     }
 
 
@@ -176,13 +327,23 @@ def get_num_foci(precomputed_dir: Path, samples_dir: Path | None, sample_id: str
     return -1
 
 
-def build_model(cfg: dict[str, Any], device: torch.device) -> tuple[torch.nn.Module, torch.nn.Module | None]:
+def build_model(
+    cfg: dict[str, Any], device: torch.device
+) -> tuple[torch.nn.Module, torch.nn.Module | None]:
     prior_dim = int(cfg["model"].get("prior_dim", 8))
     model_type = cfg["model"].get("model_type", "")
     use_transport_model = model_type == "transport_observability_cqr_inr"
-    use_cqr_model = use_transport_model or (model_type == "cqr_residual_inr") or (prior_dim > 8)
+    use_plain_control = model_type == "plain_cqr_residual_control"
+    use_cqr_model = (
+        use_transport_model
+        or use_plain_control
+        or (model_type == "cqr_residual_inr")
+        or (prior_dim > 8)
+    )
     if use_transport_model:
         model_cls = TransportObservabilityCQRINR
+    elif use_plain_control:
+        model_cls = PlainCQRResidualControl
     else:
         model_cls = CQRResidualINR if use_cqr_model else ResidualINR
     cqr_ratios = cfg.get("cqr", {}).get("ratios", {}) or {}
@@ -211,11 +372,14 @@ def build_model(cfg: dict[str, Any], device: torch.device) -> tuple[torch.nn.Mod
         skip_connection=cfg["model"]["skip_connection"],
         view_feat_dim=view_feat_dim,
     )
-    if model_cls is TransportObservabilityCQRINR:
+    if model_cls in {TransportObservabilityCQRINR, PlainCQRResidualControl}:
         transport = cfg.get("transport", {}) or {}
         operator = CompressedGreenOperator.load(transport["operator_cache"])
         with np.load(Path(cfg["data"]["shared_dir"]) / "mesh.npz", allow_pickle=False) as mesh:
             elements = mesh["elements"].copy()
+        extra_kwargs = {}
+        if model_cls is PlainCQRResidualControl:
+            extra_kwargs["lifting_mode"] = cfg["model"].get("lifting_mode", "p1")
         model = model_cls(
             green_node_modes=operator.green_node_modes,
             elements=elements,
@@ -235,6 +399,7 @@ def build_model(cfg: dict[str, Any], device: torch.device) -> tuple[torch.nn.Mod
             measurement_normalization=transport.get(
                 "measurement_normalization", "least_squares_stage1_scale"
             ),
+            **extra_kwargs,
         ).to(device)
         return model, view_encoder
     if model_cls is CQRResidualINR:
@@ -465,15 +630,19 @@ def run_model_on_sample(
     residual_chunks = []
     gate_chunks = []
     raw_residual_chunks = []
+    physics_summary: dict[str, float] = {}
+    mechanism_chunks: dict[str, list[np.ndarray]] = {}
     proj_imgs = None
     mcx_valid = None
     if view_encoder is not None:
         if samples_dir is None:
             raise ValueError("samples_dir is required for multiview evaluation")
-        proj_imgs = torch.from_numpy(load_proj_imgs(samples_dir, sample_id, cfg)).unsqueeze(0).to(device)
+        proj_imgs = (
+            torch.from_numpy(load_proj_imgs(samples_dir, sample_id, cfg)).unsqueeze(0).to(device)
+        )
         mcx_valid = mcx_valid_mask(frame, coords_world)
 
-    transport_model = isinstance(model, TransportObservabilityCQRINR)
+    transport_model = isinstance(model, (TransportObservabilityCQRINR, PlainCQRResidualControl))
     transport_arrays = None
     if transport_model:
         transport_arrays = load_transport_eval_arrays(cfg, data, valid, samples_dir, sample_id)
@@ -506,9 +675,7 @@ def run_model_on_sample(
                 "n_valid_candidate_pool": torch.tensor(
                     [transport_arrays["n_valid_candidate_pool"]], device=device
                 ),
-                "coarse_d": torch.from_numpy(transport_arrays["coarse_d"])
-                .unsqueeze(0)
-                .to(device),
+                "coarse_d": torch.from_numpy(transport_arrays["coarse_d"]).unsqueeze(0).to(device),
                 "measurement_b": torch.from_numpy(transport_arrays["measurement_b"])
                 .unsqueeze(0)
                 .to(device),
@@ -538,12 +705,103 @@ def run_model_on_sample(
             view_feat, _ = view_encoder(proj_imgs, world_b, coords_vox_norm=None)
             valid_b = torch.from_numpy(mcx_valid[start:end]).unsqueeze(0).to(device)
             view_feat = view_feat * valid_b.unsqueeze(-1).float()
-            output = unpack_model_output(model(coords_b, prior_b, view_feat, correction_band=band_b))
+            output = unpack_model_output(
+                model(coords_b, prior_b, view_feat, correction_band=band_b)
+            )
         d_hat_b = select_stage2_prediction(output, cfg)
         fem_b = output["fem_interp"]
         residual_b = output["residual"]
         gate_b = output.get("residual_gate", torch.zeros_like(residual_b))
         raw_residual_b = output.get("raw_residual", residual_b)
+        if "a_query" in output and "rho0" in output:
+            correction_b = output.get(
+                "plain_correction",
+                output.get("partition_correction", output["d_hat"] - output["rho0"]),
+            )
+            gt_b = (
+                torch.from_numpy(data["gt_values"].astype(np.float32)[valid][start:end])
+                .unsqueeze(0)
+                .to(device)
+            )
+            target_correction_b = gt_b - output["rho0"]
+            pred_modes = (output["a_query"].float() @ correction_b.float().unsqueeze(-1)).squeeze(
+                -1
+            )
+            target_modes = (
+                output["a_query"].float() @ target_correction_b.float().unsqueeze(-1)
+            ).squeeze(-1)
+            corr_error = torch.sqrt(
+                (pred_modes - target_modes).square().sum(dim=-1)
+                / (target_modes.square().sum(dim=-1) + 1e-8)
+            ).mean()
+            physics_summary["measurement_error"] = float(
+                torch.sqrt(output["data_relative_after"].clamp_min(0.0)).mean()
+            )
+            physics_summary["correction_forward_error"] = float(corr_error)
+            if "alpha" in output:
+                barycentric = prior_b[..., 4:8]
+                alpha = output["alpha"]
+                physics_summary["alpha_lambda_l1"] = float(torch.abs(alpha - barycentric).mean())
+                physics_summary["alpha_entropy"] = float(
+                    (-(alpha.clamp_min(1e-8) * alpha.clamp_min(1e-8).log()).sum(dim=-1)).mean()
+                )
+                mechanism_chunks.setdefault("alpha_lambda_deviation", []).append(
+                    torch.abs(alpha - barycentric)
+                    .mean(dim=-1)
+                    .squeeze(0)
+                    .detach()
+                    .cpu()
+                    .float()
+                    .numpy()
+                )
+            rho_delta = output["rho0"] - output["fem_interp"]
+            physics_summary["rho_tc_p1_l1"] = float(rho_delta.abs().mean())
+            physics_summary["rho_tc_p1_l2"] = float(torch.sqrt(rho_delta.square().mean()))
+            physics_summary["transport_error"] = float(output["transport_error"].mean())
+            mechanism_chunks.setdefault("rho_tc_minus_p1", []).append(
+                rho_delta.squeeze(0).detach().cpu().float().numpy()
+            )
+            mechanism_chunks.setdefault("correction", []).append(
+                correction_b.squeeze(0).detach().cpu().float().numpy()
+            )
+            if "observable_correction" in output:
+                observable = output["observable_correction"]
+                ambiguous = output["ambiguous_correction"]
+                combined_energy = (observable + ambiguous).square().sum() + 1e-8
+                physics_summary["observable_energy_fraction"] = float(
+                    observable.square().sum() / combined_energy
+                )
+                physics_summary["ambiguous_energy_fraction"] = float(
+                    ambiguous.square().sum() / combined_energy
+                )
+                physics_summary["raw_observable_norm"] = float(
+                    torch.sqrt(output["raw_observable"].square().mean())
+                )
+                physics_summary["projected_observable_norm"] = float(
+                    torch.sqrt(observable.square().mean())
+                )
+                physics_summary["observable_projection_ratio"] = float(
+                    output["observable_correction"].abs().mean()
+                    / (output["raw_observable"].abs().mean() + 1e-8)
+                )
+                physics_summary["raw_ambiguous_norm"] = float(
+                    torch.sqrt(output["raw_ambiguous"].square().mean())
+                )
+                physics_summary["projected_ambiguous_norm"] = float(
+                    torch.sqrt(ambiguous.square().mean())
+                )
+                physics_summary["ambiguous_projection_ratio"] = float(
+                    ambiguous.abs().mean() / (output["raw_ambiguous"].abs().mean() + 1e-8)
+                )
+                for key, value in (
+                    ("observable_correction", observable),
+                    ("ambiguous_correction", ambiguous),
+                    ("raw_observable", output["raw_observable"]),
+                    ("raw_ambiguous", output["raw_ambiguous"]),
+                ):
+                    mechanism_chunks.setdefault(key, []).append(
+                        value.squeeze(0).detach().cpu().float().numpy()
+                    )
         d_hat_chunks.append(d_hat_b.squeeze(0).detach().cpu().float().numpy())
         fem_chunks.append(fem_b.squeeze(0).detach().cpu().float().numpy())
         residual_chunks.append(residual_b.squeeze(0).detach().cpu().float().numpy())
@@ -558,6 +816,8 @@ def run_model_on_sample(
         {
             "residual_gate": np.concatenate(gate_chunks),
             "raw_residual": np.concatenate(raw_residual_chunks),
+            **physics_summary,
+            **{key: np.concatenate(chunks) for key, chunks in mechanism_chunks.items() if chunks},
         },
     )
 
@@ -572,6 +832,7 @@ def evaluate_sample(
     residual: np.ndarray,
     valid: np.ndarray,
     diagnostics: dict[str, np.ndarray] | None = None,
+    tumor_params: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     gt = data["gt_values"].astype(np.float32)[valid]
     diagnostics = diagnostics or {}
@@ -585,7 +846,9 @@ def evaluate_sample(
     gt_neg = ~gt_pos
     s2_minus_fem = d_hat - fem
 
-    def masked_mean(values: np.ndarray, mask: np.ndarray | None = None, abs_value: bool = False) -> float:
+    def masked_mean(
+        values: np.ndarray, mask: np.ndarray | None = None, abs_value: bool = False
+    ) -> float:
         if mask is None:
             selected = values
         else:
@@ -612,6 +875,8 @@ def evaluate_sample(
         "fem_precision_05": fem_metrics["precision"],
         "s2_recall_05": s2_metrics["recall"],
         "fem_recall_05": fem_metrics["recall"],
+        "s2_specificity_05": s2_metrics["specificity"],
+        "fem_specificity_05": fem_metrics["specificity"],
         "mse_s2": float(np.mean((d_hat - gt) ** 2)) if len(gt) else 0.0,
         "mse_fem": float(np.mean((fem - gt) ** 2)) if len(gt) else 0.0,
         "residual_norm": float(np.mean(np.abs(residual))) if len(residual) else 0.0,
@@ -628,7 +893,44 @@ def evaluate_sample(
         "s2_minus_fem_mean": masked_mean(s2_minus_fem),
         "s2_minus_fem_gt_pos_mean": masked_mean(s2_minus_fem, gt_pos),
         "s2_minus_fem_gt_neg_mean": masked_mean(s2_minus_fem, gt_neg),
+        "measurement_error": float(diagnostics.get("measurement_error", 0.0)),
+        "correction_forward_error": float(diagnostics.get("correction_forward_error", 0.0)),
     }
+    for key in (
+        "alpha_lambda_l1",
+        "alpha_entropy",
+        "rho_tc_p1_l1",
+        "rho_tc_p1_l2",
+        "transport_error",
+        "observable_energy_fraction",
+        "ambiguous_energy_fraction",
+        "raw_observable_norm",
+        "projected_observable_norm",
+        "observable_projection_ratio",
+        "raw_ambiguous_norm",
+        "projected_ambiguous_norm",
+        "ambiguous_projection_ratio",
+    ):
+        if key in diagnostics:
+            row[key] = float(diagnostics[key])
+    if "role" in data:
+        role_values = data["role"][valid]
+        for vector_key in ("alpha_lambda_deviation", "rho_tc_minus_p1"):
+            if vector_key not in diagnostics:
+                continue
+            values = np.asarray(diagnostics[vector_key])
+            for role_id, role_name in ROLE_NAMES.items():
+                mask = role_values == role_id
+                if mask.any():
+                    row[f"{vector_key}_{role_name}"] = float(np.mean(np.abs(values[mask])))
+    row.update(
+        source_metrics(
+            d_hat,
+            gt,
+            data["grid_coords"].astype(np.float32)[valid],
+            tumor_params,
+        )
+    )
 
     if "role" in data:
         role = data["role"][valid]
@@ -680,7 +982,9 @@ def summarize_by_foci(rows: list[dict[str, Any]]) -> dict[str, dict[str, float]]
 def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=BASE_FIELDNAMES + ROLE_FIELDNAMES, extrasaction="ignore")
+        writer = csv.DictWriter(
+            f, fieldnames=BASE_FIELDNAMES + ROLE_FIELDNAMES, extrasaction="ignore"
+        )
         writer.writeheader()
         writer.writerows(rows)
 
@@ -704,9 +1008,7 @@ def main() -> None:
     if cfg.get("data", {}).get("allow_stale_frame_manifest", False):
         os.environ["DU2VOX_ALLOW_STALE_FRAME_MANIFEST"] = "1"
     if cfg.get("data", {}).get("frame_manifest_sha256"):
-        os.environ["DU2VOX_FRAME_MANIFEST_SHA256"] = str(
-            cfg["data"]["frame_manifest_sha256"]
-        )
+        os.environ["DU2VOX_FRAME_MANIFEST_SHA256"] = str(cfg["data"]["frame_manifest_sha256"])
 
     split_file = cfg["data"][f"{args.split}_split"]
     sample_ids = load_split(split_file)
@@ -764,6 +1066,9 @@ def main() -> None:
                     residual,
                     valid,
                     diagnostics,
+                    tumor_params=read_json(samples_dir / sample_id / "tumor_params.json")
+                    if samples_dir is not None
+                    else None,
                 )
             )
 

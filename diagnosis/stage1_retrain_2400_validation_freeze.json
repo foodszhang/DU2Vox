@@ -1,0 +1,24 @@
+{
+  "status": "frozen_on_val300",
+  "selection_metric": "canonical_p1_dice_at_fixed_threshold_0.5",
+  "selected_checkpoint": "/home/foods/pro/DU2Vox/runs/stage1_fmt_simgen_v2_3k_20k_retrain_2400_seed20260901/checkpoints/best_dice05.pth",
+  "selected_checkpoint_sha256": "148ea58a2147d4889646069d1ef65e291ec5affea191cfaf280f71f7376932ec",
+  "selected_epoch": 122,
+  "selected_val_dice": 0.6401665400709796,
+  "candidates": [
+    {
+      "name": "best_node_dice05",
+      "epoch": 122,
+      "canonical_val_dice": 0.6401665400709796,
+      "artifact": "diagnosis/stage1_retrain_2400_val300_canonical.json"
+    },
+    {
+      "name": "best_training_val_loss",
+      "epoch": 146,
+      "canonical_val_dice": 0.633569614079636,
+      "artifact": "diagnosis/stage1_retrain_2400_best_loss_val300_canonical.json"
+    }
+  ],
+  "development_test_accessed_before_freeze": false,
+  "sealed_confirmation_accessed": false
+}

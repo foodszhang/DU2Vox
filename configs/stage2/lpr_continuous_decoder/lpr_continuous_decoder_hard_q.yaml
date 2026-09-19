@@ -1,0 +1,74 @@
+experiment:
+  name: lpr_continuous_decoder_hard_q
+runs_root: runs
+data:
+  dataset_root: /home/foods/pro/DU2Vox/data/lpr_continuous_gaussian_mixture_3k_20k
+  samples_dir: /home/foods/pro/DU2Vox/data/lpr_continuous_gaussian_mixture_3k_20k/samples
+  shared_dir: /home/foods/pro/FMT-SimGen/output/shared_mesh_20k
+  allow_stale_frame_manifest: false
+  frame_manifest_sha256: a89d36a52cc0d33e4764f6a65056a2dfa7fbe9fa55ed3458c0beb84d5ba31ee3
+  train_split: /home/foods/pro/DU2Vox/data/lpr_continuous_gaussian_mixture_3k_20k/splits/train.txt
+  val_split: /home/foods/pro/DU2Vox/data/lpr_continuous_gaussian_mixture_3k_20k/splits/val.txt
+  test_split: /home/foods/pro/DU2Vox/data/lpr_continuous_gaussian_mixture_3k_20k/splits/test.txt
+  train_bridge_dir: output/bridge_lpr_continuous_train
+  val_bridge_dir: output/bridge_lpr_continuous_val
+  test_bridge_dir: output/bridge_lpr_continuous_test
+  operator_cache: experiments/cross_discretization_decomposition/artifacts/operator_cache
+  projection_targets_dir: precomputed/lpr_continuous_projection_targets
+  normalize_b: false
+  use_visible_mask: false
+  projection_file: proj.npz
+  projection_norm: per_view_max
+  projection_transform: none
+  gt_mode: continuous
+  normalize_gt: none
+  binary_threshold: 0.05
+  signal_query_fraction: 0.5
+  v4_states_root: precomputed/lpr_continuous_v4_epoch20/states
+  terminal_hidden_root: precomputed/lpr_continuous_v4_epoch20/terminal_hidden
+frozen_backbone:
+  config: configs/stage2/lpr_continuous_v4_2400.yaml
+  config_sha256: 9e26f7949490698d60a541965eff3e8646eba63b91c571f4fc53611e7cbb3d44
+  checkpoint: runs/lpr_continuous_v4_centered_finetune_2400/checkpoints/candidate_balanced_val_epoch20.pth
+  checkpoint_sha256: 0817568b4d548f0a795e824f9fff7a0f1c43bb5e6a74c5f2b39d2d2ded9eb367
+  expected_epoch: 20
+model:
+  mode: hard
+  input_contract: approximation_space_separated
+  coordinate_frequencies: 6
+  hidden_dim: 160
+  hidden_layers: 3
+  chunk_size: 65536
+  boundary_temperature: 0.1
+  use_views: false
+  train_view_encoder: false
+  use_terminal_latent: true
+  latent_dim: 144
+training:
+  seed: 20260915
+  epochs: 30
+  lr: 0.0001
+  weight_decay: 1.0e-05
+  grad_clip_norm: 1.0
+  amp_dtype: bf16
+  early_stopping_patience: 5
+  max_peak_gpu_gib: 16.0
+loss:
+  smooth_l1_beta: 0.1
+  lambda_detail_l1: 1.0
+  lambda_detail_mse: 0.1
+  lambda_support: 0.0
+  lambda_final_source_mse: 1.0
+  lambda_final_global_mse: 1.0
+  source_threshold: 0.0
+  support_fraction: 0.5
+  support_temperature: 0.1
+  tversky_alpha: 0.5
+  tversky_beta: 0.5
+  lambda_negativity: 1.0
+validation:
+  threshold: 0.5
+  dense_every: 1
+  selection_metric: ccc
+  selection_mode: max
+  checkpoint_name: best_dense_val_ccc.pth

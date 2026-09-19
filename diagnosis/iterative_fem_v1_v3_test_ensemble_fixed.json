@@ -1,0 +1,22 @@
+{
+  "mode": "fixed_evaluation",
+  "split": "/home/foods/pro/FMT-SimGen/data/fmt_simgen_v2_3k_20k/splits/test.txt",
+  "threshold": 0.5,
+  "n_samples": 300,
+  "best": {
+    "v3_weight": 0.55,
+    "v1_weight": 0.44999999999999996,
+    "dice": 0.7027303053621764,
+    "precision": 0.714411874999222,
+    "recall": 0.7657551396703314
+  },
+  "curve": [
+    {
+      "v3_weight": 0.55,
+      "v1_weight": 0.44999999999999996,
+      "dice": 0.7027303053621764,
+      "precision": 0.714411874999222,
+      "recall": 0.7657551396703314
+    }
+  ]
+}
