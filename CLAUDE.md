@@ -297,3 +297,9 @@ configs/
     ├── full_multiview_v6.yaml  # MCX 7-view fusion (full_multiview)
     └── baseline_de_only_v6.yaml
 ```
+
+<!-- research-os:begin -->
+@AGENTS.md
+
+For research work, use the imported project contract and the canonical state under `research/`. Do not duplicate project rules here.
+<!-- research-os:end -->

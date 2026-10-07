@@ -303,3 +303,13 @@ confirmation access.
 
 If a command depends on external FMT-SimGen data that is missing locally, report that
 clearly instead of fabricating results.
+
+<!-- research-os:begin -->
+## Research OS integration
+
+- Canonical research state lives under `research/`.
+- For research tasks, read `research/WORKFLOW.md` and the specific task packet before changing code.
+- Treat `research/METHOD_SPEC.md`, accepted entries in `research/DECISIONS.md`, and supported entries in `research/CLAIMS.md` as project state, not suggestions.
+- Do not silently change frozen scientific assumptions, accepted claims, dataset/split definitions, evaluation rules, or experiment provenance.
+- Local agents may execute and summarize evidence; scientific claim promotion requires an explicit decision.
+<!-- research-os:end -->
